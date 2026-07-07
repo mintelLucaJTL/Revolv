@@ -12,7 +12,7 @@ Revolv ist ein spezialisiertes Modul zur intelligenten Analyse und Optimierung v
 ## Tech-Stack
 
 * **Backend:** ASP.NET Core (C#)
-* **Frontend:** React mit TypeScript
+* **Frontend:** React mit JavaScript
 * **Design:** Figma (UI/UX Mockups)
 
 ## Zielsetzung für das Praktikum
@@ -24,7 +24,7 @@ Dieses Projekt wurde im Rahmen eines 8-wöchigen Praktikums bei JTL-Software ent
 ## Entwicklung
 
 ### Voraussetzungen
-(Hier kannst du später noch die Installation deines Backends/Frontends ergänzen)
+
 
 ### Start
 1. Repository klonen.
