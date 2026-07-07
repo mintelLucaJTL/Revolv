@@ -1,0 +1,10 @@
+{
+  "description": "This web dashboard empowers e-commerce businesses to analyze and reduce return rates through insightful KPIs, AI recommendations, and detailed product analytics.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
