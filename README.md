@@ -25,8 +25,10 @@ Dieses Projekt wurde im Rahmen eines 8-wöchigen Praktikums bei JTL-Software ent
 
 ### Voraussetzungen
 
+* [.NET 10 SDK](https://dotnet.microsoft.com/download) (für das Backend)
+* [Node.js](https://nodejs.org/) (für das Frontend)
 
 ### Start
 1. Repository klonen.
 2. Backend (ASP.NET Core) starten.
-3. Frontend (React/TypeScript) über `npm run dev` ausführen.
+3. Frontend (React/JavaScript) über `npm run dev` ausführen.
