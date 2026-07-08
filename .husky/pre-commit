@@ -1,7 +1,11 @@
 #!/usr/bin/env sh
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
+#
+# Normalize paths so Windows-git paths like `RevolvAPI\Program.cs`
+# still match our `/` based prefixes.
+#
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR | tr '\\' '/')
 
 frontend_changed=false
 backend_changed=false
@@ -34,6 +38,12 @@ if [ "$backend_changed" = true ]; then
   echo "[backend] Verifying C# formatting..."
   (cd "$ROOT/RevolvAPI" && dotnet format RevolvAPI.csproj --verify-no-changes) || {
     echo "[backend] Formatting check failed. Run: cd RevolvAPI && dotnet format RevolvAPI.csproj"
+    exit 1
+  }
+
+  echo "[backend] Verifying C# compilation..."
+  (cd "$ROOT/RevolvAPI" && dotnet build RevolvAPI.csproj -v:m) || {
+    echo "[backend] Build failed. Fix the C# errors and try again."
     exit 1
   }
 fi
