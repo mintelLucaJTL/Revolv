@@ -18,8 +18,14 @@ echo "[pre-commit] Running quality checks..."
 
 if [ "$frontend_changed" = true ]; then
   echo "[frontend] Linting..."
-  (cd "$ROOT/Frontend" && npm run lint) || {
+  (cd "$ROOT/Frontend" && node ./node_modules/oxlint/bin/oxlint) || {
     echo "[frontend] Lint failed. Fix the reported issues and try again."
+    exit 1
+  }
+
+  echo "[frontend] Verifying formatting..."
+  (cd "$ROOT/Frontend" && node ./node_modules/oxfmt/bin/oxfmt --check) || {
+    echo "[frontend] Formatting check failed. Run: cd Frontend && npm run format"
     exit 1
   }
 fi
@@ -27,7 +33,7 @@ fi
 if [ "$backend_changed" = true ]; then
   echo "[backend] Verifying C# formatting..."
   (cd "$ROOT/RevolvAPI" && dotnet format RevolvAPI.csproj --verify-no-changes) || {
-    echo "[backend] Formatting check failed. Run: dotnet format RevolvAPI.csproj"
+    echo "[backend] Formatting check failed. Run: cd RevolvAPI && dotnet format RevolvAPI.csproj"
     exit 1
   }
 fi
