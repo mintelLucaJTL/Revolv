@@ -7,13 +7,13 @@ export default function App() {
       <Card className="max-w-[500px] w-full">
         
         <CardHeader className="items-center">
-          <Rocket size={40} color="#6D28D9" strokeWidth={1.5} />
-          <CardTitle>Revolv Frontend steht!</CardTitle>
+          <Rocket size={40} color="black" strokeWidth={1.5} />
+          <CardTitle>Test!</CardTitle>
         </CardHeader>
         
         <CardContent className="flex flex-col gap-4 text-center">
           <Text type="small" color="muted">
-            Das JTL UI Toolkit ist erfolgreich installiert und einsatzbereit für unser Retouren-Dashboard.
+            Ui Toolkit richtig installiert!
           </Text>
           <Button label="Los geht's!" variant="default" />
         </CardContent>
