@@ -12,7 +12,7 @@ Revolv ist ein spezialisiertes Modul zur intelligenten Analyse und Optimierung v
 ## Tech-Stack
 
 * **Backend:** ASP.NET Core (C#)
-* **Frontend:** React mit JavaScript
+* **Frontend:** React mit JavaScript/TypeScript
 * **Design:** Figma (UI/UX Mockups)
 
 ## Zielsetzung für das Praktikum
