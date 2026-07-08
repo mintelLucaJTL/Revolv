@@ -1,0 +1,24 @@
+{
+  "name": "revolv",
+  "version": "1.0.0",
+  "description": "Revolv ist ein spezialisiertes Modul zur intelligenten Analyse und Optimierung von Retourenprozessen für die JTL-Wawi. Ziel ist es, die Retourenquote durch datengestützte Analysen zu senken und die Bearbeitungszeit für Kundenretouren drastisch zu verkürzen.",
+  "main": "index.js",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mintelLucaJTL/Revolv.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mintelLucaJTL/Revolv/issues"
+  },
+  "homepage": "https://github.com/mintelLucaJTL/Revolv#readme",
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}

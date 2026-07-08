@@ -1,0 +1,35 @@
+#!/usr/bin/env sh
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
+
+frontend_changed=false
+backend_changed=false
+
+echo "$STAGED" | grep -q '^Frontend/' && frontend_changed=true
+echo "$STAGED" | grep -q '^RevolvAPI/' && backend_changed=true
+
+if [ "$frontend_changed" = false ] && [ "$backend_changed" = false ]; then
+  echo "[pre-commit] No Frontend or RevolvAPI changes staged. Skipping checks."
+  exit 0
+fi
+
+echo "[pre-commit] Running quality checks..."
+
+if [ "$frontend_changed" = true ]; then
+  echo "[frontend] Linting..."
+  (cd "$ROOT/Frontend" && npm run lint) || {
+    echo "[frontend] Lint failed. Fix the reported issues and try again."
+    exit 1
+  }
+fi
+
+if [ "$backend_changed" = true ]; then
+  echo "[backend] Verifying C# formatting..."
+  (cd "$ROOT/RevolvAPI" && dotnet format RevolvAPI.csproj --verify-no-changes) || {
+    echo "[backend] Formatting check failed. Run: dotnet format RevolvAPI.csproj"
+    exit 1
+  }
+fi
+
+echo "[pre-commit] All checks passed."
