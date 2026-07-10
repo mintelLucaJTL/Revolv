@@ -1,5 +1,9 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using RevolvAPI.Data;
+using RevolvAPI.Services;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +31,25 @@ builder.Services.AddCors(options =>
     });
 });
 
+// configure JWT authentication -> Checks if the token is valid and not expired
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true, // Validate the issuer of the token
+            ValidateAudience = true, // Validate the audience of the token
+            ValidateLifetime = true, // Validate the expiration of the token
+            ValidateIssuerSigningKey = true, // Validate the signing key of the token
+            ValidIssuer = builder.Configuration["Jwt:Issuer"], // The expected issuer of the token
+            ValidAudience = builder.Configuration["Jwt:Issuer"], // The expected audience of the token
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])) // The signing key used to validate the token
+        };
+    });
+
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IPasswordService, PasswordService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -37,7 +60,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthorization();
+app.UseAuthentication(); // This Checks if the user is authenticated, meaning they have provided a valid JWT token in the request header.
+app.UseAuthorization(); // This Checks if the user is authorized to access the endpoint, based on the policies defined in the controllers.
 app.MapControllers();
 
 // temporary endpoint to test the database connection
