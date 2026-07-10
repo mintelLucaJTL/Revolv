@@ -8,7 +8,25 @@ import {
   CardTitle,
   Text,
 } from "@jtl-software/platform-ui-react";
-
+const navItems = ["Dashboard","Retourenanalyse","Qualitätsprüfung","Produktbeschreibung","Ki-Empfehlungen"];
+const Cards = [
+  {
+    title: "Retourenanalyse",
+    content: "Details about the returns analysis."
+  },
+  {
+    title: "Qualitätsprüfung",
+    content: "Details about the quality inspection."
+  },
+  {
+    title: "Produktbeschreibung",
+    content: "Details about the product description."
+  },
+  {
+    title: "Ki-Empfehlungen",
+    content: "Details about the AI recommendations."
+  }
+];
 export default function Dashboard() {
   return (
     <Box className="min-h-screen bg-slate-50">
@@ -22,35 +40,6 @@ export default function Dashboard() {
         }
         className="bg-white shadow-sm"
       />
-
-      <Box className="flex">
-        <Box className="w-72 min-h-[calc(100vh-72px)] bg-white border-r p-4 space-y-3">
-          <Text weight="bold">Navigation</Text>
-          <Button label="Dashboard" variant="ghost" fullWidth />
-          <Button label="Orders" variant="ghost" fullWidth />
-          <Button label="Products" variant="ghost" fullWidth />
-        </Box>
-
-        <Box className="flex-1 p-6 grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Latest Orders</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Text>Recent order details go here.</Text>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Revolve Dashboard</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Text>Current client info and progress.</Text>
-            </CardContent>
-          </Card>
-        </Box>
-      </Box>
     </Box>
   );
 }
