@@ -40,14 +40,14 @@ app.MapGet("/test-db", async (AppDbContext db) =>
 
         // Return a success message if the connection is successful, otherwise return a problem message.
         if (isConnected)
-            return Results.Ok("Juhu! Die Wawi-Datenbank ist ERFOLGREICH verbunden! 🎉");
+            return Results.Ok("Successfully connected to DB! C:");
         else
-            return Results.Problem("Keine Antwort von der Datenbank.");
+            return Results.Problem("Couldnt connecto to DB! :C");
     }
     catch (Exception ex)
     {
         // Return a problem message with the exception details if an error occurs during the connection attempt.
-        return Results.Problem($"Fehler bei der Verbindung: {ex.Message}");
+        return Results.Problem($"Error while connecting: {ex.Message}");
     }
 });
 
