@@ -29,8 +29,12 @@ Dieses Projekt wird im Rahmen eines 8-wöchigen Praktikums bei JTL-Software entw
 * [Node.js](https://nodejs.org/) (für das React-Frontend)
 * SQL Server Management Studio (SSMS) für die Datenbank
 
-### 1. Repository klonen
-Lade das Projekt lokal auf deinen Rechner herunter und öffne es in deiner Entwicklungsumgebung.
+### 1. Repository klonen & Initialisieren
+Lade das Projekt lokal auf deinen Rechner herunter und öffne es in deiner Entwicklungsumgebung. Führe danach direkt einmal im Hauptverzeichnis (Revolv-Terminal) diesen Befehl aus, damit alle nötigen Basis-Pakete (wie z.B. Husky) geladen werden:
+
+```bash
+npm install
+````
 
 ### 2. Backend Starten (RevolvAPI)
 Damit der Login, die Datenbankverbindung und die JWT-Generierung lokal funktionieren, müssen einmalig die geheimen Schlüssel in den lokalen User Secrets hinterlegt werden. Führe dazu folgende Befehle in der Konsole im Ordner des Backends aus:
