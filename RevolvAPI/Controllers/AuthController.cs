@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using BCrypt.Net;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using RevolvAPI.Models;
@@ -64,6 +66,39 @@ namespace RevolvAPI.Controllers
             _ctx.SaveChanges();
 
             return Ok();
+        }
+
+        // Einzelner Benutzer
+        public async Task<bool> PasswordHash(int userId)
+        {
+            var user = await _ctx.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            if (!string.IsNullOrEmpty(user.PasswordHash) && !user.PasswordHash.StartsWith("$2"))
+            {
+                user.PasswordHash = _passwordService.HashPassword(user.PasswordHash);
+                await _ctx.SaveChangesAsync();
+                return true;
+            }
+
+            return false;
+        }
+
+        // Endpoint: migriert alle noch nicht-gehashten PasswordHash-Einträge
+        [HttpPost("migrate-passwords")]
+        public async Task<IActionResult> MigratePasswords()
+        {
+            var users = await _ctx.Users
+                .Where(u => !string.IsNullOrEmpty(u.PasswordHash) && !u.PasswordHash.StartsWith("$2"))// das ein BCrypt hash immer mit $2 beginnt wird hier geschaut ob schon gehasht wurde
+                .ToListAsync();
+
+            foreach (var user in users)
+            {
+                user.PasswordHash = _passwordService.HashPassword(user.PasswordHash);
+            }
+
+            await _ctx.SaveChangesAsync();
+            return Ok(new { migrated = users.Count });
         }
     }
 }
