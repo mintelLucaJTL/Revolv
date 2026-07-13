@@ -12,19 +12,19 @@ const navItems = ["Dashboard","Retourenanalyse","Qualitätsprüfung","Produktbes
 const Cardsnav = [
   {
     title: "Gesamte Retourenanalyse",
-    content: "Details about the returns analysis."
+    content: "Zusammenfassung der Retourenanalyse."
   },
   {
-    title: "Bertroffene Produkte",
-    content: "Details about the returned products."
+    title: "Betroffene Produkte",
+    content: "wie viel produkte betroffen sind."
   },
   {
     title: "Ki Empfehlungen",
-    content: "Details about the AI recommendations."
+    content: "was die ki vorschlägt."
   },
   {
-    title: "verbesserte Produkte",
-    content: "Details about the AI recommendations."
+    title: "Verbesserte Produkte",
+    content: "Zusammenfassung der verbesserten Produkte."
   }
 ];
 export default function Dashboard() {
