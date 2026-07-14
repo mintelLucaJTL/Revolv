@@ -29,24 +29,20 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch("http://localhost:5215/api/auth/login", {
+      const response = await fetch("http://localhost:5215/api/Auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
-      if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || "Ungültige E-Mail oder Passwort.");
+      const data = await response.json();
+
+      if (!response.ok || !data?.token) {
+        throw new Error("Ungültige E-Mail oder Passwort.");
       }
 
-      const data = (await response.json()) as { token?: string };
-      if (!data.token) {
-        throw new Error("Kein Token vom Backend erhalten.");
-      }
-
-      localStorage.setItem("revolv_token", data.token);
-      navigate("/");
+      localStorage.setItem("authToken", data.token);
+      navigate("/dashboard");
     } catch (err) {
       if (err instanceof TypeError) {
         setError(

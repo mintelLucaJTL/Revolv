@@ -59,8 +59,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowReactFrontend");
-
+//app.UseHttpsRedirection();
+app.UseCors("AllowReactFrontend"); // This allows requests from the React frontend running on localhost:5173 to access the API endpoints.
 app.UseAuthentication(); // This Checks if the user is authenticated, meaning they have provided a valid JWT token in the request header.
 app.UseAuthorization(); // This Checks if the user is authorized to access the endpoint, based on the policies defined in the controllers.
 app.MapControllers();
