@@ -24,7 +24,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:7272/api/Auth/login", {
+      const response = await fetch("http://localhost:5215/api/Auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -32,10 +32,13 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      if (!response.ok) {
+      const data = await response.json();
+
+      if (!response.ok || !data?.token) {
         throw new Error("Ungültige E-Mail oder Passwort.");
       }
 
+      localStorage.setItem("authToken", data.token);
       navigate("/dashboard");
     } catch (err) {
       if (err instanceof TypeError) {
