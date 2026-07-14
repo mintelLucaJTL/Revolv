@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardContent, Text, Box } from "@jtl-software/platform-ui-react";
 
 type Variant = "red" | "green" | "yellow";
+
 interface Props {
   variant: Variant; // Farbe / visueller Status der Kachel
   badgeLabel?: string; // Kleine obere Beschriftung (z. B. "ÜBER 25%")
@@ -10,6 +11,8 @@ interface Props {
   onClick?: () => void;
 }
 
+// Zentrales Design wie sehen die farben aus für das Ampel-Prinzip.
+// Verhindert unübersichtliche IF-Abfragen im Code.
 const CONFIG = {
   red: { border: "border-red-100", accent: "text-red-600", bg: "bg-red-50" },
   green: { border: "border-green-100", accent: "text-green-600", bg: "bg-green-50" },
@@ -26,16 +29,20 @@ export default function KpiCard({
 }: Props) {
   // Wähle die passenden CSS-Klassen für die gewählte Variant-Farbe.
   const cfg = CONFIG[variant];
+
   return (
     <Card
+      // Dynamische Klassen für Rahmenfarbe + interaktive Hover-Effekte bei Klickbarkeit
       className={`rounded-lg ${cfg.border} p-4 hover:shadow-sm transition-colors cursor-pointer`}
       onClick={onClick}
+      // Barrierefreiheit : Macht das Element als Button erkennbar
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       aria-label={smallLabel}
     >
       <CardHeader className="flex items-start justify-between p-0 mb-2">
         <div className="flex items-center gap-3">
+          {/* Runder Icon-Hintergrund in Statusfarbe */}
           <div className={`${cfg.bg} p-2 rounded-full`}>
             <svg
               width="18"
@@ -50,6 +57,7 @@ export default function KpiCard({
             </svg>
           </div>
         </div>
+        {/* Optischer Hinweisindikator für den Nutzer (Anklickbarkeit) */}
         <div className="text-slate-300 text-sm">›</div>
       </CardHeader>
 

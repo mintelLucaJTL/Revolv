@@ -34,6 +34,8 @@ const Cardsnav = [
     content: "Zusammenfassung der verbesserten Produkte.",
   },
 ];
+
+// vordefinierte Schwellenwerte für die KpiCards (Ampel-Logik)
 const tilesData = [
   {
     variant: "red",
@@ -61,6 +63,7 @@ const tilesData = [
 export default function Dashboard() {
   return (
     <Box className="min-h-screen bg-slate-50">
+      {/* Globale Kopfzeile der App mit Titel und primären Aktionen */}
       <AppHeader
         title="Revolve Dashboard"
         subtitle="Welcome back!"
@@ -72,25 +75,30 @@ export default function Dashboard() {
         className="bg-white shadow-sm"
       />
 
+      {/* Haupt-Layout-Splitter: Trennung zwischen Sidebar und Content */}
       <Box className="flex">
-        {/* Sidebar */}
+        
+        {/* Linke Navigationsleiste (Sidebar) */}
         <Box className="w-72 min-h-[calc(100vh-72px)] bg-white border-r p-4 space-y-3">
-          <Text weight="bold"> Navigation</Text>
+          <Text weight="bold">Navigation</Text>
+         
           {navItems.map((label) => (
             <Button key={label} label={label} variant="ghost" fullWidth />
           ))}
         </Box>
 
-        {/* Main */}
+        {/* Rechter Hauptinhaltsbereich  */}
         <Box className="flex-1 p-6">
           <Text weight="bold">Retourenanalyse</Text>
 
-          {/* KPI / Ampel-Kacheln */}
+          {/* 
+            KPI-Bereich (Ampelkacheln): 
+          */}
           <div className="grid gap-4 grid-cols-1 md:grid-cols-3 my-2">
             {tilesData.map((t) => (
               <KpiCard
                 key={t.smallLabel}
-                variant={t.variant as any}
+                variant={t.variant as any} // Typ-Cast, da Variante strikt "red"|"green"|"yellow" erwartet
                 badgeLabel={t.badgeLabel}
                 smallLabel={t.smallLabel}
                 value={t.value}
@@ -100,7 +108,10 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* Restliche Cards */}
+          {/* 
+            Zweiter Content-Bereich:
+            Raster-Layout für die allgemeinen Informations- und Analyse-Karten.
+          */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
             {Cardsnav.map((card) => (
               <Card key={card.title}>
@@ -113,6 +124,7 @@ export default function Dashboard() {
               </Card>
             ))}
           </div>
+
         </Box>
       </Box>
     </Box>
