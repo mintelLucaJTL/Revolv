@@ -14,7 +14,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogIn } from "lucide-react";
 
-
 const userlogin = "admin";
 const userpwd = "123";
 
@@ -24,12 +23,31 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    if (email === userlogin && password === userpwd) {
-      setError("");
-      navigate("/dashboard");
-    } else {
-      setError("Ungültige E-Mail oder Passwort.");
+  const handleLogin = async () => {
+    setError("");
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Ungültige E-Mail oder Passwort.");
+      }
+
+      navigate("/");
+    } catch (err) {
+      if (err instanceof TypeError) {
+        setError(
+          "Backend nicht erreichbar. Starte RevolvAPI (dotnet run) und prüfe, ob es auf http://localhost:5215 läuft.",
+        );
+      } else {
+        setError(err instanceof Error ? err.message : "Login fehlgeschlagen.");
+      }
     }
   };
 
@@ -39,7 +57,7 @@ export default function LoginPage() {
       <AppHeader
         title="Revolve Login"
         subtitle="Please sign in to continue."
-         actions={
+        actions={
           <Box className="flex items-center gap-3">
             <Button label="Settings" variant="secondary" />
           </Box>

@@ -9,31 +9,54 @@ import {
   Text,
 } from "@jtl-software/platform-ui-react";
 import KpiCard from "../components/KpiCard";
-const navItems = ["Dashboard","Retourenanalyse","Qualitätsprüfung","Produktbeschreibung","Ki-Empfehlungen"];
+const navItems = [
+  "Dashboard",
+  "Retourenanalyse",
+  "Qualitätsprüfung",
+  "Produktbeschreibung",
+  "Ki-Empfehlungen",
+];
 const Cardsnav = [
   {
     title: "Gesamte Retourenanalyse",
-    content: "Zusammenfassung der Retourenanalyse."
+    content: "Zusammenfassung der Retourenanalyse.",
   },
   {
     title: "Betroffene Produkte",
-    content: "wie viel produkte betroffen sind."
+    content: "wie viel produkte betroffen sind.",
   },
   {
     title: "Ki Empfehlungen",
-    content: "was die ki vorschlägt."
+    content: "was die ki vorschlägt.",
   },
   {
     title: "Verbesserte Produkte",
-    content: "Zusammenfassung der verbesserten Produkte."
-  }
+    content: "Zusammenfassung der verbesserten Produkte.",
+  },
 ];
 const tilesData = [
-  { variant: "red",    badgeLabel: "ÜBER 25%",  smallLabel: "Hohe Retourenquote",    value: 3, percent: "36.7%" },  //fürs ampel prinzip (KpiCard)
-  { variant: "yellow", badgeLabel: "10 – 25%",   smallLabel: "Mittlere Retourenquote", value: 2, percent: "15.3%" },
-  { variant: "green",  badgeLabel: "UNTER 10%",  smallLabel: "Niedrige Retourenquote", value: 1, percent: "8.6%" }
+  {
+    variant: "red",
+    badgeLabel: "ÜBER 25%",
+    smallLabel: "Hohe Retourenquote",
+    value: 3,
+    percent: "36.7%",
+  }, //fürs ampel prinzip (KpiCard)
+  {
+    variant: "yellow",
+    badgeLabel: "10 – 25%",
+    smallLabel: "Mittlere Retourenquote",
+    value: 2,
+    percent: "15.3%",
+  },
+  {
+    variant: "green",
+    badgeLabel: "UNTER 10%",
+    smallLabel: "Niedrige Retourenquote",
+    value: 1,
+    percent: "8.6%",
+  },
 ];
-
 
 export default function Dashboard() {
   return (
@@ -64,7 +87,7 @@ export default function Dashboard() {
 
           {/* KPI / Ampel-Kacheln */}
           <div className="grid gap-4 grid-cols-1 md:grid-cols-3 my-2">
-            {tilesData.map(t => (
+            {tilesData.map((t) => (
               <KpiCard
                 key={t.smallLabel}
                 variant={t.variant as any}
@@ -72,7 +95,7 @@ export default function Dashboard() {
                 smallLabel={t.smallLabel}
                 value={t.value}
                 percent={t.percent}
-                onClick={() => { }}
+                onClick={() => {}}
               />
             ))}
           </div>
