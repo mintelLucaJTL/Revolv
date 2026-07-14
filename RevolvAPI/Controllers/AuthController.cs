@@ -1,5 +1,4 @@
-﻿using BCrypt.Net;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
@@ -27,19 +26,19 @@ namespace RevolvAPI.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginRequest r)
         {
-            // Get the user from the database by email
+            // Find the user by email
             var user = _ctx.Users.FirstOrDefault(u => u.Email == r.Email);
 
-            // If the user is not found or the password does not match, return Unauthorized
+            // Check if user exists and verify password
             if (user == null || !_passwordService.VerifyPassword(r.Password, user.PasswordHash))
             {
                 return Unauthorized("Invalid Email or Password");
             }
 
-            // Generate a JWT token for the authenticated user
+            // Generate JWT token
             var jwt = _tokenService.CreateToken(user);
 
-            // Return the token in the response
+            // Return the token to the client
             return Ok(new { token = jwt });
         }
 
@@ -47,57 +46,47 @@ namespace RevolvAPI.Controllers
         [HttpPost("register")]
         public IActionResult Register([FromBody] RegisterRequest r)
         {
+            // Check if the email already exists
             if (_ctx.Users.Any(u => u.Email == r.Email))
             {
                 return BadRequest("Email already exists");
             }
 
-            // Create a new user entity
+            // Create a new user and hash the password
             var user = new User
             {
                 Email = r.Email,
-                // Hash the password before storing it
-                PasswordHash = _passwordService.HashPassword(r.Password),
+                PasswordHash = _passwordService.HashPassword(r.Password), // hash the password
                 CreatedAt = DateTime.UtcNow
             };
 
-            // Add the user to the database
+            // Save the new user to the database
             _ctx.Users.Add(user);
             _ctx.SaveChanges();
 
             return Ok();
         }
 
-        // Einzelner Benutzer
-        public async Task<bool> PasswordHash(int userId)
-        {
-            var user = await _ctx.Users.FindAsync(userId);
-            if (user == null) return false;
-
-            if (!string.IsNullOrEmpty(user.PasswordHash) && !user.PasswordHash.StartsWith("$2"))
-            {
-                user.PasswordHash = _passwordService.HashPassword(user.PasswordHash);
-                await _ctx.SaveChangesAsync();
-                return true;
-            }
-
-            return false;
-        }
-
-        // Endpoint: migriert alle noch nicht-gehashten PasswordHash-Einträge
+        // POST: api/auth/migrate-passwords
+        // One-time helper: re-hash legacy plaintext passwords still stored in the DB.
         [HttpPost("migrate-passwords")]
         public async Task<IActionResult> MigratePasswords()
         {
+            // Find all users with non-empty passwords that are not already hashed with bcrypt
             var users = await _ctx.Users
-                .Where(u => !string.IsNullOrEmpty(u.PasswordHash) && !u.PasswordHash.StartsWith("$2"))// das ein BCrypt hash immer mit $2 beginnt wird hier geschaut ob schon gehasht wurde
+                .Where(u => u.PasswordHash != null && u.PasswordHash != "" && !u.PasswordHash.StartsWith("$2"))
                 .ToListAsync();
 
+            // Re-hash the passwords for these users
             foreach (var user in users)
             {
-                user.PasswordHash = _passwordService.HashPassword(user.PasswordHash);
+                user.PasswordHash = _passwordService.EnsureHashed(user.PasswordHash);
             }
 
+            // Save the changes to the database
             await _ctx.SaveChangesAsync();
+
+            // Return the number of users whose passwords were migrated
             return Ok(new { migrated = users.Count });
         }
     }
