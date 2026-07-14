@@ -13,10 +13,6 @@ import {
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogIn } from "lucide-react";
-import "../components/background.css";
-
-const userlogin = "admin";
-const userpwd = "123";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -24,12 +20,31 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    if (email === userlogin && password === userpwd) {
-      setError("");
+  const handleLogin = async () => {
+    setError("");
+
+    try {
+      const response = await fetch("http://localhost:7272/api/Auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Ungültige E-Mail oder Passwort.");
+      }
+
       navigate("/dashboard");
-    } else {
-      setError("Ungültige E-Mail oder Passwort.");
+    } catch (err) {
+      if (err instanceof TypeError) {
+        setError(
+          "Backend nicht erreichbar. Prüfe, ob der Server auf localhost:7272 läuft und ob CORS erlaubt ist."
+        );
+      } else {
+        setError(err instanceof Error ? err.message : "Login fehlgeschlagen.");
+      }
     }
   };
 
