@@ -1,22 +1,96 @@
-Wichtig vor dem start !
-1. eazybusiness DB im sql db manager mit dem SQL Befehl erweitern welcher aus dem ordner Database zu entnehmen ist
-2. Insert into Befehl für test user: 
+# 🚀 Projekt starten
+
+## Voraussetzungen
+
+Bevor das Projekt gestartet wird, müssen einige einmalige Schritte durchgeführt werden.
+
+### 1. Datenbank erweitern
+
+Die **eazybusiness**-Datenbank muss zunächst mit dem SQL-Skript aus dem Ordner **Database** erweitert werden.
+
+---
+
+### 2. Testbenutzer anlegen
+
+Führe folgenden SQL-Befehl aus, um einen Testbenutzer anzulegen:
+
+```sql
 INSERT INTO revolv.Users (Email, PasswordHash, CreatedAt)
 VALUES (
     'test',
     '123',
     GETDATE()
 );
-3. In visual studio in der nugget konsole folgende Befehle Ausführen:
-3.1 dotnet user-secrets init
-3.2 dotnet user-secrets set "Key" "Value"
-3.3 dotnet user-secrets set "Jwt:Key" "MeinSuperGeheimerJtlRevolvKeyDerSehrLangIst123!"
-3.4 dotnet user-secrets set "Jwt:Issuer" "RevolvAPI"
-4. React Anwendung und Rest Api starten 
-5. Im broswer eingeben: localhost:7272/swagger
-5.1 api/Auth/migrate-passwords ausführen
+```
 
+---
 
+### 3. User Secrets konfigurieren
+
+Öffne in Visual Studio die **NuGet-Paket-Manager-Konsole** und führe nacheinander folgende Befehle aus:
+
+```bash
+dotnet user-secrets init
+```
+
+```bash
+dotnet user-secrets set "Key" "Value"
+```
+
+```bash
+dotnet user-secrets set "Jwt:Key" "MeinSuperGeheimerJtlRevolvKeyDerSehrLangIst123!"
+```
+
+```bash
+dotnet user-secrets set "Jwt:Issuer" "RevolvAPI"
+```
+
+---
+
+### 4. Anwendung starten
+
+Starte anschließend:
+
+- Die **ASP.NET Core REST API**
+- Die **React-Anwendung**
+
+---
+
+### 5. Passwörter migrieren
+
+Öffne anschließend Swagger im Browser:
+
+```
+https://localhost:7272/swagger
+```
+
+Führe dort den Endpunkt
+
+```
+POST /api/Auth/migrate-passwords
+```
+
+einmal aus.
+
+Dadurch wird das Passwort des Testbenutzers gehasht und für die Authentifizierung vorbereitet.
+
+---
+
+## 🔐 Anmeldung
+
+Nach erfolgreicher Einrichtung kannst du dich mit folgenden Zugangsdaten anmelden:
+
+**E-Mail**
+
+```text
+test
+```
+
+**Passwort**
+
+```text
+123
+```
 # Revolv - JTL Return Analytics
 
 Revolv ist ein spezialisiertes Modul zur intelligenten Analyse und Optimierung von Retourenprozessen für die JTL-Wawi. Ziel ist es, die Retourenquote durch datengestützte Analysen zu senken und die Bearbeitungszeit für Kundenretouren drastisch zu verkürzen.
