@@ -13,7 +13,7 @@ import {
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogIn } from "lucide-react";
-import "../components/background.css";
+
 
 const userlogin = "admin";
 const userpwd = "123";
