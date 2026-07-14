@@ -1,3 +1,22 @@
+Wichtig vor dem start !
+1. eazybusiness DB im sql db manager mit dem SQL Befehl erweitern welcher aus dem ordner Database zu entnehmen ist
+2. Insert into Befehl für test user: 
+INSERT INTO revolv.Users (Email, PasswordHash, CreatedAt)
+VALUES (
+    'test',
+    '123',
+    GETDATE()
+);
+3. In visual studio in der nugget konsole folgende Befehle Ausführen:
+3.1 dotnet user-secrets init
+3.2 dotnet user-secrets set "Key" "Value"
+3.3 dotnet user-secrets set "Jwt:Key" "MeinSuperGeheimerJtlRevolvKeyDerSehrLangIst123!"
+3.4 dotnet user-secrets set "Jwt:Issuer" "RevolvAPI"
+4. React Anwendung und Rest Api starten 
+5. Im broswer eingeben: localhost:7272/swagger
+5.1 api/Auth/migrate-passwords ausführen
+
+
 # Revolv - JTL Return Analytics
 
 Revolv ist ein spezialisiertes Modul zur intelligenten Analyse und Optimierung von Retourenprozessen für die JTL-Wawi. Ziel ist es, die Retourenquote durch datengestützte Analysen zu senken und die Bearbeitungszeit für Kundenretouren drastisch zu verkürzen.
