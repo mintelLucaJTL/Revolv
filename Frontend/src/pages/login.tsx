@@ -23,12 +23,15 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setError("");
 
+    if (!email || !password) {
+      setError("Bitte E-Mail und Passwort eingeben.");
+      return;
+    }
+
     try {
       const response = await fetch("http://localhost:5215/api/Auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
@@ -43,7 +46,7 @@ export default function LoginPage() {
     } catch (err) {
       if (err instanceof TypeError) {
         setError(
-          "Backend nicht erreichbar. Prüfe, ob der Server auf localhost:7272 läuft und ob CORS erlaubt ist."
+          "Backend nicht erreichbar. Starte RevolvAPI mit 'dotnet run' im Ordner RevolvAPI (http://localhost:5215).",
         );
       } else {
         setError(err instanceof Error ? err.message : "Login fehlgeschlagen.");
@@ -57,7 +60,7 @@ export default function LoginPage() {
       <AppHeader
         title="Revolve Login"
         subtitle="Please sign in to continue."
-         actions={
+        actions={
           <Box className="flex items-center gap-3">
             <Button label="Settings" variant="secondary" />
           </Box>
