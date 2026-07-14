@@ -77,11 +77,10 @@ export default function Dashboard() {
 
       {/* Haupt-Layout-Splitter: Trennung zwischen Sidebar und Content */}
       <Box className="flex">
-        
         {/* Linke Navigationsleiste (Sidebar) */}
         <Box className="w-72 min-h-[calc(100vh-72px)] bg-white border-r p-4 space-y-3">
           <Text weight="bold">Navigation</Text>
-         
+
           {navItems.map((label) => (
             <Button key={label} label={label} variant="ghost" fullWidth />
           ))}
@@ -91,7 +90,7 @@ export default function Dashboard() {
         <Box className="flex-1 p-6">
           <Text weight="bold">Retourenanalyse</Text>
 
-          {/* 
+          {/*
             KPI-Bereich (Ampelkacheln): 
           */}
           <div className="grid gap-4 grid-cols-1 md:grid-cols-3 my-2">
@@ -108,7 +107,7 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* 
+          {/*
             Zweiter Content-Bereich:
             Raster-Layout für die allgemeinen Informations- und Analyse-Karten.
           */}
@@ -124,7 +123,6 @@ export default function Dashboard() {
               </Card>
             ))}
           </div>
-
         </Box>
       </Box>
     </Box>

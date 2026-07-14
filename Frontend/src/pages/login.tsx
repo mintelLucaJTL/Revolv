@@ -23,24 +23,34 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setError("");
 
+    if (!email || !password) {
+      setError("Bitte E-Mail und Passwort eingeben.");
+      return;
+    }
+
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("http://localhost:5215/api/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
-        throw new Error("Ungültige E-Mail oder Passwort.");
+        const message = await response.text();
+        throw new Error(message || "Ungültige E-Mail oder Passwort.");
       }
 
+      const data = (await response.json()) as { token?: string };
+      if (!data.token) {
+        throw new Error("Kein Token vom Backend erhalten.");
+      }
+
+      localStorage.setItem("revolv_token", data.token);
       navigate("/");
     } catch (err) {
       if (err instanceof TypeError) {
         setError(
-          "Backend nicht erreichbar. Starte RevolvAPI (dotnet run) und prüfe, ob es auf http://localhost:5215 läuft.",
+          "Backend nicht erreichbar. Starte RevolvAPI mit 'dotnet run' im Ordner RevolvAPI (http://localhost:5215).",
         );
       } else {
         setError(err instanceof Error ? err.message : "Login fehlgeschlagen.");
