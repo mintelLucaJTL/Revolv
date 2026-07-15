@@ -9,6 +9,7 @@ import {
   Text,
 } from "@jtl-software/platform-ui-react";
 import KpiCard from "../components/KpiCard";
+
 const navItems = [
   "Dashboard",
   "Retourenanalyse",
@@ -16,22 +17,31 @@ const navItems = [
   "Produktbeschreibung",
   "Ki-Empfehlungen",
 ];
+
 const Cardsnav = [
   {
-    title: "Gesamte Retourenanalyse",
-    content: "Zusammenfassung der Retourenanalyse.",
+    title: "Gesamte Retourenquote",
+    content: "Gesamtquote aller Retouren in diesem Monat.",
+    value: "24,8%",
+    extra: "−2,3% gegenüber letzter Woche",
   },
   {
-    title: "Betroffene Produkte",
-    content: "wie viel produkte betroffen sind.",
+    title: "Betroffene Artikel",
+    content: "Artikel mit aktuellen Rücksendungen.",
+    value: "142",
+    extra: "+8 gegenüber gestern",
   },
   {
-    title: "Ki Empfehlungen",
-    content: "was die ki vorschlägt.",
+    title: "KI-Empfehlungen offen",
+    content: "Offene Vorschläge, die noch geprüft werden müssen.",
+    value: "37",
+    extra: "−5 diese Woche",
   },
   {
     title: "Verbesserte Produkte",
-    content: "Zusammenfassung der verbesserten Produkte.",
+    content: "Produkte, die bereits verbessert wurden.",
+    value: "89",
+    extra: "+12 in diesem Monat",
   },
 ];
 
@@ -91,9 +101,28 @@ export default function Dashboard() {
           <Text weight="bold">Retourenanalyse</Text>
 
           {/*
-            KPI-Bereich (Ampelkacheln): 
+            Zweiter Content-Bereich:
+            Raster-Layout für die allgemeinen Informations- und Analyse-Karten.
           */}
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-3 my-2">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mt-4">
+            {Cardsnav.map((card) => (
+              <Card key={card.title} className="p-2">
+                <CardHeader className="pb-1">
+                  <CardTitle>{card.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  <Box className="text-2xl font-bold">{card.value}</Box>
+                  <Text>{card.content}</Text>
+                  <Box className="text-sm text-slate-500">{card.extra}</Box>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/*
+            KPI-Bereich (Ampelkacheln):
+          */}
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3 mt-6">
             {tilesData.map((t) => (
               <KpiCard
                 key={t.smallLabel}
@@ -104,23 +133,6 @@ export default function Dashboard() {
                 percent={t.percent}
                 onClick={() => {}}
               />
-            ))}
-          </div>
-
-          {/*
-            Zweiter Content-Bereich:
-            Raster-Layout für die allgemeinen Informations- und Analyse-Karten.
-          */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
-            {Cardsnav.map((card) => (
-              <Card key={card.title}>
-                <CardHeader>
-                  <CardTitle>{card.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Text>{card.content}</Text>
-                </CardContent>
-              </Card>
             ))}
           </div>
         </Box>
