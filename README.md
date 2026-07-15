@@ -8,24 +8,9 @@ Bevor das Projekt gestartet wird, müssen einige einmalige Schritte durchgeführ
 
 Die **eazybusiness**-Datenbank muss zunächst mit dem SQL-Skript aus dem Ordner **Database** erweitert werden.
 
----
 
-### 2. Testbenutzer anlegen
 
-Führe folgenden SQL-Befehl aus, um einen Testbenutzer anzulegen:
-
-```sql
-INSERT INTO revolv.Users (Email, PasswordHash, CreatedAt)
-VALUES (
-    'test',
-    '123',
-    GETDATE()
-);
-```
-
----
-
-### 3. User Secrets konfigurieren
+### 2. User Secrets konfigurieren
 
 Öffne in Visual Studio die **NuGet-Paket-Manager-Konsole** und führe nacheinander folgende Befehle aus:
 
@@ -34,7 +19,8 @@ dotnet user-secrets init
 ```
 
 ```bash
-dotnet user-secrets set "Key" "Value"
+dotnet user-secrets set "WawiConnection" "connectionstring"
+ "
 ```
 
 ```bash
@@ -47,7 +33,7 @@ dotnet user-secrets set "Jwt:Issuer" "RevolvAPI"
 
 ---
 
-### 4. Anwendung starten
+### 3. Anwendung starten
 
 Starte anschließend:
 
@@ -56,23 +42,11 @@ Starte anschließend:
 
 ---
 
-### 5. Passwörter migrieren
+---
 
-Öffne anschließend Swagger im Browser:
+### 4. Testbenutzer anlegen
 
-```
-https://localhost:7272/swagger
-```
-
-Führe dort den Endpunkt
-
-```
-POST /api/Auth/migrate-passwords
-```
-
-einmal aus.
-
-Dadurch wird das Passwort des Testbenutzers gehasht und für die Authentifizierung vorbereitet.
+Ein Testbenutzer kann ganz einfach über den /register-Endpunkt in der Swagger-UI registriert werden. Ein manuelles Ausführen von SQL-Skripten in der Datenbank ist nicht mehr notwendig.
 
 ---
 
