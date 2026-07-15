@@ -9,6 +9,7 @@ CREATE TABLE [revolv].[DescriptionProposals] (
 GO
 
 --  Fremdschlüssel (FOREIGN KEY) für die AI-Empfehlungen anlegen
+ALTER TABLE [revolv].[DescriptionProposals]
 ADD CONSTRAINT FK_DescriptionProposals_AiRecommendations
 FOREIGN KEY ([AiRecommendationId]) REFERENCES [revolv].[AiRecommendations]([Id]);
 GO
