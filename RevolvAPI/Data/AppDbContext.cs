@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client;
 using RevolvAPI.Models;
 
 namespace RevolvAPI.Data
@@ -10,6 +9,11 @@ namespace RevolvAPI.Data
         {
         }
 
+        // DbSets -> Tables in the database
         public DbSet<User> Users { get; set; }
+        public DbSet<DescriptionProposal> DescriptionProposals { get; set; }
+        public DbSet<AiRecommendation> AiRecommendations { get; set; }
+        public DbSet<Article> Articles { get; set; }
+        public DbSet<QualityIssue> QualityIssues { get; set; }
     }
 }
