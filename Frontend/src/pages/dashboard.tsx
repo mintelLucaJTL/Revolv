@@ -9,13 +9,14 @@ import {
   Text,
 } from "@jtl-software/platform-ui-react";
 import KpiCard from "../components/KpiCard";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const navItems = [
-  "Dashboard",
-  "Retourenanalyse",
-  "Qualitätsprüfung",
-  "Produktbeschreibung",
-  "Ki-Empfehlungen",
+  { label: "Dashboard", path: "/dashboard" },
+  { label: "Retourenanalyse", path: "/retouren-analyse" },
+  { label: "Qualitätsprüfung", path: "/qualitaetspruefung" },
+  { label: "Produktbeschreibung", path: "/produktbeschreibung" },
+  { label: "Ki-Empfehlungen", path: "/ki-empfehlungen" },
 ];
 
 const Cardsnav = [
@@ -71,6 +72,9 @@ const tilesData = [
 ];
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   return (
     <Box className="min-h-screen bg-slate-50">
       {/* Globale Kopfzeile der App mit Titel und primären Aktionen */}
@@ -91,16 +95,26 @@ export default function Dashboard() {
         <Box className="w-72 min-h-[calc(100vh-72px)] bg-white border-r p-4 space-y-3">
           <Text weight="bold">Navigation</Text>
 
-          {navItems.map((label) => (
-            <Button key={label} label={label} variant="ghost" fullWidth />
-          ))}
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Button
+                key={item.path}
+                label={item.label}
+                variant={isActive ? "default" : "ghost"}
+                fullWidth
+                onClick={() => navigate(item.path)}
+                aria-current={isActive ? "page" : undefined}
+              />
+            );
+          })}
         </Box>
 
         {/* Rechter Hauptinhaltsbereich  */}
         <Box className="flex-1 p-6">
           <Text weight="bold">Retourenanalyse</Text>
 
-          {/*
+          {/* 
             Zweiter Content-Bereich:
             Raster-Layout für die allgemeinen Informations- und Analyse-Karten.
           */}

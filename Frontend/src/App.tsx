@@ -3,21 +3,17 @@ import type { ReactNode } from "react";
 import Dashboard from "./pages/dashboard";
 import Login from "./pages/login";
 import Profile from "./pages/profile";
+import RetourenAnalyse from "./pages/Retouren-Analyse";
 
 // Diese Komponente schützt eine Route vor Zugriff ohne gültiges Token.
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  // Aktuellen Pfad merken, damit wir später zurückleiten können, falls nötig.
   const location = useLocation();
-
-  // Token aus dem Browser-LocalStorage lesen.
   const token = localStorage.getItem("authToken");
 
-  // Wenn kein Token gespeichert ist, geht es zurück zum Login.
   if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Wenn ein Token vorhanden ist, erlauben wir den Zugriff auf die Kinderkomponente.
   return children;
 }
 
@@ -26,8 +22,9 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} replace />} />
+      <Route path="/" element={<Navigate to={token ? "/login" : "/dashboard"} replace />} />
       <Route path="/login" element={<Login />} />
+
       <Route
         path="/dashboard"
         element={
@@ -36,6 +33,16 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/retouren-analyse"
+        element={
+          <ProtectedRoute>
+            <RetourenAnalyse />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/profile"
         element={
@@ -44,6 +51,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
