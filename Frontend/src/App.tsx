@@ -4,6 +4,7 @@ import Dashboard from "./pages/dashboard";
 import Login from "./pages/login";
 import Profile from "./pages/profile";
 import RetourenAnalyse from "./pages/Retouren-Analyse";
+import Registrieren from "./pages/registrieren";
 
 // Diese Komponente schützt eine Route vor Zugriff ohne gültiges Token.
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -22,9 +23,9 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={token ? "/login" : "/dashboard"} replace />} />
+      <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} replace />} />
       <Route path="/login" element={<Login />} />
-
+      <Route path="/registrieren" element={<Registrieren />} />
       <Route
         path="/dashboard"
         element={
@@ -33,7 +34,6 @@ export default function App() {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/retouren-analyse"
         element={
@@ -42,7 +42,6 @@ export default function App() {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/profile"
         element={
@@ -51,7 +50,6 @@ export default function App() {
           </ProtectedRoute>
         }
       />
-
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
