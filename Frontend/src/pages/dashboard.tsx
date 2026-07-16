@@ -10,6 +10,7 @@ import {
 } from "@jtl-software/platform-ui-react";
 import KpiCard from "../components/KpiCard";
 import { useNavigate, useLocation } from "react-router-dom";
+import TopNavigationBar from "../components/TopNavigationBar";
 
 const navItems = [
   { label: "Dashboard", path: "/dashboard" },
@@ -77,6 +78,7 @@ export default function Dashboard() {
 
   return (
     <Box className="min-h-screen bg-slate-50">
+      <TopNavigationBar />
       {/* Globale Kopfzeile der App mit Titel und primären Aktionen */}
       <AppHeader
         title="Revolve Dashboard"
@@ -114,7 +116,7 @@ export default function Dashboard() {
         <Box className="flex-1 p-6">
           <Text weight="bold">Retourenanalyse</Text>
 
-          {/* 
+          {/*
             Zweiter Content-Bereich:
             Raster-Layout für die allgemeinen Informations- und Analyse-Karten.
           */}
