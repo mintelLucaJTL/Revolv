@@ -19,12 +19,11 @@ dotnet user-secrets init
 ```
 
 ```bash
-dotnet user-secrets set "WawiConnection" "connectionstring"
- "
+dotnet user-secrets set "ConnectionStrings:WawiConnection" "DeinConnectionString"
 ```
 
 ```bash
-dotnet user-secrets set "Jwt:Key" "MeinSuperGeheimerJtlRevolvKeyDerSehrLangIst123!"
+dotnet user-secrets set "Jwt:Key" "MeinSuperGeheimerJtlRevolvKeyDerSehrLangIst123!" 
 ```
 
 ```bash
@@ -52,19 +51,8 @@ Ein Testbenutzer kann ganz einfach über den /register-Endpunkt in der Swagger-U
 
 ## 🔐 Anmeldung
 
-Nach erfolgreicher Einrichtung kannst du dich mit folgenden Zugangsdaten anmelden:
+Nach erfolgreicher Einrichtung kannst du dich mit deinen eingegebenen Daten einloggen.
 
-**E-Mail**
-
-```text
-test
-```
-
-**Passwort**
-
-```text
-123
-```
 # Revolv - JTL Return Analytics
 
 Revolv ist ein spezialisiertes Modul zur intelligenten Analyse und Optimierung von Retourenprozessen für die JTL-Wawi. Ziel ist es, die Retourenquote durch datengestützte Analysen zu senken und die Bearbeitungszeit für Kundenretouren drastisch zu verkürzen.
