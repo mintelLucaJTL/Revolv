@@ -105,9 +105,19 @@ export default function LoginPage() {
             {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
             <Button label="Sign In" variant="default" onClick={handleLogin} />
-            <div> <h2>you dont have a account?</h2></div>
-            <div> <h2>create a new account</h2></div>
-            <Button label="Create Account" variant="outline"onClick={() => navigate("/registrieren")} />
+            <div>
+              {" "}
+              <h2>you dont have a account?</h2>
+            </div>
+            <div>
+              {" "}
+              <h2>create a new account</h2>
+            </div>
+            <Button
+              label="Create Account"
+              variant="outline"
+              onClick={() => navigate("/registrieren")}
+            />
             <Separator />
           </CardContent>
         </Card>
