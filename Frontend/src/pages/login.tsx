@@ -94,20 +94,34 @@ export default function LoginPage() {
             />
 
             <Text type="small">Password</Text>
-            <input
-              className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="••••••••"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <Box className="relative w-full">
+              <input
+                className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 pr-28"
+                placeholder="••••••••"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <Box className="absolute right-1 top-1/2 -translate-y-1/2">
+                <Button
+                  label="Reset now"
+                  variant="ghost"
+                  onClick={() => navigate("/reset-password")}
+                />
+              </Box>
+            </Box>
 
             {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
             <Button label="Sign In" variant="default" onClick={handleLogin} />
-            <div> <h2>you dont have a account?</h2></div>
-            <div> <h2>create a new account</h2></div>
-            <Button label="Create Account" variant="outline"onClick={() => navigate("/registrieren")} />
+            <div className="text-center text-sm text-muted-foreground">
+              Don't have an account? Register below.
+            </div>
+            <Button
+              label="Create Account"
+              variant="outline"
+              onClick={() => navigate("/register")}
+            />
             <Separator />
           </CardContent>
         </Card>

@@ -26,6 +26,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowReactFrontend", policy =>
     {
         policy.WithOrigins("http://localhost:5173") // Default port for Vite dev server
+              .AllowAnyOrigin() 
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
