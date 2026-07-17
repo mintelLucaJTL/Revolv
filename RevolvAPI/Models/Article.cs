@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Generic;
 
 namespace RevolvAPI.Models
 {
@@ -9,7 +11,9 @@ namespace RevolvAPI.Models
         public string? ArticleNumber { get; set; }
         public string? Name { get; set; }
         public string? Category { get; set; }
-        public String? Size { get; set; }
+        public string? Size { get; set; }
 
+        // Navigation zu AiRecommendations
+        public ICollection<AiRecommendation> AiRecommendations { get; set; } = new List<AiRecommendation>();
     }
 }
