@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RevolvAPI.Models
 {
-    [Table("QualityIssues", Schema = "revolv")]
+    [Table("QualityIssues", Schema = "dbo")]
     public class QualityIssue
     {
         public int Id { get; set; }

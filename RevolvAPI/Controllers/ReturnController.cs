@@ -15,7 +15,7 @@ namespace RevolvAPI.Controllers
         // DbContext per Dependency Injection erhalten
         public ReturnController(AppDbContext ctx) => _ctx = ctx;
 
-        
+
         [HttpGet("returns")]
         public async Task<IActionResult> GetArticleReturns()
         {
@@ -54,7 +54,7 @@ namespace RevolvAPI.Controllers
                         AiStatus = status
                     };
                 })
-               
+
                 .OrderByDescending(d => d.ReturnRate)
                 .ToList();
             return Ok(dtos);
