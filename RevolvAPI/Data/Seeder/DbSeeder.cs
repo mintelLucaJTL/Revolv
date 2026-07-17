@@ -15,9 +15,9 @@ namespace RevolvAPI.Data.Seeder
                     new Article
                     {
                         ArticleNumber = "ART-1",
-                        Name = "",
-                        Category = "",
-                        Size = "",
+                        Name = "Boyfriend jeans",
+                        Category = "Pants",
+                        Size = "M",
                         AiRecommendations = new List<AiRecommendation>
                         {
                             new AiRecommendation
