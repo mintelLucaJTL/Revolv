@@ -95,7 +95,7 @@ namespace RevolvAPI.Data.Seeder
                             {
                                 ReturnRate = 4.1m,
                                 AiSummaryText = "Keine auffälligen Probleme. Nach der letzten Anpassung der Beschreibung sind die Retouren gesunken.",
-                                IsFullyResolved = true, // Dieser Artikel gilt als "Verbessertes Produkt"
+                                IsFullyResolved = true,
                                 QualityIssues = new List<QualityIssue>(),
                                 DescriptionProposals = new List<DescriptionProposal>(),
                                 ActionRecommendations = new List<ActionRecommendation>

@@ -15,7 +15,7 @@ namespace RevolvAPI.Controllers
         private readonly AppDbContext _ctx;
         public DashboardController(AppDbContext ctx) => _ctx = ctx;
 
-        
+
         [HttpGet("return-reasons")]
         public async Task<IActionResult> GetReturnReasons()
         {
@@ -32,7 +32,7 @@ namespace RevolvAPI.Controllers
                 .Take(5)
                 .ToListAsync();
 
-         
+
             // Prozentwert berechnen (sichere Division, gerundet auf 2 Nachkommastellen
             var dtos = grouped
                 .Select(x => new ReturnReasonsDTO
