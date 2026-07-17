@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using RevolvAPI.Data;
 using RevolvAPI.Services;
 using System.Text;
+using RevolvAPI.Data.Seeder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +27,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowReactFrontend", policy =>
     {
         policy.WithOrigins("http://localhost:5173") // Default port for Vite dev server
-              .AllowAnyOrigin() 
+               .AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -86,5 +87,8 @@ app.MapGet("/test-db", async (AppDbContext db) =>
         return Results.Problem($"Error while connecting: {ex.Message}");
     }
 });
+
+// Seed the database with initial data
+DbSeeder.Seed(app.Services.CreateScope().ServiceProvider.GetRequiredService<AppDbContext>());
 
 app.Run();

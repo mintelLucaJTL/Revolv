@@ -10,6 +10,8 @@ import {
 } from "@jtl-software/platform-ui-react";
 import KpiCard from "../components/KpiCard";
 import { useNavigate, useLocation } from "react-router-dom";
+import TopNavigationBar from "../components/TopNavigationBar";
+import ReturnReasonsChart from "../components/ReturnReasonsChar";
 
 const navItems = [
   { label: "Dashboard", path: "/dashboard" },
@@ -77,6 +79,7 @@ export default function Dashboard() {
 
   return (
     <Box className="min-h-screen bg-slate-50">
+      <TopNavigationBar />
       {/* Globale Kopfzeile der App mit Titel und primären Aktionen */}
       <AppHeader
         title="Revolve Dashboard"
@@ -114,7 +117,7 @@ export default function Dashboard() {
         <Box className="flex-1 p-6">
           <Text weight="bold">Retourenanalyse</Text>
 
-          {/* 
+          {/*
             Zweiter Content-Bereich:
             Raster-Layout für die allgemeinen Informations- und Analyse-Karten.
           */}
@@ -136,18 +139,24 @@ export default function Dashboard() {
           {/*
             KPI-Bereich (Ampelkacheln):
           */}
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-3 mt-6">
-            {tilesData.map((t) => (
-              <KpiCard
-                key={t.smallLabel}
-                variant={t.variant as any} // Typ-Cast, da Variante strikt "red"|"green"|"yellow" erwartet
-                badgeLabel={t.badgeLabel}
-                smallLabel={t.smallLabel}
-                value={t.value}
-                percent={t.percent}
-                onClick={() => {}}
-              />
-            ))}
+          <div className="grid gap-4 mt-6">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+              {tilesData.map((t) => (
+                <KpiCard
+                  key={t.smallLabel}
+                  variant={t.variant as any} // Typ-Cast, da Variante strikt "red"|"green"|"yellow" erwartet
+                  badgeLabel={t.badgeLabel}
+                  smallLabel={t.smallLabel}
+                  value={t.value}
+                  percent={t.percent}
+                  onClick={() => {}}
+                />
+              ))}
+            </div>
+
+            <div className="w-full max-w-3xl mx-auto">
+              <ReturnReasonsChart />
+            </div>
           </div>
         </Box>
       </Box>

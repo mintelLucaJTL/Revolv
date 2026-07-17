@@ -1,0 +1,180 @@
+Revolv Projekt-Notizen (Übersicht)
+
+============================================================
+Database (Quelle: SQL-Skripte in `Database/`)
+
+DB: `eazybusiness`
+
+Schema-Konzept:
+- Produkt/AI/Auth-Tabellen liegen überwiegend im Schema `revolv`
+- `QualityIssues` liegt in deinen SQL-Skripten im Schema `dbo` (wichtig fürs Mapping in den Models)
+
+Tabellen & Zweck
+
+1) `revolv.Users`
+- Zweck: User-Accounts für Login/Register
+- Felder:
+  - `Id` (IDENTITY, PK)
+  - `Email` (NVARCHAR(256), UNIQUE)
+  - `PasswordHash` (NVARCHAR(MAX))
+  - `CreatedAt` (DATETIME2, DEFAULT GETDATE())
+
+2) `revolv.Articles`
+- Zweck: Artikel-/Produktstammdaten als Input für die KI-Auswertung
+- Felder:
+  - `Id` (PK)
+  - `ArticleNumber` (NVARCHAR(100), NOT NULL)
+  - `Name` (NVARCHAR(255), NOT NULL)
+  - `Category` (NVARCHAR(100), NULL)
+  - `Size` (NVARCHAR(50), NULL)
+
+3) `revolv.AiRecommendations`
+- Zweck: KI-Ergebnis pro Artikel (z.B. zusammenfassende Analyse + Kennzahlen)
+- Felder:
+  - `Id` (PK)
+  - `ArticleId` (FK -> `revolv.Articles(Id)`, NOT NULL)
+  - `AiSummaryText` (NVARCHAR(MAX), NULL)
+  - `ReturnRate` (DECIMAL(5,2), NULL)
+  - `IsFullyResolved` (BIT, DEFAULT 0, NOT NULL)
+
+4) `revolv.DescriptionProposals`
+- Zweck: Textvorschläge (z.B. für Produktbeschreibung) pro KI-Empfehlung
+- Felder:
+  - `Id` (PK)
+  - `AiRecommendationId` (FK -> `revolv.AiRecommendations(Id)`, NOT NULL)
+  - `CurrentText` (NVARCHAR(MAX), NULL)
+  - `ProposedText` (NVARCHAR(MAX), NULL)
+  - `Status` (NVARCHAR(50), DEFAULT 'Ausstehend', NOT NULL)
+
+5) `revolv.ActionRecommendations`
+- Zweck: Checkboxen pro KI-Empfehlung
+- Felder:
+  - `Id` (PK)
+  - `AiRecommendationId` (FK -> `revolv.AiRecommendations(Id)`, NOT NULL)
+  - `ActionText` (NVARCHAR(255), NOT NULL)
+  - `ImpactBadge` (NVARCHAR(255), NULL)
+  - `Priority` (NVARCHAR(50), NULL)
+  - `IsCompleted` (BIT, DEFAULT 0, NOT NULL)
+
+6) `dbo.QualityIssues`
+- Zweck: Qualitätsprobleme / Issue-Liste pro KI-Empfehlung
+- Felder:
+  - `Id` (PK)
+  - `AiRecommendationId` (FK -> `revolv.AiRecommendations(Id)`, NOT NULL)
+  - `IssueText` (NVARCHAR(MAX), NOT NULL)
+  - `Status` (NVARCHAR(50), DEFAULT 'Offen', NOT NULL)
+
+Beziehungen (vereinfacht)
+- `revolv.Articles` 1:n `revolv.AiRecommendations`
+- `revolv.AiRecommendations` 1:n `revolv.DescriptionProposals`
+- `revolv.AiRecommendations` 1:n `revolv.ActionRecommendations`
+- `revolv.AiRecommendations` 1:n `dbo.QualityIssues`
+
+Wichtig (Models vs DB):
+- Wenn du EF-Models nutzt: die `Table(..., Schema=...)`-Attribute müssen zur DB passen.
+- In deinem Code sollte deshalb insbesondere `QualityIssues` Schema beachtet werden (SQL: `dbo`, nicht `revolv`).
+
+============================================================
+Backend (RevolvAPI)
+
+Tech:
+- ASP.NET Core Web API
+- EF Core mit SQL Server (`UseSqlServer(connectionString)`)
+- Auth:
+  - Passwort: BCrypt (BCrypt.Net.BCrypt)
+  - Token: JWT (SymmetricKey, HmacSha256)
+
+CORS / Dev:
+- CORS-Policy: `AllowReactFrontend`
+- Allowed Origin: `http://localhost:5173`
+- `app.UseCors("AllowReactFrontend")` ist aktiv
+
+Auth Controller: `AuthController`
+Base Route: `api/[controller]` => Controller heißt `AuthController` => Endpunkte unter `api/auth`
+
+1) `POST /api/auth/login`
+- Request Body: `{ email: string, password: string }`
+- Flow:
+  - User via `_ctx.Users.FirstOrDefault(u => u.Email == r.Email)`
+  - Passwort prüfen:
+    - BCrypt wenn gespeicherter Hash mit `$2` anfängt
+    - sonst Fallback: Passwort == gespeicherter Wert (Legacy-Migration)
+  - Bei Erfolg: JWT erzeugen und zurückgeben `{ token: "<jwt>" }`
+- Fehler: 401 "Invalid Email or Password"
+
+2) `POST /api/auth/register`
+- Request Body: `{ email: string, password: string }`
+- Flow:
+  - Prüfen ob Email existiert => sonst `BadRequest("Email already exists")`
+  - Passwort wird gehasht (`_passwordService.HashPassword`)
+  - User wird gespeichert
+  - Antwort: `Ok()` (kein Token)
+
+3) `POST /api/auth/migrate-passwords`
+- Zweck: einmalig Legacy-Plaintext Passwörter in BCrypt umwandeln
+- Logik:
+  - Sucht Users, deren `PasswordHash` nicht mit `$2` beginnt
+  - re-hasht und speichert
+
+Password Hashing: `PasswordService`
+- `HashPassword(password)`:
+  - `BCrypt.Net.BCrypt.HashPassword(password)`
+- `VerifyPassword(password, passwordHash)`:
+  - Wenn `passwordHash` mit `$2` beginnt => BCrypt Verify
+  - Sonst Fallback => `password == passwordHash` (Legacy)
+- `EnsureHashed(passwordOrHash)`:
+  - Wenn es schon BCrypt ist => unverändert
+  - Sonst => neu hashen
+
+JWT: `TokenService`
+- Token-Erzeugung: `CreateToken(User user)`
+- Claims:
+  - `ClaimTypes.NameIdentifier` => User.Id
+  - `ClaimTypes.Email` => User.Email
+  - `ClaimTypes.Role` => "User"
+- Ablaufzeit: `DateTime.UtcNow.AddMinutes(120)`
+- Validierung (in Program.cs):
+  - `ValidateIssuer`, `ValidateAudience`, `ValidateLifetime`, `ValidateIssuerSigningKey`
+  - `ValidIssuer` und `ValidAudience` kommen aus `Jwt:Issuer`
+  - Signing Key aus `Jwt:Key`
+
+============================================================
+Frontend (Frontend)
+
+Token-Storage (wichtig fürs Debuggen)
+- In `Frontend/src/App.tsx` wird der Token aus:
+  - `localStorage.getItem("authToken")`
+  gelesen.
+- In `Frontend/src/pages/login.tsx` wird der Token gesetzt:
+  - `localStorage.setItem("authToken", data.token)`
+
+Routing & Auth-Schutz
+- `ProtectedRoute`:
+  - Wenn kein Token vorhanden: Redirect zu `/login`
+  - Wenn Token vorhanden: erlaubt Zugriff (Token wird hier nicht serverseitig verifiziert)
+- Routen:
+  - `/` => Redirect zu `/dashboard` wenn Token vorhanden, sonst `/login`
+  - `/dashboard` => Protected
+  - `/profile` => Protected
+
+Login-Flow (Client)
+- `Frontend/src/pages/login.tsx`
+  - POST Login an `http://localhost:5215/api/Auth/login`
+  - Wenn Antwort ok und `data.token` existiert:
+    - Token in localStorage speichern
+    - `navigate("/dashboard")`
+  - Bei Fehler: zeigt Text im UI
+
+============================================================
+To-Do / Merkliste (damit du später wieder weißt, warum was so ist)
+
+1) Wenn was mit Login/Redirect nicht passt:
+- Hat `login.tsx` wirklich `authToken` gesetzt?
+- Prüfen: kommt `data.token` vom Backend an?
+- Prüfen: Redirect-Ziel ist `navigate("/dashboard")`
+
+2) Wenn DB-Queries über EF laufen:
+- Table/Schema-Attribute in Models müssen zur SQL-DB passen (insb. `QualityIssues`).
+
+3) Wenn du Legacy-User hast:
+- `POST /api/auth/migrate-passwords` einmal ausführen (damit Verify überall über BCrypt geht).
