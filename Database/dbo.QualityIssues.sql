@@ -1,3 +1,6 @@
+USE eazybusiness;
+GO
+
 CREATE TABLE dbo.QualityIssues (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     AiRecommendationId INT NOT NULL,

@@ -20,5 +20,6 @@ namespace RevolvAPI.Models
         public Article Article { get; set; } = null!;
         public ICollection<DescriptionProposal> DescriptionProposals { get; set; } = new List<DescriptionProposal>();
         public ICollection<QualityIssue> QualityIssues { get; set; } = new List<QualityIssue>();
+        public ICollection<ActionRecommendation> ActionRecommendations { get; set; } = new List<ActionRecommendation>();
     }
 }

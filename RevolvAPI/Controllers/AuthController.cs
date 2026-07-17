@@ -45,7 +45,7 @@ namespace RevolvAPI.Controllers
         // POST: api/auth/register
         [HttpPost("register")]
         public IActionResult Register([FromBody] RegisterRequest r)
-        {     
+        {
             // Check if the email already exists
             if (_ctx.Users.Any(u => u.Email == r.Email))
             {

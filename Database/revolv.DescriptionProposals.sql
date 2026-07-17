@@ -1,3 +1,6 @@
+USE eazybusiness;
+GO
+
 -- Tabelle im Schema 'revolv' erstellen
 CREATE TABLE [revolv].[DescriptionProposals] (
     [Id] INT IDENTITY(1,1) PRIMARY KEY,
