@@ -5,6 +5,7 @@ import Login from "./pages/login";
 import Profile from "./pages/profile";
 import RetourenAnalyse from "./pages/Retouren-Analyse";
 import Registrieren from "./pages/register";
+import Settings from "./pages/settings";
 
 // Diese Komponente schützt eine Route vor Zugriff ohne gültiges Token.
 function ProtectedRoute({ children }: { children: ReactNode }) {
