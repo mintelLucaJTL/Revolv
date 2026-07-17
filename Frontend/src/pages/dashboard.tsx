@@ -11,6 +11,7 @@ import {
 import KpiCard from "../components/KpiCard";
 import { useNavigate, useLocation } from "react-router-dom";
 import TopNavigationBar from "../components/TopNavigationBar";
+import ReturnReasonsChart from "../components/ReturnReasonsChar";
 
 const navItems = [
   { label: "Dashboard", path: "/dashboard" },

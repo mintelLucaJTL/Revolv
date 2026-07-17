@@ -37,9 +37,7 @@ export default function ReturnReasonsChart() {
       </CardHeader>
 
       <CardContent className="space-y-3">
-        <Box className="text-sm text-slate-500">
-          Gesamtverteilung aller Rücksendungen
-        </Box>
+        <Box className="text-sm text-slate-500">Gesamtverteilung aller Rücksendungen</Box>
 
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -54,13 +52,10 @@ export default function ReturnReasonsChart() {
                 paddingAngle={4} // Kleiner Abstand zwischen den Segmenten für eine filigranere Optik
                 cornerRadius={8} // Rundet die Ecken der einzelnen Segmente ab
               >
-               
                 {DATA.map((entry) => (
                   <Cell key={entry.id} fill={entry.colorCode} />
                 ))}
               </Pie>
-
-             
               <Tooltip
                 formatter={(value) => [`${value ?? 0}%`, "Anteil"]}
                 contentStyle={{ borderRadius: 12 }}
@@ -69,18 +64,13 @@ export default function ReturnReasonsChart() {
           </ResponsiveContainer>
         </div>
 
-        
         <div className="grid grid-cols-2 gap-2 text-sm">
           {DATA.map((item) => (
             <Box
               key={item.id}
               className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2"
             >
-              
-              <span
-                className="h-3 w-3 rounded-full"
-                style={{ backgroundColor: item.colorCode }}
-              />
+              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.colorCode }} />
               <Text>{item.reasonName}</Text>
             </Box>
           ))}
