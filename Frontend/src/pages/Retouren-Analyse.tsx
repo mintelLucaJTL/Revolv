@@ -11,6 +11,7 @@ import {
   Text,
 } from "@jtl-software/platform-ui-react";
 import TopNavigationBar from "../components/TopNavigationBar";
+import QualityReviewModal from "../components/QualityReviewModal";
 
 // Definiert die verarbeitbaren Zustände einer KI-Optimierung für einen Artikel
 type AIStatus = "ausstehend" | "in_bearbeitung" | "optimiert";
@@ -107,8 +108,7 @@ const MOCK_DATA: ReturnItem[] = [
   },
 ];
 
-//Schwellenwerte: >= 30% (Hoch/Rot), >= 20% (Kritisch/Gelb), < 20% (Normal/Grün).
-
+// Schwellenwerte: >= 30% (Hoch/Rot), >= 20% (Kritisch/Gelb), < 20% (Normal/Grün).
 function rateClasses(rate: number) {
   if (rate >= 30) return { bg: "bg-red-50", dot: "bg-red-500", text: "text-red-700" };
   if (rate >= 20) return { bg: "bg-yellow-50", dot: "bg-yellow-400", text: "text-yellow-700" };
@@ -123,8 +123,15 @@ export default function RetourenAnalyseView() {
   const [query, setQuery] = useState("");
   const [desc, setDesc] = useState(true);
 
+  // Modal-Status: welcher Artikel ist ausgewählt, ob das Modal geöffnet ist
+  const [selectedItem, setSelectedItem] = useState<ReturnItem | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Platzhalter für den Fortschritt der Prüfschritte
+  const [reviewedCount, setReviewedCount] = useState(0);
+
   // Filtert und sortiert die Artikeldaten.
-  //useMemo verhindert unnötige Neuberechnungen
+  // useMemo verhindert unnötige Neuberechnungen
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
 
@@ -231,7 +238,14 @@ export default function RetourenAnalyseView() {
                     {visible.map((row) => {
                       const rc = rateClasses(row.returnRate);
                       return (
-                        <tr key={row.id} className="hover:bg-gray-50">
+                        <tr
+                          key={row.id}
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => {
+                            setSelectedItem(row);
+                            setIsModalOpen(true);
+                          }}
+                        >
                           <td className="px-4 py-4 text-sm text-gray-400">{row.articleNo}</td>
                           <td className="px-4 py-4 font-semibold">{row.name}</td>
                           <td className="px-4 py-4 text-sm">{row.category}</td>
@@ -248,6 +262,8 @@ export default function RetourenAnalyseView() {
                               </span>
                             </span>
                           </td>
+                          <td className="px-4 py-4 text-sm">{row.reason}</td>
+                          <td className="px-4 py-4 text-sm">{row.aiStatus}</td>
                         </tr>
                       );
                     })}
@@ -258,6 +274,15 @@ export default function RetourenAnalyseView() {
           </Card>
         </Box>
       </Box>
+
+      {/* Modal für die Detail-Qualitätsprüfung */}
+      <QualityReviewModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        item={selectedItem}
+        reviewedCount={reviewedCount}
+        totalCount={2}
+      />
     </Box>
   );
 }
