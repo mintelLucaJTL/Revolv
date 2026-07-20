@@ -15,7 +15,8 @@ namespace RevolvAPI.Controllers
         private readonly AppDbContext _ctx;
         public AiRecommendationController(AppDbContext ctx) => _ctx = ctx;
 
-       
+
+        [HttpPatch("description/{id}/status")]
         public async Task<IActionResult> UpdateDescriptionStatus(int id, [FromBody] UpdateStatusDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
