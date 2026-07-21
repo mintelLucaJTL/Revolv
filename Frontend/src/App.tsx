@@ -4,6 +4,7 @@ import Dashboard from "./pages/dashboard";
 import Login from "./pages/login";
 import Profile from "./pages/profile";
 import RetourenAnalyse from "./pages/Retouren-Analyse";
+import AIRecommendationView from "./pages/AIRecommendationview";
 import Registrieren from "./pages/register";
 import Settings from "./pages/settings";
 
@@ -40,6 +41,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <RetourenAnalyse />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ki-empfehlungen"
+        element={
+          <ProtectedRoute>
+            <AIRecommendationView />
           </ProtectedRoute>
         }
       />
