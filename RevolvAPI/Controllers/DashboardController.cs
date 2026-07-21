@@ -46,5 +46,23 @@ namespace RevolvAPI.Controllers
 
             return Ok(dtos);
         }
+
+        // Get the dashboard KPI data
+        [HttpGet("kpi")]
+        public async Task<IActionResult> GetDashboardKpi()
+        {
+            var kpiDto = new DashboardKpiDto
+            {
+                // Calculate the whole return quote
+                wholeReturnQuote = await _ctx.AiRecommendations.AverageAsync(r => r.ReturnRate) ?? 0.0m,
+                // Calculate the affected articles
+                affectedArticle = await _ctx.Articles.CountAsync(a => a.AiRecommendations.Any()),
+                // Calculate the open Ki recommendations
+                openKiRecommendations = await _ctx.AiRecommendations.CountAsync(r => !r.IsFullyResolved),
+                // Calculate the improved products
+                improvedProducts = await _ctx.Articles.CountAsync(a => a.AiRecommendations.Any(r => r.IsFullyResolved))
+            };
+            return Ok(kpiDto);
+        }
     }
 }
