@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using RevolvAPI.Data;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
-using Microsoft.AspNetCore.Mvc;
-using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using System.Threading.Tasks;
 
@@ -63,5 +64,36 @@ namespace RevolvAPI.Controllers
 
             return NoContent();
         }
+        [HttpGet("overview")]
+        public async Task<IActionResult> GetOverview()
+        {
+            var overview = await _ctx.AiRecommendations
+                .Include(r => r.Article)
+                .Include(r => r.QualityIssues)
+                .Include(r => r.DescriptionProposals)
+                .Include(r => r.ActionRecommendations)
+                .Select(r => new AiRecommendationOverviewDto
+                {
+                    Id = r.Id,
+                    ArticleNumber = r.Article.ArticleNumber,
+                    Name = r.Article.Name,
+                    Category = r.Article.Category,
+                    Size = r.Article.Size,
+                    ReturnRate = r.ReturnRate.HasValue ? (r.ReturnRate.Value > 0.2m ? "high" : r.ReturnRate.Value > 0.1m ? "medium" : "low") : "low",
+                    HasQualityBadge = r.QualityIssues.Any(),
+                    HasDescriptionBadge = r.DescriptionProposals.Any(),
+                    HasRecommendationBadge = r.ActionRecommendations.Any(),
+                    OpenCount = r.QualityIssues.Count(q => q.Status != "Erledigt") +
+                                r.DescriptionProposals.Count(d => d.Status != "Erledigt") +
+                                r.ActionRecommendations.Count(a => !a.IsCompleted),
+                                ResolvedCount = r.QualityIssues.Count(q => q.Status == "Erledigt") +
+                                 r.DescriptionProposals.Count(d => d.Status == "Erledigt") +
+                                 r.ActionRecommendations.Count(a => a.IsCompleted),
+                })
+                .ToListAsync();
+
+            return Ok(overview);
+        }
+
     }
 }
