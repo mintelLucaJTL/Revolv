@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
+using RevolvAPI.Models;
 
 namespace RevolvAPI.Controllers
 {
@@ -63,6 +64,41 @@ namespace RevolvAPI.Controllers
                 improvedProducts = await _ctx.Articles.CountAsync(a => a.AiRecommendations.Any(r => r.IsFullyResolved))
             };
             return Ok(kpiDto);
+        }
+
+        // GET api/dashboard/traffic-lights
+        // Returns the pre-computed counts and average return rates for the red,
+        // yellow and green bands. The client receives KPIs only, never raw articles.
+        [HttpGet("traffic-lights")]
+        public async Task<IActionResult> GetTrafficLightKpis()
+        {
+            // Return-rate bands. Recommendations without a return rate are excluded,
+            // because a null value never satisfies these comparisons in SQL.
+            var kpis = new TrafficLightKpiDto
+            {
+                Red = await CalculateBandAsync(_ctx.AiRecommendations.Where(r => r.ReturnRate > 25m)),
+                Yellow = await CalculateBandAsync(_ctx.AiRecommendations.Where(r => r.ReturnRate >= 10m && r.ReturnRate <= 25m)),
+                Green = await CalculateBandAsync(_ctx.AiRecommendations.Where(r => r.ReturnRate < 10m))
+            };
+
+            return Ok(kpis);
+        }
+
+        // Aggregates a single band directly in the database. The count guards the
+        // average so an empty band returns 0 instead of failing on AVG over no rows.
+        private static async Task<TrafficLightGroupDto> CalculateBandAsync(IQueryable<AiRecommendation> query)
+        {
+            var count = await query.CountAsync();
+
+            var average = count > 0
+                ? await query.AverageAsync(r => r.ReturnRate ?? 0m)
+                : 0m;
+
+            return new TrafficLightGroupDto
+            {
+                Count = count,
+                AveragePercent = Math.Round(average, 2)
+            };
         }
     }
 }
