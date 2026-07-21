@@ -1,7 +1,5 @@
-USE eazybusiness;
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Articles')
+-- Check explicitly for 'revolv.Articles' using OBJECT_ID
+IF OBJECT_ID(N'revolv.Articles', N'U') IS NULL
 BEGIN
     CREATE TABLE revolv.Articles (
         Id INT IDENTITY(1,1) PRIMARY KEY,
