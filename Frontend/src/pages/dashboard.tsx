@@ -9,17 +9,9 @@ import {
   Text,
 } from "@jtl-software/platform-ui-react";
 import KpiCard from "../components/KpiCard";
-import { useNavigate, useLocation } from "react-router-dom";
 import TopNavigationBar from "../components/TopNavigationBar";
 import ReturnReasonsChart from "../components/ReturnReasonsChar";
-
-const navItems = [
-  { label: "Dashboard", path: "/dashboard" },
-  { label: "Retourenanalyse", path: "/retouren-analyse" },
-  { label: "Qualitätsprüfung", path: "/qualitaetspruefung" },
-  { label: "Produktbeschreibung", path: "/produktbeschreibung" },
-  { label: "Ki-Empfehlungen", path: "/ki-empfehlungen" },
-];
+import Sidebar from "../components/Sidebar";
 
 const Cardsnav = [
   {
@@ -74,44 +66,14 @@ const tilesData = [
 ];
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
   return (
     <Box className="min-h-screen bg-slate-50">
       <TopNavigationBar />
       {/* Globale Kopfzeile der App mit Titel und primären Aktionen */}
-      <AppHeader
-        title="Revolve Dashboard"
-        subtitle="Welcome back!"
-        actions={
-          <Box className="flex items-center gap-3">
-            <Button label="Alerts" variant="secondary" />
-          </Box>
-        }
-        className="bg-white shadow-sm"
-      />
-
+      
       {/* Haupt-Layout-Splitter: Trennung zwischen Sidebar und Content */}
       <Box className="flex">
-        {/* Linke Navigationsleiste (Sidebar) */}
-        <Box className="w-72 min-h-[calc(100vh-72px)] bg-white border-r p-4 space-y-3">
-          <Text weight="bold">Navigation</Text>
-
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Button
-                key={item.path}
-                label={item.label}
-                variant={isActive ? "default" : "ghost"}
-                fullWidth
-                onClick={() => navigate(item.path)}
-                aria-current={isActive ? "page" : undefined}
-              />
-            );
-          })}
-        </Box>
+        <Sidebar />
 
         {/* Rechter Hauptinhaltsbereich  */}
         <Box className="flex-1 p-6">

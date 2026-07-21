@@ -153,11 +153,7 @@ export default function RetourenAnalyseView() {
     <Box className="min-h-screen bg-slate-50">
       {/* Header mit dynamischer Anzeige der gefilterten Artikelanzahl */}
       <TopNavigationBar />
-      <AppHeader
-        title="Retourenanalyse"
-        subtitle={`${visible.length} Artikel — Klicken für Detailansicht`}
-        className="bg-white shadow-sm"
-      />
+     
 
       <Box className="flex">
         {/* Linke Seitenleiste für die Navigation innerhalb der Revolve-Anwendung */}
