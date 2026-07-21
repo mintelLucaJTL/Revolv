@@ -14,7 +14,7 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();  
+builder.Services.AddSwaggerGen();
 
 // configure the database connection
 var connectionString = builder.Configuration.GetConnectionString("WawiConnection");
