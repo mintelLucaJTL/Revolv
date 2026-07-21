@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  AppHeader,
   Box,
   Button,
   Card,
@@ -19,12 +18,14 @@ type AIStatus = "ausstehend" | "in_bearbeitung" | "optimiert";
 // Datenstruktur für einen einzelnen Eintrag in der Retourenanalyse
 interface ReturnItem {
   id: string;
+  articleNumber: string;
   articleNo: string;
   name: string;
   category: string;
   size: string;
   color: string;
   returnRate: number;
+  mostFrequentReason: string;
   reason: string;
   aiStatus: AIStatus;
 }
@@ -38,76 +39,6 @@ const navItems = [
   { label: "Ki-Empfehlungen", path: "/ki-empfehlungen" },
 ];
 
-// Statische Mock-Daten zur Simulation der API-Antwort
-const MOCK_DATA: ReturnItem[] = [
-  {
-    id: "1",
-    articleNo: "ART-44230",
-    name: "Hose Blau",
-    category: "Hosen",
-    size: "XS",
-    color: "Hellblau",
-    returnRate: 42.7,
-    reason: "Größe",
-    aiStatus: "ausstehend",
-  },
-  {
-    id: "2",
-    articleNo: "ART-10482",
-    name: "Hose Schwarz",
-    category: "Hosen",
-    size: "M",
-    color: "Schwarz",
-    returnRate: 38.4,
-    reason: "Größe",
-    aiStatus: "ausstehend",
-  },
-  {
-    id: "3",
-    articleNo: "ART-20871",
-    name: "Weiße Jacke",
-    category: "Jacken",
-    size: "L",
-    color: "Weiß",
-    returnRate: 29.1,
-    reason: "Qualität",
-    aiStatus: "in_bearbeitung",
-  },
-  {
-    id: "4",
-    articleNo: "ART-55891",
-    name: "Creme Bluse",
-    category: "Blusen",
-    size: "M",
-    color: "Creme",
-    returnRate: 19.3,
-    reason: "Material",
-    aiStatus: "in_bearbeitung",
-  },
-  {
-    id: "5",
-    articleNo: "ART-33104",
-    name: "Blauer Rollkragenpullover",
-    category: "Pullover",
-    size: "S",
-    color: "Navyblau",
-    returnRate: 11.2,
-    reason: "Farbe",
-    aiStatus: "optimiert",
-  },
-  {
-    id: "6",
-    articleNo: "ART-66340",
-    name: "Grüner Pullover",
-    category: "Pullover",
-    size: "L",
-    color: "Grün",
-    returnRate: 8.6,
-    reason: "Sonstiges",
-    aiStatus: "optimiert",
-  },
-];
-
 // Schwellenwerte: >= 30% (Hoch/Rot), >= 20% (Kritisch/Gelb), < 20% (Normal/Grün).
 function rateClasses(rate: number) {
   if (rate >= 30) return { bg: "bg-red-50", dot: "bg-red-500", text: "text-red-700" };
@@ -119,16 +50,41 @@ export default function RetourenAnalyseView() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // State für die Textsuche (Filterung) und die Sortierreihenfolge (desc = absteigend)
+  // State für die Textsuche (Filterung), Sortierreihenfolge und Ladezustand
   const [query, setQuery] = useState("");
   const [desc, setDesc] = useState(true);
+  const [articles, setArticles] = useState<ReturnItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Modal-Status: welcher Artikel ist ausgewählt, ob das Modal geöffnet ist
   const [selectedItem, setSelectedItem] = useState<ReturnItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Platzhalter für den Fortschritt der Prüfschritte
-  const [reviewedCount, setReviewedCount] = useState(0);
+  const [reviewedCount] = useState(0);
+
+  useEffect(() => {
+    const loadArticles = async () => {
+      setIsLoading(true);
+
+      try {
+        const response = await fetch("/api/articles/returns");
+        if (!response.ok) {
+          throw new Error(`API-Anfrage fehlgeschlagen: ${response.status}`);
+        }
+
+        const data = (await response.json()) as ReturnItem[];
+        setArticles(data);
+      } catch (error) {
+        console.error("Fehler beim Laden der Retourendaten:", error);
+        setArticles([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadArticles();
+  }, []);
 
   // Filtert und sortiert die Artikeldaten.
   // useMemo verhindert unnötige Neuberechnungen
@@ -136,18 +92,18 @@ export default function RetourenAnalyseView() {
     const q = query.trim().toLowerCase();
 
     // 1. Filtern nach Name, Artikelnummer oder Kategorie
-    const filtered = MOCK_DATA.filter(
+    const filtered = articles.filter(
       (d) =>
         d.name.toLowerCase().includes(q) ||
-        d.articleNo.toLowerCase().includes(q) ||
+        d.articleNumber.toLowerCase().includes(q) ||
         d.category.toLowerCase().includes(q),
     );
 
     // 2. Sortieren nach Retourenquote (Standard: Absteigend, um kritische Artikel oben zu zeigen)
-    return filtered.sort((a, b) =>
+    return [...filtered].sort((a, b) =>
       desc ? b.returnRate - a.returnRate : a.returnRate - b.returnRate,
     );
-  }, [query, desc]);
+  }, [articles, query, desc]);
 
   return (
     <Box className="min-h-screen bg-slate-50">
@@ -201,36 +157,45 @@ export default function RetourenAnalyseView() {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-100">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                        Artikel-Nr.
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                        Produktname
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                        Kategorie
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                        Größe
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                        Farbe
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                        Retourenquote
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                        Häufigster Grund
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
-                        KI-Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
+                {isLoading ? (
+                  <div className="p-8 text-center text-sm text-slate-500">
+                    Lade Artikeldaten...
+                  </div>
+                ) : articles.length === 0 ? (
+                  <div className="p-8 text-center text-sm text-slate-500">
+                    Keine zurückgesendeten Artikel gefunden.
+                  </div>
+                ) : (
+                  <table className="min-w-full divide-y divide-gray-100">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          Artikel-Nr.
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          Produktname
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          Kategorie
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          Größe
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          Farbe
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          Retourenquote
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          Häufigster Grund
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">
+                          KI-Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-100">
                     {visible.map((row) => {
                       const rc = rateClasses(row.returnRate);
                       return (
@@ -242,7 +207,7 @@ export default function RetourenAnalyseView() {
                             setIsModalOpen(true);
                           }}
                         >
-                          <td className="px-4 py-4 text-sm text-gray-400">{row.articleNo}</td>
+                          <td className="px-4 py-4 text-sm text-gray-400">{row.articleNumber}</td>
                           <td className="px-4 py-4 font-semibold">{row.name}</td>
                           <td className="px-4 py-4 text-sm">{row.category}</td>
                           <td className="px-4 py-4 text-sm">{row.size}</td>
@@ -258,13 +223,14 @@ export default function RetourenAnalyseView() {
                               </span>
                             </span>
                           </td>
-                          <td className="px-4 py-4 text-sm">{row.reason}</td>
+                          <td className="px-4 py-4 text-sm">{row.mostFrequentReason}</td>
                           <td className="px-4 py-4 text-sm">{row.aiStatus}</td>
                         </tr>
                       );
                     })}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                )}
               </div>
             </CardContent>
           </Card>
