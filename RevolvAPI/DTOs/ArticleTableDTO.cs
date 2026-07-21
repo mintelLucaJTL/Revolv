@@ -8,5 +8,7 @@
         public string? Size { get; set; }
         public decimal ReturnRate { get; set; }
         public string? AiStatus { get; set; }
-    }
+        public string ? color { get; set; }
+       public string ? MostFrequentReason { get; set; }
+}
 }

@@ -12,19 +12,19 @@ namespace RevolvAPI.Controllers
     {
         private readonly AppDbContext _ctx;
 
-        // DbContext per Dependency Injection erhalten
+      
         public ReturnController(AppDbContext ctx) => _ctx = ctx;
 
         [HttpGet("returns")]
         public async Task<IActionResult> GetArticleReturns()
         {
-            // 1) Lade Artikel inkl. AiRecommendations und deren QualityIssues (nötig für MostFrequentReason)
+            // Lade Artikel inkl. AiRecommendations und deren QualityIssues (nötig für MostFrequentReason)
             var articles = await _ctx.Articles
                                      .Include(a => a.AiRecommendations)
                                          .ThenInclude(ar => ar.QualityIssues)
                                      .ToListAsync();
 
-            // 2) In-memory Mapping: ReturnRate, AiStatus, Color und MostFrequentReason berechnen
+            //  In-memory Mapping: ReturnRate, AiStatus, Color und MostFrequentReason berechnen
             var dtos = articles
                 .Select(a =>
                 {
