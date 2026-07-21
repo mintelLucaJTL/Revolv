@@ -84,18 +84,59 @@ export default function Dashboard() {
             Raster-Layout für die allgemeinen Informations- und Analyse-Karten.
           */}
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mt-4">
-            {Cardsnav.map((card) => (
-              <Card key={card.title} className="p-2">
-                <CardHeader className="pb-1">
-                  <CardTitle>{card.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1">
-                  <Box className="text-2xl font-bold">{card.value}</Box>
-                  <Text>{card.content}</Text>
-                  <Box className="text-sm text-slate-500">{card.extra}</Box>
-                </CardContent>
-              </Card>
-            ))}
+            {Cardsnav.map((card) => {
+              const extraText = card.extra ?? "";
+              const isNegative =
+                extraText.trim().startsWith("-") || extraText.trim().startsWith("−");
+
+              return (
+                <Card
+                  key={card.title}
+                  className="rounded-lg bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <CardContent className="p-0">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        {/* Icon-Kreis */}
+                        <div className="rounded-lg p-2 bg-slate-100 flex items-center justify-center">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className="text-slate-600"
+                            aria-hidden
+                          >
+                            <path d="M7 14l5-5 5 5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+
+                        {/* Textbereich: Wert + kurze Beschreibung */}
+                        <div>
+                          <div className="text-3xl font-bold leading-tight">{card.value}</div>
+                          <div className="text-sm text-slate-600 mt-1">{card.content}</div>
+                        </div>
+                      </div>
+
+                      {/* Rechts oben: kleines Pill-Badge für die Extra-Info */}
+                      {card.extra && (
+                        <div
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            isNegative
+                              ? "bg-green-50 text-green-700 border border-green-100"
+                              : "bg-red-50 text-red-700 border border-red-100"
+                          }`}
+                        >
+                          {card.extra}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
 
           {/*
