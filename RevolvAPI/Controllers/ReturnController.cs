@@ -12,7 +12,7 @@ namespace RevolvAPI.Controllers
     {
         private readonly AppDbContext _ctx;
 
-      
+
         public ReturnController(AppDbContext ctx) => _ctx = ctx;
 
         [HttpGet("returns")]

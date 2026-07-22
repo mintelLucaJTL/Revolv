@@ -9,9 +9,13 @@ export default function Registrieren() {
   const handleRegister = async () => {
     if (loading) return;
 
-    const emailEl = document.querySelector('input[placeholder="E-Mail"]') as HTMLInputElement | null;
+    const emailEl = document.querySelector(
+      'input[placeholder="E-Mail"]',
+    ) as HTMLInputElement | null;
     const pwEl = document.querySelector('input[placeholder="Passwort"]') as HTMLInputElement | null;
-    const confirmEl = document.querySelector('input[placeholder="Passwort bestätigen"]') as HTMLInputElement | null;
+    const confirmEl = document.querySelector(
+      'input[placeholder="Passwort bestätigen"]',
+    ) as HTMLInputElement | null;
 
     if (!emailEl || !pwEl || !confirmEl) {
       alert("Eingabefelder nicht gefunden");

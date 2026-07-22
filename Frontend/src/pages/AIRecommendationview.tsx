@@ -68,12 +68,12 @@ function AIRecommendationHeader({
             <span className="text-blue-100 text-xs font-medium">Fortschritt</span>
             <span className="text-white text-xs font-bold">{progressPercent}%</span>
           </Box>
-            <Box className="w-full h-2.5 bg-white/20 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-white rounded-full transition-all duration-700"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </Box>
+          <Box className="w-full h-2.5 bg-white/20 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-white rounded-full transition-all duration-700"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </Box>
           <span className="text-blue-100 text-xs">
             {doneCount} von {total} abgeschlossen
           </span>

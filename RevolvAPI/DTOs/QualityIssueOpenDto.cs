@@ -11,7 +11,7 @@
         public string? ArticleNumber { get; set; }
         public string? ArticleName { get; set; }
 
-       
+
         public int AiRecommendationId { get; set; }
 
         public string Status { get; set; } = string.Empty;
