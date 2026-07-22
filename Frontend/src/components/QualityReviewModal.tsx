@@ -137,7 +137,11 @@ export default function QualityReviewModal({
             <Text>KI-Vorschlag</Text>
           </Box>
           <Box className="mt-2">
-            {proposedText ? <Text>{proposedText}</Text> : <Text color="muted">Keine Vorschläge</Text>}
+            {proposedText ? (
+              <Text>{proposedText}</Text>
+            ) : (
+              <Text color="muted">Keine Vorschläge</Text>
+            )}
           </Box>
         </div>
       </div>
@@ -158,12 +162,12 @@ export default function QualityReviewModal({
                 <Button label="Schliessen" variant="ghost" onClick={onClose} />
               </div>
 
-{summaryText ? (
+              {summaryText ? (
                 <Box className="mt-2 text-sm text-slate-600">
                   <Text weight="semibold">Zusammenfassung</Text>
                   <Box className="mt-1">
                     <Text>{summaryText}</Text>
-                    </Box>
+                  </Box>
                 </Box>
               ) : null}
 

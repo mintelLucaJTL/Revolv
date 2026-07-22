@@ -75,7 +75,10 @@ export default function RetourenAnalyseView() {
 
         const data = (await response.json()) as ReturnItem[];
         if (!data.every((item) => item.id !== undefined && item.id !== null)) {
-          console.warn("Retouren-Analyse: Einige Artikel aus /api/articles/returns haben keine id:", data);
+          console.warn(
+            "Retouren-Analyse: Einige Artikel aus /api/articles/returns haben keine id:",
+            data,
+          );
         }
         setArticles(data);
       } catch (error) {
@@ -207,9 +210,14 @@ export default function RetourenAnalyseView() {
                               const id = row.id ?? row.articleNumber;
 
                               if (id === undefined || id === null) {
-                                console.error("Retouren-Analyse: Artikel-ID und articleNumber fehlen für row", row);
+                                console.error(
+                                  "Retouren-Analyse: Artikel-ID und articleNumber fehlen für row",
+                                  row,
+                                );
                                 setSelectedDetail(null);
-                                setDetailError("Keine gültige Artikelkennung verfügbar. Bitte Backend /api/articles/returns prüfen.");
+                                setDetailError(
+                                  "Keine gültige Artikelkennung verfügbar. Bitte Backend /api/articles/returns prüfen.",
+                                );
                                 setDetailLoading(false);
                                 setIsModalOpen(true);
                                 return;
@@ -221,7 +229,9 @@ export default function RetourenAnalyseView() {
                               setDetailLoading(true);
                               setIsModalOpen(true);
                               try {
-                                const res = await fetch(`http://localhost:5215/api/articles/${encodeURIComponent(String(id))}`);
+                                const res = await fetch(
+                                  `http://localhost:5215/api/articles/${encodeURIComponent(String(id))}`,
+                                );
                                 if (!res.ok) {
                                   const text = await res.text();
                                   throw new Error(`HTTP ${res.status}: ${text}`);
@@ -233,7 +243,7 @@ export default function RetourenAnalyseView() {
                                 setDetailError(
                                   e instanceof Error
                                     ? e.message
-                                    : "Die Artikeldetails konnten nicht geladen werden."
+                                    : "Die Artikeldetails konnten nicht geladen werden.",
                                 );
                                 setSelectedDetail(null);
                               } finally {
