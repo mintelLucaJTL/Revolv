@@ -17,16 +17,16 @@ type AIStatus = "ausstehend" | "in_bearbeitung" | "optimiert";
 
 // Datenstruktur für einen einzelnen Eintrag in der Retourenanalyse
 interface ReturnItem {
-  id: string;
+  id?: number;
   articleNumber: string;
-  articleNo: string;
+  articleNo?: string;
   name: string;
   category: string;
   size: string;
-  color: string;
+  color: string | null;
   returnRate: number;
-  mostFrequentReason: string;
-  reason: string;
+  mostFrequentReason: string | null;
+  reason?: string;
   aiStatus: AIStatus;
 }
 
@@ -54,9 +54,11 @@ export default function RetourenAnalyseView() {
   const [articles, setArticles] = useState<ReturnItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modal-Status: welcher Artikel ist ausgewählt, ob das Modal geöffnet ist
-  const [selectedItem, setSelectedItem] = useState<ReturnItem | null>(null);
+  // Modal-Status: ob das Modal geöffnet ist und geladene Details
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   // Platzhalter für den Fortschritt der Prüfschritte
   const [reviewedCount] = useState(0);
@@ -72,6 +74,9 @@ export default function RetourenAnalyseView() {
         }
 
         const data = (await response.json()) as ReturnItem[];
+        if (!data.every((item) => item.id !== undefined && item.id !== null)) {
+          console.warn("Retouren-Analyse: Einige Artikel aus /api/articles/returns haben keine id:", data);
+        }
         setArticles(data);
       } catch (error) {
         console.error("Fehler beim Laden der Retourendaten:", error);
@@ -197,9 +202,43 @@ export default function RetourenAnalyseView() {
                           <tr
                             key={row.id}
                             className="hover:bg-gray-50 cursor-pointer"
-                            onClick={() => {
-                              setSelectedItem(row);
+                            onClick={async () => {
+                              console.log("Retouren-Analyse click row", row);
+                              const id = row.id ?? row.articleNumber;
+
+                              if (id === undefined || id === null) {
+                                console.error("Retouren-Analyse: Artikel-ID und articleNumber fehlen für row", row);
+                                setSelectedDetail(null);
+                                setDetailError("Keine gültige Artikelkennung verfügbar. Bitte Backend /api/articles/returns prüfen.");
+                                setDetailLoading(false);
+                                setIsModalOpen(true);
+                                return;
+                              }
+
+                              // Modal sofort öffnen und Details laden
+                              setSelectedDetail(null);
+                              setDetailError(null);
+                              setDetailLoading(true);
                               setIsModalOpen(true);
+                              try {
+                                const res = await fetch(`http://localhost:5215/api/articles/${encodeURIComponent(String(id))}`);
+                                if (!res.ok) {
+                                  const text = await res.text();
+                                  throw new Error(`HTTP ${res.status}: ${text}`);
+                                }
+                                const dto = await res.json();
+                                setSelectedDetail(dto);
+                              } catch (e) {
+                                console.error("Fehler beim Laden der Artikeldetails:", e);
+                                setDetailError(
+                                  e instanceof Error
+                                    ? e.message
+                                    : "Die Artikeldetails konnten nicht geladen werden."
+                                );
+                                setSelectedDetail(null);
+                              } finally {
+                                setDetailLoading(false);
+                              }
                             }}
                           >
                             <td className="px-4 py-4 text-sm text-gray-400">{row.articleNumber}</td>
@@ -235,8 +274,15 @@ export default function RetourenAnalyseView() {
       {/* Modal für die Detail-Qualitätsprüfung */}
       <QualityReviewModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        item={selectedItem}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedDetail(null);
+          setDetailError(null);
+          setDetailLoading(false);
+        }}
+        articleDetail={selectedDetail}
+        isLoading={detailLoading}
+        error={detailError}
         reviewedCount={reviewedCount}
         totalCount={2}
       />

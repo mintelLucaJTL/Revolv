@@ -9,45 +9,147 @@ import {
 } from "@jtl-software/platform-ui-react";
 import QualityWarningCard from "./QualityWarningCard";
 
-// Typ für den ausgewählten Artikel in der Qualitätsprüfung
-export interface ReturnItem {
+// DTO vom Backend mit den benötigten Feldern
+interface QualityIssue {
+  id: string | number;
+  title?: string;
+  description?: string;
+}
+
+export interface DescriptionProposal {
+  id: string | number;
+  currentText?: string;
+  proposedText?: string;
+  status?: string;
+}
+
+export interface AiRecommendation {
+  id: string | number;
+  returnRate?: number;
+  aiSummaryText?: string;
+  isFullyResolved?: boolean;
+  qualityIssues?: QualityIssue[];
+  descriptionProposals?: DescriptionProposal[];
+}
+
+export interface ArticleDetailDTO {
   id: string;
-  articleNo: string;
-  name: string;
-  category: string;
-  size: string;
-  color: string;
-  returnRate: number;
-  reason: string;
-  aiStatus: string;
+  articleNumber?: string;
+  name?: string;
+  category?: string;
+  size?: string;
+  color?: string;
+  aiRecommendations?: AiRecommendation[];
 }
 
 interface Props {
-  isOpen: boolean; // steuert, ob das Modal sichtbar ist
-  onClose: () => void; // Callback zum Schließen des Modals
-  item: ReturnItem | null; // aktuell ausgewählter Artikel
-  reviewedCount: number; // wie viele Prüfpunkte bereits bearbeitet sind
-  totalCount: number; // Gesamtanzahl der Prüfpunkte
+  isOpen: boolean;
+  onClose: () => void;
+  articleDetail?: ArticleDetailDTO | null;
+  isLoading?: boolean;
+  error?: string | null;
+  reviewedCount: number;
+  totalCount: number;
 }
 
 export default function QualityReviewModal({
   isOpen,
   onClose,
-  item,
+  articleDetail,
+  isLoading = false,
+  error = null,
   reviewedCount,
   totalCount,
 }: Props) {
-  // Wenn das Modal geschlossen ist oder kein Artikel übergeben wurde, nichts rendern
-  if (!isOpen || !item) return null;
+  if (!isOpen) return null;
+
+  const aiRec = articleDetail?.aiRecommendations?.[0];
+  const issues = aiRec?.qualityIssues || [];
+  const hasIssues = issues.length > 0;
+
+  const currentText = aiRec?.descriptionProposals?.[0]?.currentText?.trim() ?? "";
+  const proposedText = aiRec?.descriptionProposals?.[0]?.proposedText?.trim() ?? "";
+  const summaryText = aiRec?.aiSummaryText ?? "";
+  const mainContent = isLoading ? (
+    <div className="p-6 text-center text-sm text-slate-600">Lade Artikeldetails…</div>
+  ) : error ? (
+    <div className="p-6 text-center text-sm text-red-600">{error}</div>
+  ) : !articleDetail ? (
+    <div className="p-6 text-center text-sm text-slate-600">Keine Artikeldaten vorhanden.</div>
+  ) : (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <div className="space-y-4">
+        <Text weight="bold">Qualitätsprüfung</Text>
+
+        {hasIssues ? (
+          issues.map((iss) => (
+            <QualityWarningCard
+              key={iss.id}
+              title={iss.title ?? "Warnung"}
+              description={iss.description ?? "Keine Beschreibung verfügbar."}
+              onChecked={() => {}}
+              onCreateTicket={() => {}}
+            />
+          ))
+        ) : (
+          <Card className="border border-gray-100 bg-slate-50">
+            <CardContent className="p-4">
+              <Text>Keine Qualitätswarnungen</Text>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <Text weight="bold">Produktbeschreibung</Text>
+
+        <Card className="border border-gray-100 bg-slate-50">
+          <CardContent className="p-4">
+            <Text weight="bold">Aktuell</Text>
+            <Box className="mt-2 mb-4">
+              {currentText ? (
+                <Text>{currentText}</Text>
+              ) : (
+                <Text color="muted">Keine Beschreibung vorhanden</Text>
+              )}
+            </Box>
+
+            <Text weight="bold">KI-VORSCHLAG</Text>
+            <Box className="mt-2">
+              {proposedText ? (
+                <Text>{proposedText}</Text>
+              ) : (
+                <Text color="muted">Keine Vorschläge</Text>
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Box className="text-xs uppercase text-slate-500">
+            <Text>Aktuell</Text>
+          </Box>
+          <Box className="mt-2">
+            {currentText ? <Text>{currentText}</Text> : <Text color="muted">—</Text>}
+          </Box>
+
+          <Box className="text-xs uppercase text-blue-500">
+            <Text>KI-Vorschlag</Text>
+          </Box>
+          <Box className="mt-2">
+            {proposedText ? <Text>{proposedText}</Text> : <Text color="muted">Keine Vorschläge</Text>}
+          </Box>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    // Overlay hinter dem Modal, das den Hintergrund abdunkelt
     <div className="fixed inset-0 z-50 bg-black/30 flex items-start justify-center p-4">
       <div className="w-full max-w-6xl bg-white rounded-[28px] shadow-2xl overflow-hidden">
         <Card className="rounded-none border-none shadow-none">
           <CardHeader className="px-6 py-5">
             <div className="flex flex-col gap-2">
-              {/* Header-Bereich mit Titel, Beschreibung und Schließen-Button */}
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Qualitätsprüfung</CardTitle>
@@ -56,7 +158,15 @@ export default function QualityReviewModal({
                 <Button label="Schliessen" variant="ghost" onClick={onClose} />
               </div>
 
-              {/* Statusanzeige für die Bearbeitungsschritte */}
+{summaryText ? (
+                <Box className="mt-2 text-sm text-slate-600">
+                  <Text weight="semibold">Zusammenfassung</Text>
+                  <Box className="mt-1">
+                    <Text>{summaryText}</Text>
+                    </Box>
+                </Box>
+              ) : null}
+
               <Box className="flex items-center gap-2 text-sm text-slate-500">
                 <span>
                   {reviewedCount} / {totalCount} bearbeitet
@@ -66,69 +176,15 @@ export default function QualityReviewModal({
           </CardHeader>
 
           <CardContent className="px-6 pb-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              {/* Linke Seite: Qualitätsmängel und Warnkarten */}
-              <div className="space-y-4">
-                <Text weight="bold">Qualitätsprüfung</Text>
-                <QualityWarningCard
-                  title="Starkes Einlaufen"
-                  description="Der Artikel scheint bei der Materialbeschreibung eine zu hohe Einlaufquote zu haben."
-                  onChecked={() => {}}
-                  onCreateTicket={() => {}}
-                />
-                <QualityWarningCard
-                  title="Falsche Materialangabe"
-                  description="Die aktuelle Beschreibung nennt ein anderes Material als der Artikel tatsächlich hat."
-                  onChecked={() => {}}
-                  onCreateTicket={() => {}}
-                />
+            {mainContent}
+
+            {articleDetail && !isLoading && !error ? (
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <Button label="Ablehnen" variant="ghost" onClick={() => {}} />
+                <Button label="Bearbeiten" variant="secondary" onClick={() => {}} />
+                <Button label="Übernehmen" variant="highlight" onClick={() => {}} />
               </div>
-
-              {/* Rechte Seite: Produktbeschreibung und A/B-Vergleich */}
-              <div className="space-y-4">
-                <Text weight="bold">Produktbeschreibung</Text>
-                <Card className="border border-gray-100 bg-slate-50">
-                  <CardContent className="p-4">
-                    <Text weight="bold">Aktuell</Text>
-                    <Box className="mt-2 mb-4">
-                      <Text>Der Artikel ist eine leichte Sommerhose aus Polyester.</Text>
-                    </Box>
-
-                    <Text weight="bold">KI-VORSCHLAG</Text>
-                    <Box className="mt-2">
-                      <Text>
-                        Empfohlen: Beschreibe die Hose als atmungsaktiv und elastisch für warme
-                        Tage.
-                      </Text>
-                    </Box>
-                  </CardContent>
-                </Card>
-
-                {/* Split-View: aktueller Text vs. KI-Vorschlag */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Box className="text-xs uppercase text-slate-500">
-                    <Text>Aktuell</Text>
-                  </Box>
-                  <Box className="mt-2">
-                    <Text>Grauer Text mit aktuellem Zustand.</Text>
-                  </Box>
-
-                  <Box className="text-xs uppercase text-blue-500">
-                    <Text>KI-Vorschlag</Text>
-                  </Box>
-                  <Box className="mt-2">
-                    <Text>Blauer Text mit KI-optimierter Version.</Text>
-                  </Box>
-                </div>
-              </div>
-            </div>
-
-            {/* Aktions-Buttons am unteren Rand des Modals */}
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <Button label="Ablehnen" variant="ghost" onClick={() => {}} />
-              <Button label="Bearbeiten" variant="secondary" onClick={() => {}} />
-              <Button label="Übernehmen" variant="highlight" onClick={() => {}} />
-            </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>
