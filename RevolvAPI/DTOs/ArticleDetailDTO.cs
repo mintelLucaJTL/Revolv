@@ -1,4 +1,6 @@
-﻿namespace RevolvAPI.DTOs
+﻿using System.Drawing;
+
+namespace RevolvAPI.DTOs
 {
     // DTO for the article details
     public class ArticleDetailDTO
@@ -8,6 +10,7 @@
         public string? Name { get; set; }
         public string? Category { get; set; }
         public string? Size { get; set; }
+        public string? ArtColor { get; set; }
 
         public List<AiRecommendationDetailDTO> AiRecommendations { get; set; } = new();
     }

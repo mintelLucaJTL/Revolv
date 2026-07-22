@@ -23,6 +23,7 @@ namespace RevolvAPI.Controllers
                     Name = a.Name,
                     Category = a.Category,
                     Size = a.Size,
+                    ArtColor = a.Color,
                     ReturnRate = a.AiRecommendations.Select(r => r.ReturnRate).FirstOrDefault()
                 })
                 .ToListAsync();
@@ -41,6 +42,7 @@ namespace RevolvAPI.Controllers
                     Name = a.Name,
                     Category = a.Category,
                     Size = a.Size,
+                    ArtColor = a.Color,
 
                     // Wir mappen die Liste der Empfehlungen
                     AiRecommendations = a.AiRecommendations.Select(r => new AiRecommendationDetailDTO
