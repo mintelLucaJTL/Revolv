@@ -302,6 +302,7 @@ export default function AIRecommendationView() {
                 returnRate: selectedArticle.returnRate as any,
               }
             : null
+        }
         open={panelOpen}
         onClose={closePanel}
       />
