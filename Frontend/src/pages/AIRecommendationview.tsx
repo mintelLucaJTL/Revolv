@@ -7,15 +7,31 @@ import ArticleDetailsPanel from "../components/ArticleDetailsPanel";
 
 /**
  * Filter-Labels für die obere Filterleiste.
- * (Nur UI-Platzhalter; reale Filter-Logik kann später ergänzt werden.)
  */
 const filters = ["Alle Artikel", "Qualität", "Beschreibung", "Empfehlungen"];
 
 /**
- * Typdefinition für die minimale Artikelübersicht, wie sie von der API erwartet wird.
- * Felder, die hier fehlen, können später ergänzt werden.
+ * Typdefinition für die Artikelübersicht im Frontend.
  */
 interface ArticleOverview {
+  id: number;
+  name: string;
+  articleNo: string;
+  category: string;
+  size: string;
+  returnRate: "high" | "medium" | "low";
+  hasQualityBadge: boolean;
+  hasDescriptionBadge: boolean;
+  hasRecommendationBadge: boolean;
+  openCount: number;
+  resolvedCount: number;
+  imageUrl?: string;
+}
+
+/**
+ * API-Datentyp, wie er vom Backend zurückkommen kann.
+ */
+interface ArticleOverviewApiDto {
   id: number;
   name: string;
   articleNumber: string;
@@ -30,22 +46,9 @@ interface ArticleOverview {
   imageUrl?: string;
 }
 
-/** Rohdaten vom Backend (AiRecommendationOverviewDto, camelCase JSON) */
-interface ArticleOverviewApiDto {
-  id: number;
-  name: string;
-  articleNumber: string;
-  category: string;
-  size: string;
-  returnRate: "high" | "medium" | "low";
-  hasQualityBadge: boolean;
-  hasDescriptionBadge: boolean;
-  hasRecommendationBadge: boolean;
-  openCount: number;
-  resolvedCount: number;
-}
-
-/* Beispiel‑Daten für den Fallback (Dev / Offline), falls Backend keine Daten liefert. */
+/**
+ * Beispiel-Daten für den Fallback, wenn das Backend keine Artikel liefert.
+ */
 const sampleArticles: ArticleOverview[] = [
   {
     id: 1001,
@@ -63,7 +66,7 @@ const sampleArticles: ArticleOverview[] = [
   },
   {
     id: 1002,
-    name: "Beispiel T‑Shirt",
+    name: "Beispiel T-Shirt",
     articleNo: "BT-1002",
     category: "Bekleidung",
     size: "M",
@@ -78,8 +81,7 @@ const sampleArticles: ArticleOverview[] = [
 ];
 
 /**
- * Header-Komponente für die KI‑Übersichtsseite.
- * Zeigt Titel, offene/erledigte Zähler und einen Fortschrittsbalken an.
+ * Header-Komponente für die KI-Empfehlungsseite.
  */
 interface AIRecommendationHeaderProps {
   title?: string;
@@ -91,24 +93,15 @@ function AIRecommendationHeader({
   openCount = 0,
   doneCount = 0,
 }: AIRecommendationHeaderProps) {
-  // Berechne Gesamt-Fortschritt in Prozent (sicher gegenüber Division durch 0)
   const total = openCount + doneCount;
   const progressPercent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
 
   return (
     <Box className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 shadow-lg mb-6">
       <Box className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        {/* Linke Seite: Titel + Zähler */}
         <Box className="flex flex-col gap-1">
           <Box className="flex items-center gap-2">
-            {/* Dekoratives Icon neben dem Titel */}
-            <svg
-              className="w-6 h-6 text-white opacity-90"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
+            <svg className="w-6 h-6 text-white opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -122,7 +115,6 @@ function AIRecommendationHeader({
           </p>
         </Box>
 
-        {/* Rechte Seite: Fortschrittsanzeige */}
         <Box className="flex flex-col gap-1.5 sm:min-w-[200px]">
           <Box className="flex items-center justify-between">
             <span className="text-blue-100 text-xs font-medium">Fortschritt</span>
@@ -141,23 +133,16 @@ function AIRecommendationHeader({
 }
 
 /**
- * Hauptkomponente für die KI‑Empfehlungsseite.
- * Verantwortlich für:
- * - Laden der Artikelübersicht (API call)
- * - Anzeige von Cards (ArticleCard)
- * - Fallback-/Fehlerzustände (Fehlermeldung / Beispielartikel)
- * - Öffnen/Schließen des Side‑Panels (`ArticleDetailsPanel`)
+ * Hauptseite für die KI-Empfehlungs-Ansicht.
  */
 export default function AIRecommendationView() {
   const [articles, setArticles] = useState<ArticleOverview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State für das Side‑Panel (welcher Artikel ist ausgewählt + offen/geschlossen)
   const [selectedArticle, setSelectedArticle] = useState<ArticleOverview | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
-  // Lade Daten von der API beim Mounten der Komponente
   useEffect(() => {
     const fetchOverview = async () => {
       try {
@@ -171,7 +156,6 @@ export default function AIRecommendationView() {
         const mapped: ArticleOverview[] = (Array.isArray(data) ? data : []).map((item) => ({
           id: item.id,
           name: item.name ?? "",
-          // Backend: articleNumber → Frontend: articleNo
           articleNo: item.articleNumber ?? "",
           category: item.category ?? "",
           size: item.size ?? "",
@@ -181,6 +165,7 @@ export default function AIRecommendationView() {
           hasRecommendationBadge: Boolean(item.hasRecommendationBadge),
           openCount: item.openCount ?? 0,
           resolvedCount: item.resolvedCount ?? 0,
+          imageUrl: item.imageUrl,
         }));
 
         setArticles(mapped);
@@ -200,7 +185,6 @@ export default function AIRecommendationView() {
     void fetchOverview();
   }, []);
 
-  // Berechne Gesamtzahlen (offen/erledigt) für Header-Anzeige
   const { totalOpen, totalResolved } = useMemo(() => {
     return articles.reduce(
       (acc, article) => ({
@@ -211,19 +195,16 @@ export default function AIRecommendationView() {
     );
   }, [articles]);
 
-  // Öffnet das Side-Panel für einen Artikel
   function openArticlePanel(article: ArticleOverview) {
     setSelectedArticle(article);
     setPanelOpen(true);
   }
 
-  // Schließt das Side-Panel
   function closePanel() {
     setPanelOpen(false);
     setSelectedArticle(null);
   }
 
-  // Fallback-Anzeige: wenn keine Artikel vom Backend kommen (kein Fehler, aber leere Liste)
   const showFallbackExamples = !loading && !error && articles.length === 0;
 
   return (
@@ -234,58 +215,43 @@ export default function AIRecommendationView() {
 
         <Box className="flex-1 p-6">
           <Box className="max-w-7xl mx-auto flex flex-col gap-4">
-            {/* Header: Gesamtfortschritt der KI-Empfehlungen */}
             <AIRecommendationHeader openCount={totalOpen} doneCount={totalResolved} />
 
             <Card className="p-6">
               <div className="flex flex-col gap-4">
-                {/* Sektionstitel + Beschreibung */}
                 <Box className="flex flex-col gap-2">
                   <CardTitle>Artikel-Übersicht</CardTitle>
                   <Text>Alle offenen KI-Empfehlungen auf einen Blick</Text>
                 </Box>
 
-                {/* Filterleiste (UI) — konkrete Filter-Logik kann später ergänzt werden */}
                 <Box className="flex flex-wrap gap-2">
                   {filters.map((filter) => (
                     <Button key={filter} label={filter} variant="secondary" />
                   ))}
                 </Box>
 
-                {/* Grid mit Artikelkarten / Fallback / Fehlerzuständen */}
                 <Box className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {loading ? (
-                    // Ladezustand
                     <div className="text-sm text-slate-600">Lade Artikel …</div>
                   ) : error ? (
-                    // API-Fehler: Fehlermeldung anzeigen
                     <div className="text-sm text-red-600">{error}</div>
                   ) : articles.length > 0 ? (
                     articles.map((article) => (
                       <div
                         key={article.id}
-                        name={article.name}
-                        articleNo={article.articleNumber}
-                        category={article.category}
-                        size={article.size}
-                        returnRate={article.returnRate}
-                        hasQualityBadge={article.hasQualityBadge}
-                        hasDescriptionBadge={article.hasDescriptionBadge}
-                        hasRecommendationBadge={article.hasRecommendationBadge}
-                        openCount={article.openCount}
-                        resolvedCount={article.resolvedCount}
-                        imageUrl={article.imageUrl}
-                        onOpen={() => openArticlePanel(article)}
-                      />
-                    ))
-                  ) : showFallbackExamples ? (
-                    <>
-                      <div className="col-span-full text-sm text-slate-600">
-                        Keine Artikel gefunden. Hier sind Beispielartikel zum Testen:
-                      </div>
-                      {sampleArticles.map((article) => (
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openArticlePanel(article)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            openArticlePanel(article);
+                          }
+                        }}
+                        className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                        aria-label={`Artikel ${article.name} öffnen`}
+                      >
                         <ArticleCard
-                          key={article.id}
                           name={article.name}
                           articleNo={article.articleNo}
                           category={article.category}
@@ -299,10 +265,46 @@ export default function AIRecommendationView() {
                           imageUrl={article.imageUrl}
                           onOpen={() => openArticlePanel(article)}
                         />
+                      </div>
+                    ))
+                  ) : showFallbackExamples ? (
+                    <>
+                      <div className="col-span-full text-sm text-slate-600">
+                        Keine Artikel gefunden. Hier sind Beispielartikel zum Testen:
+                      </div>
+                      {sampleArticles.map((article) => (
+                        <div
+                          key={article.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => openArticlePanel(article)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              openArticlePanel(article);
+                            }
+                          }}
+                          className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                          aria-label={`Beispielartikel ${article.name} öffnen`}
+                        >
+                          <ArticleCard
+                            name={article.name}
+                            articleNo={article.articleNo}
+                            category={article.category}
+                            size={article.size}
+                            returnRate={article.returnRate}
+                            hasQualityBadge={article.hasQualityBadge}
+                            hasDescriptionBadge={article.hasDescriptionBadge}
+                            hasRecommendationBadge={article.hasRecommendationBadge}
+                            openCount={article.openCount}
+                            resolvedCount={article.resolvedCount}
+                            imageUrl={article.imageUrl}
+                            onOpen={() => openArticlePanel(article)}
+                          />
+                        </div>
                       ))}
                     </>
                   ) : (
-                    // Keine Artikel (stiller Zustand)
                     <div className="text-sm text-slate-600">Keine Artikel vorhanden.</div>
                   )}
                 </Box>
@@ -312,17 +314,14 @@ export default function AIRecommendationView() {
         </Box>
       </Box>
 
-      {/* Side-Panel für Artikel-Details (KI-Ansicht)
-          - Wir übergeben nur die benötigten Felder an die Panel-Komponente.
-          - ArticleDetailsPanel handhabt Escape/Overlay/X zum Schließen. */}
       <ArticleDetailsPanel
         article={
           selectedArticle
             ? {
-                image: (selectedArticle as any).imageUrl ?? (selectedArticle as any).image,
+                image: selectedArticle.imageUrl,
                 name: selectedArticle.name,
                 number: selectedArticle.articleNo,
-                returnRate: selectedArticle.returnRate as any,
+                returnRate: selectedArticle.returnRate,
               }
             : null
         }
