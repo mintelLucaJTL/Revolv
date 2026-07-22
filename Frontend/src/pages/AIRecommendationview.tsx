@@ -30,6 +30,21 @@ interface ArticleOverview {
   imageUrl?: string;
 }
 
+/** Rohdaten vom Backend (AiRecommendationOverviewDto, camelCase JSON) */
+interface ArticleOverviewApiDto {
+  id: number;
+  name: string;
+  articleNumber: string;
+  category: string;
+  size: string;
+  returnRate: "high" | "medium" | "low";
+  hasQualityBadge: boolean;
+  hasDescriptionBadge: boolean;
+  hasRecommendationBadge: boolean;
+  openCount: number;
+  resolvedCount: number;
+}
+
 /* Beispiel‑Daten für den Fallback (Dev / Offline), falls Backend keine Daten liefert. */
 const sampleArticles: ArticleOverview[] = [
   {
@@ -87,8 +102,18 @@ function AIRecommendationHeader({
         <Box className="flex flex-col gap-1">
           <Box className="flex items-center gap-2">
             {/* Dekoratives Icon neben dem Titel */}
-            <svg className="w-6 h-6 text-white opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+            <svg
+              className="w-6 h-6 text-white opacity-90"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+              />
             </svg>
             <h1 className="text-white text-2xl font-bold tracking-tight">{title}</h1>
           </Box>
@@ -139,24 +164,40 @@ export default function AIRecommendationView() {
         const response = await fetch("http://localhost:5215/api/ai/overview");
 
         if (!response.ok) {
-          // Wenn API Fehler liefert, wirf, damit wir im Catch landen
-          throw new Error("Fehler beim Laden der KI-Übersicht");
+          throw new Error(`Fehler beim Laden der KI-Übersicht (${response.status})`);
         }
 
-        // Erwartetes Format: Array von ArticleOverview
-        const data: ArticleOverview[] = await response.json();
-        setArticles(Array.isArray(data) ? data : []);
+        const data = (await response.json()) as ArticleOverviewApiDto[];
+        const mapped: ArticleOverview[] = (Array.isArray(data) ? data : []).map((item) => ({
+          id: item.id,
+          name: item.name ?? "",
+          // Backend: articleNumber → Frontend: articleNo
+          articleNo: item.articleNumber ?? "",
+          category: item.category ?? "",
+          size: item.size ?? "",
+          returnRate: item.returnRate ?? "low",
+          hasQualityBadge: Boolean(item.hasQualityBadge),
+          hasDescriptionBadge: Boolean(item.hasDescriptionBadge),
+          hasRecommendationBadge: Boolean(item.hasRecommendationBadge),
+          openCount: item.openCount ?? 0,
+          resolvedCount: item.resolvedCount ?? 0,
+        }));
+
+        setArticles(mapped);
       } catch (err) {
-        // Fehler-Handling: setze eine Nutzer‑freundliche Fehlermeldung und logge Details
         console.error("Fetch AI overview error:", err);
-        setError("Die Artikel konnten nicht geladen werden.");
-        setArticles([]); // Sicherstellen: articles ist immer ein Array
+        setError(
+          err instanceof TypeError
+            ? "Backend nicht erreichbar. Starte RevolvAPI (http://localhost:5215)."
+            : "Die Artikel konnten nicht geladen werden.",
+        );
+        setArticles([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchOverview();
+    void fetchOverview();
   }, []);
 
   // Berechne Gesamtzahlen (offen/erledigt) für Header-Anzeige
@@ -220,7 +261,6 @@ export default function AIRecommendationView() {
                     // API-Fehler: Fehlermeldung anzeigen
                     <div className="text-sm text-red-600">{error}</div>
                   ) : articles.length > 0 ? (
-                    // Normale Anzeige: Karten aus API-Daten
                     articles.map((article) => (
                       <div
                         key={article.id}
@@ -235,47 +275,30 @@ export default function AIRecommendationView() {
                         openCount={article.openCount}
                         resolvedCount={article.resolvedCount}
                         imageUrl={article.imageUrl}
+                        onOpen={() => openArticlePanel(article)}
                       />
                     ))
                   ) : showFallbackExamples ? (
-                    // Kein Fehler, aber leere Liste: Beispielartikel anbieten (hilfreich im Dev)
                     <>
-                      <div className="col-span-full text-sm text-slate-600">Keine Artikel gefunden. Hier sind Beispielartikel zum Testen:</div>
+                      <div className="col-span-full text-sm text-slate-600">
+                        Keine Artikel gefunden. Hier sind Beispielartikel zum Testen:
+                      </div>
                       {sampleArticles.map((article) => (
-                        <div
+                        <ArticleCard
                           key={article.id}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => openArticlePanel(article)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              openArticlePanel(article);
-                            }
-                          }}
-                          className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
-                          aria-label={`Beispielartikel ${article.name} öffnen`}
-                        >
-                          <ArticleCard
-                            name={article.name}
-                            articleNo={article.articleNo}
-                            category={article.category}
-                            size={article.size}
-                            returnRate={article.returnRate}
-                            tags={[
-                              ...(article.hasQualityBadge ? ["Qualität"] : []),
-                              ...(article.hasDescriptionBadge ? ["Beschreibung"] : []),
-                              ...(article.hasRecommendationBadge ? ["Empfehlung"] : []),
-                            ]}
-                            progress={
-                              article.openCount + article.resolvedCount > 0
-                                ? Math.round((article.resolvedCount / (article.openCount + article.resolvedCount)) * 100)
-                                : 0
-                            }
-                            openCount={article.openCount}
-                            imageUrl={article.imageUrl}
-                          />
-                        </div>
+                          name={article.name}
+                          articleNo={article.articleNo}
+                          category={article.category}
+                          size={article.size}
+                          returnRate={article.returnRate}
+                          hasQualityBadge={article.hasQualityBadge}
+                          hasDescriptionBadge={article.hasDescriptionBadge}
+                          hasRecommendationBadge={article.hasRecommendationBadge}
+                          openCount={article.openCount}
+                          resolvedCount={article.resolvedCount}
+                          imageUrl={article.imageUrl}
+                          onOpen={() => openArticlePanel(article)}
+                        />
                       ))}
                     </>
                   ) : (

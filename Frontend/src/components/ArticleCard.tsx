@@ -1,4 +1,4 @@
-import React from "react";
+import type { KeyboardEvent } from "react";
 import {
   Box,
   Card,
@@ -16,11 +16,11 @@ interface ArticleCardProps {
   category: string;
   size: string;
   returnRate: ReturnRateLevel;
-  hasQualityBadge: boolean;
-  hasDescriptionBadge: boolean;
-  hasRecommendationBadge: boolean;
+  hasQualityBadge?: boolean;
+  hasDescriptionBadge?: boolean;
+  hasRecommendationBadge?: boolean;
   openCount: number;
-  resolvedCount: number;
+  resolvedCount?: number;
   imageUrl?: string;
   onOpen?: () => void;
 }
@@ -28,24 +28,26 @@ interface ArticleCardProps {
 function getReturnRateConfig(level: ReturnRateLevel) {
   switch (level) {
     case "high":
-      return { label: "Hoch", className: "bg-red-100 text-red-700 border border-red-300" };
+      return {
+        label: "Hoch",
+        className: "bg-red-100 text-red-700 border border-red-300",
+      };
     case "medium":
       return {
         label: "Mittel",
         className: "bg-yellow-100 text-yellow-700 border border-yellow-300",
       };
     case "low":
-      return { label: "Niedrig", className: "bg-green-100 text-green-700 border border-green-300" };
+      return {
+        label: "Niedrig",
+        className: "bg-green-100 text-green-700 border border-green-300",
+      };
   }
 }
 
 function Badge({ label, className }: { label: string; className: string }) {
   return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-medium ${className}`}
-    >
-      {label}
-    </span>
+    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${className}`}>{label}</span>
   );
 }
 
@@ -55,27 +57,20 @@ export function ArticleCard({
   category,
   size,
   returnRate,
-  hasQualityBadge,
-  hasDescriptionBadge,
-  hasRecommendationBadge,
+  hasQualityBadge = false,
+  hasDescriptionBadge = false,
+  hasRecommendationBadge = false,
   openCount,
-  resolvedCount,
+  resolvedCount = 0,
   imageUrl,
   onOpen,
 }: ArticleCardProps) {
   const rateConfig = getReturnRateConfig(returnRate);
-
-  // Fortschritt wird ausschließlich aus den erhaltenen Zählern berechnet.
   const total = openCount + resolvedCount;
   const progress = total > 0 ? Math.round((resolvedCount / total) * 100) : 0;
   const clampedProgress = Math.min(100, Math.max(0, progress));
 
-  function handleClick() {
-    onOpen?.();
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    // Enter or Space should activate the card
+  function handleKeyDown(e: KeyboardEvent) {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onOpen?.();
@@ -86,7 +81,7 @@ export function ArticleCard({
     <div
       role="button"
       tabIndex={0}
-      onClick={handleClick}
+      onClick={() => onOpen?.()}
       onKeyDown={handleKeyDown}
       aria-label={`Details zu ${name} öffnen`}
       className="w-full max-w-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
@@ -129,14 +124,21 @@ export function ArticleCard({
 
         <CardContent className="pt-2 pb-4 space-y-4">
           <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700"
-              >
-                {tag}
-              </span>
-            ))}
+            {hasQualityBadge && (
+              <Badge label="Qualität" className="bg-red-50 text-red-700 border border-red-200" />
+            )}
+            {hasDescriptionBadge && (
+              <Badge
+                label="Beschreibung"
+                className="bg-amber-50 text-amber-700 border border-amber-200"
+              />
+            )}
+            {hasRecommendationBadge && (
+              <Badge
+                label="Empfehlung"
+                className="bg-blue-50 text-blue-700 border border-blue-200"
+              />
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -147,49 +149,13 @@ export function ArticleCard({
               <Text type="xs" weight="semibold">
                 {openCount} offen · {clampedProgress}%
               </Text>
-              <Text type="xs" color="muted">
-                Größe: <span className="font-medium text-foreground">{size}</span>
-              </Text>
-            </Box>
-          </div>
-
-          <div className="flex-shrink-0">
-            <span
-              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${rateConfig.className}`}
-            >
-              Retourenquote: {rateConfig.label}
-            </span>
-          </div>
-        </Box>
-      </CardHeader>
-
-      <CardContent className="pt-2 pb-4 space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {hasQualityBadge && (
-            <Badge label="Qualität" className="bg-red-50 text-red-700 border border-red-200" />
-          )}
-          {hasDescriptionBadge && (
-            <Badge
-              label="Beschreibung"
-              className="bg-amber-50 text-amber-700 border border-amber-200"
-            />
-          )}
-          {hasRecommendationBadge && (
-            <Badge
-              label="Empfehlung"
-              className="bg-blue-50 text-blue-700 border border-blue-200"
-            />
-          )}
-        </div>
-
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Text type="xs" color="muted">
-              Fortschritt
-            </Text>
-            <Text type="xs" weight="semibold">
-              {openCount} offen · {clampedProgress}%
-            </Text>
+            </div>
+            <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-blue-600 transition-all"
+                style={{ width: `${clampedProgress}%` }}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
