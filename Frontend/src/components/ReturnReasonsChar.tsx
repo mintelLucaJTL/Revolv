@@ -1,4 +1,3 @@
-// Importiert die benötigten UI-Komponenten aus der JTL-Designbibliothek
 import {
   Card,
   CardContent,
@@ -7,29 +6,82 @@ import {
   Box,
   Text,
 } from "@jtl-software/platform-ui-react";
-// Recharts-Bibliothek für die responsive Datenvisualisierung
+import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
-// Definiert die Struktur der Datenpunkte für die Retourenursachen
-interface ReturnReason {
-  id: string;
+// DTO for the return reasons
+interface ReturnReasonDto {
   reasonName: string;
-  count: number; // Der Prozentwert für das jeweilige Segment
-  colorCode: string; // Der spezifische Hex-Farbcode zur Unterscheidung
+  count: number;
+  percentage: number;
 }
 
-// Statische Daten zur Auswertung der Rücksendegründe.
-// Die Farbwerte nutzen abgestufte Blautöne für ein sauberes Gesamtbild.
-const DATA: ReturnReason[] = [
-  { id: "1", reasonName: "Passform", count: 41, colorCode: "#00287d" },
-  { id: "2", reasonName: "Qualität", count: 28, colorCode: "#1d59a3" },
-  { id: "3", reasonName: "Farbe", count: 16, colorCode: "#235289" },
-  { id: "4", reasonName: "Material", count: 10, colorCode: "#3776c3" },
-  { id: "5", reasonName: "Sonstiges", count: 5, colorCode: "#2aabfc" },
-];
+// DTO for the chart
+interface ReturnReasonChartItem {
+  id: string;
+  reasonName: string;
+  count: number;
+  percentage: number;
+  colorCode: string;
+}
 
-// Visualisiert die häufigsten Retourengründe als modernes Donut-Diagramm
+// Colors for the chart
+const CHART_COLORS = ["#3B82F6", "#EF4444", "#F59E0B", "#10B981", "#8B5CF6", "#64748B"];
+
+// Component for the return reasons chart
 export default function ReturnReasonsChart() {
+  const [returnReasons, setReturnReasons] = useState<ReturnReasonChartItem[]>([]);
+
+  // Loading state
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Load the return reasons
+  useEffect(() => {
+    const loadReturnReasons = async () => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        // Load the return reasons from the API
+        const response = await fetch("http://localhost:5215/api/dashboard/return-reasons");
+
+        // Check if the request was successful
+        if (!response.ok) {
+          throw new Error(`API-Anfrage fehlgeschlagen: ${response.status}`);
+        }
+
+        // Parse the response as ReturnReasonDto
+        const data = (await response.json()) as ReturnReasonDto[];
+
+        // Map the data to the ReturnReasonChartItem
+        const chartData = data.map((item, index) => ({
+          id: `${item.reasonName}-${index}`,
+          reasonName: item.reasonName || "Unbekannt",
+          count: item.count,
+          percentage: Number(item.percentage),
+          colorCode: CHART_COLORS[index % CHART_COLORS.length],
+        }));
+
+        // Set the return reasons
+        setReturnReasons(chartData);
+      } catch (err) {
+        console.error("Fehler beim Laden der Retourengründe:", err);
+        setReturnReasons([]);
+
+        // Set the error message
+        setError(
+          err instanceof Error ? err.message : "Retourengründe konnten nicht geladen werden.",
+        );
+      } finally {
+        // Set the loading state to false
+        setIsLoading(false);
+      }
+    };
+
+    void loadReturnReasons();
+  }, []);
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -39,42 +91,61 @@ export default function ReturnReasonsChart() {
       <CardContent className="space-y-3">
         <Box className="text-sm text-slate-500">Gesamtverteilung aller Rücksendungen</Box>
 
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              // Durch das Zusammenspiel von innerRadius und outerRadius erzeugen wir den Donut-Look
-              <Pie
-                data={DATA}
-                dataKey="count"
-                nameKey="reasonName"
-                innerRadius={55}
-                outerRadius={90}
-                paddingAngle={4} // Kleiner Abstand zwischen den Segmenten für eine filigranere Optik
-                cornerRadius={8} // Rundet die Ecken der einzelnen Segmente ab
-              >
-                {DATA.map((entry) => (
-                  <Cell key={entry.id} fill={entry.colorCode} />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value) => [`${value ?? 0}%`, "Anteil"]}
-                contentStyle={{ borderRadius: 12 }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        {isLoading ? (
+          <div className="h-64 flex items-center justify-center text-sm text-slate-500">
+            Lade Retourengründe...
+          </div>
+        ) : error ? (
+          <div className="h-64 flex items-center justify-center text-sm text-red-600">{error}</div>
+        ) : returnReasons.length === 0 ? (
+          <div className="h-64 flex items-center justify-center text-sm text-slate-500">
+            Keine Retourengründe gefunden.
+          </div>
+        ) : (
+          <>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  {/* Donut-Look über innerRadius + outerRadius */}
+                  <Pie
+                    data={returnReasons}
+                    dataKey="percentage"
+                    nameKey="reasonName"
+                    innerRadius={55}
+                    outerRadius={90}
+                    paddingAngle={4}
+                    cornerRadius={8}
+                  >
+                    {returnReasons.map((entry) => (
+                      <Cell key={entry.id} fill={entry.colorCode} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name) => [`${Number(value ?? 0).toFixed(1)}%`, String(name)]}
+                    contentStyle={{ borderRadius: 12 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
 
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          {DATA.map((item) => (
-            <Box
-              key={item.id}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2"
-            >
-              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.colorCode }} />
-              <Text>{item.reasonName}</Text>
-            </Box>
-          ))}
-        </div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {returnReasons.map((item) => (
+                <Box
+                  key={item.id}
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2"
+                >
+                  <span
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: item.colorCode }}
+                  />
+                  <Text>
+                    {item.reasonName} ({item.percentage.toFixed(1)}%)
+                  </Text>
+                </Box>
+              ))}
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

@@ -34,8 +34,6 @@ interface ReturnItem {
 const navItems = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Retourenanalyse", path: "/retouren-analyse" },
-  { label: "Qualitätsprüfung", path: "/qualitaetspruefung" },
-  { label: "Produktbeschreibung", path: "/produktbeschreibung" },
   { label: "Ki-Empfehlungen", path: "/ki-empfehlungen" },
 ];
 

@@ -1,3 +1,6 @@
+USE eazybusiness;
+GO
+
 -- Check if the table exists
 IF OBJECT_ID(N'revolv.Articles', N'U') IS NULL
 BEGIN

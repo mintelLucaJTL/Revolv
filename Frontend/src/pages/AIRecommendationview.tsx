@@ -18,7 +18,7 @@ const filters = ["Alle Artikel", "Qualität", "Beschreibung", "Empfehlungen"];
 interface ArticleOverview {
   id: number;
   name: string;
-  articleNo: string;
+  articleNumber: string;
   category: string;
   size: string;
   returnRate: "high" | "medium" | "low";
@@ -129,10 +129,7 @@ function AIRecommendationHeader({
             <span className="text-white text-xs font-bold">{progressPercent}%</span>
           </Box>
           <Box className="w-full h-2.5 bg-white/20 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-white rounded-full transition-all duration-700"
-              style={{ width: `${progressPercent}%` }}
-            />
+            <div className="h-full bg-white rounded-full transition-all duration-700" style={{ width: `${progressPercent}%` }} />
           </Box>
           <span className="text-blue-100 text-xs">
             {doneCount} von {total} abgeschlossen
@@ -265,10 +262,10 @@ export default function AIRecommendationView() {
                     <div className="text-sm text-red-600">{error}</div>
                   ) : articles.length > 0 ? (
                     articles.map((article) => (
-                      <ArticleCard
+                      <div
                         key={article.id}
                         name={article.name}
-                        articleNo={article.articleNo}
+                        articleNo={article.articleNumber}
                         category={article.category}
                         size={article.size}
                         returnRate={article.returnRate}
