@@ -52,6 +52,7 @@ namespace RevolvAPI.Controllers
 
                     return new ArticleTableDTO
                     {
+                        id = a.Id,
                         ArticleNumber = a.ArticleNumber,
                         Name = a.Name,
                         Category = a.Category,
