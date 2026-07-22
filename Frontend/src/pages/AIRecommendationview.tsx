@@ -18,7 +18,7 @@ const filters = ["Alle Artikel", "Qualität", "Beschreibung", "Empfehlungen"];
 interface ArticleOverview {
   id: number;
   name: string;
-  articleNo: string;
+  articleNumber: string;
   category: string;
   size: string;
   returnRate: "high" | "medium" | "low";
@@ -224,42 +224,18 @@ export default function AIRecommendationView() {
                     articles.map((article) => (
                       <div
                         key={article.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => openArticlePanel(article)}
-                        onKeyDown={(e) => {
-                          // Accessibility: Enter / Space öffnen das Panel
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            openArticlePanel(article);
-                          }
-                        }}
-                        className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
-                        aria-label={`Artikel ${article.name} öffnen`}
-                      >
-                        <ArticleCard
-                          key={article.id}
-                          name={article.name}
-                          articleNo={article.articleNo}
-                          category={article.category}
-                          size={article.size}
-                          returnRate={article.returnRate}
-                          tags={[
-                            ...(article.hasQualityBadge ? ["Qualität"] : []),
-                            ...(article.hasDescriptionBadge ? ["Beschreibung"] : []),
-                            ...(article.hasRecommendationBadge ? ["Empfehlung"] : []),
-                          ]}
-                          progress={
-                            article.openCount + article.resolvedCount > 0
-                              ? Math.round(
-                                  (article.resolvedCount / (article.openCount + article.resolvedCount)) * 100,
-                                )
-                              : 0
-                          }
-                          openCount={article.openCount}
-                          imageUrl={article.imageUrl}
-                        />
-                      </div>
+                        name={article.name}
+                        articleNo={article.articleNumber}
+                        category={article.category}
+                        size={article.size}
+                        returnRate={article.returnRate}
+                        hasQualityBadge={article.hasQualityBadge}
+                        hasDescriptionBadge={article.hasDescriptionBadge}
+                        hasRecommendationBadge={article.hasRecommendationBadge}
+                        openCount={article.openCount}
+                        resolvedCount={article.resolvedCount}
+                        imageUrl={article.imageUrl}
+                      />
                     ))
                   ) : showFallbackExamples ? (
                     // Kein Fehler, aber leere Liste: Beispielartikel anbieten (hilfreich im Dev)
