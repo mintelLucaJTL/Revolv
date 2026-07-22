@@ -40,7 +40,7 @@ namespace RevolvAPI.Controllers
                 })
                 .ToListAsync();
 
-           
+
             return Ok(issues);
         }
     }

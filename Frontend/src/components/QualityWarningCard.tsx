@@ -1,13 +1,4 @@
-
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  Text,
-  Box,
-  Button,
-} from "@jtl-software/platform-ui-react";
+import { Card, CardContent, CardHeader, Text, Box, Button } from "@jtl-software/platform-ui-react";
 
 interface Props {
   // Titel der Warnkarte, z. B. "Starkes Einlaufen"

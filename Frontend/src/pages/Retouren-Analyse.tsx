@@ -68,7 +68,7 @@ export default function RetourenAnalyseView() {
       setIsLoading(true);
 
       try {
-        const response = await fetch("/api/articles/returns");
+        const response = await fetch("http://localhost:5215/api/articles/returns");
         if (!response.ok) {
           throw new Error(`API-Anfrage fehlgeschlagen: ${response.status}`);
         }
@@ -109,7 +109,6 @@ export default function RetourenAnalyseView() {
     <Box className="min-h-screen bg-slate-50">
       {/* Header mit dynamischer Anzeige der gefilterten Artikelanzahl */}
       <TopNavigationBar />
-     
 
       <Box className="flex">
         {/* Linke Seitenleiste für die Navigation innerhalb der Revolve-Anwendung */}
@@ -158,9 +157,7 @@ export default function RetourenAnalyseView() {
             <CardContent>
               <div className="overflow-x-auto">
                 {isLoading ? (
-                  <div className="p-8 text-center text-sm text-slate-500">
-                    Lade Artikeldaten...
-                  </div>
+                  <div className="p-8 text-center text-sm text-slate-500">Lade Artikeldaten...</div>
                 ) : articles.length === 0 ? (
                   <div className="p-8 text-center text-sm text-slate-500">
                     Keine zurückgesendeten Artikel gefunden.
@@ -196,38 +193,38 @@ export default function RetourenAnalyseView() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
-                    {visible.map((row) => {
-                      const rc = rateClasses(row.returnRate);
-                      return (
-                        <tr
-                          key={row.id}
-                          className="hover:bg-gray-50 cursor-pointer"
-                          onClick={() => {
-                            setSelectedItem(row);
-                            setIsModalOpen(true);
-                          }}
-                        >
-                          <td className="px-4 py-4 text-sm text-gray-400">{row.articleNumber}</td>
-                          <td className="px-4 py-4 font-semibold">{row.name}</td>
-                          <td className="px-4 py-4 text-sm">{row.category}</td>
-                          <td className="px-4 py-4 text-sm">{row.size}</td>
-                          <td className="px-4 py-4 text-sm">{row.color}</td>
-                          {/* Visualisierung der Retourenquote mit farbigem Statuspunkt */}
-                          <td className="px-4 py-4">
-                            <span
-                              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${rc.bg}`}
-                            >
-                              <span className={`w-2 h-2 rounded-full ${rc.dot}`} />
-                              <span className={`font-semibold ${rc.text}`}>
-                                {row.returnRate.toFixed(1)}%
+                      {visible.map((row) => {
+                        const rc = rateClasses(row.returnRate);
+                        return (
+                          <tr
+                            key={row.id}
+                            className="hover:bg-gray-50 cursor-pointer"
+                            onClick={() => {
+                              setSelectedItem(row);
+                              setIsModalOpen(true);
+                            }}
+                          >
+                            <td className="px-4 py-4 text-sm text-gray-400">{row.articleNumber}</td>
+                            <td className="px-4 py-4 font-semibold">{row.name}</td>
+                            <td className="px-4 py-4 text-sm">{row.category}</td>
+                            <td className="px-4 py-4 text-sm">{row.size}</td>
+                            <td className="px-4 py-4 text-sm">{row.color}</td>
+                            {/* Visualisierung der Retourenquote mit farbigem Statuspunkt */}
+                            <td className="px-4 py-4">
+                              <span
+                                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${rc.bg}`}
+                              >
+                                <span className={`w-2 h-2 rounded-full ${rc.dot}`} />
+                                <span className={`font-semibold ${rc.text}`}>
+                                  {row.returnRate.toFixed(1)}%
+                                </span>
                               </span>
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-sm">{row.mostFrequentReason}</td>
-                          <td className="px-4 py-4 text-sm">{row.aiStatus}</td>
-                        </tr>
-                      );
-                    })}
+                            </td>
+                            <td className="px-4 py-4 text-sm">{row.mostFrequentReason}</td>
+                            <td className="px-4 py-4 text-sm">{row.aiStatus}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}

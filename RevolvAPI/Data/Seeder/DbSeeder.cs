@@ -18,6 +18,7 @@ namespace RevolvAPI.Data.Seeder
                         Name = "Boyfriend Jeans Vintage",
                         Category = "Hosen",
                         Size = "M",
+                        Color = "Schwarz",
                         AiRecommendations = new List<AiRecommendation>
                         {
                             new AiRecommendation
@@ -54,6 +55,7 @@ namespace RevolvAPI.Data.Seeder
                         Name = "Leinen-Blazer Sommer",
                         Category = "Jacken",
                         Size = "L",
+                        Color = "Blau",
                         AiRecommendations = new List<AiRecommendation>
                         {
                             new AiRecommendation
@@ -89,6 +91,7 @@ namespace RevolvAPI.Data.Seeder
                         Name = "Basic Baumwoll-Shirt",
                         Category = "Shirts",
                         Size = "S",
+                        Color = "Weiß",
                         AiRecommendations = new List<AiRecommendation>
                         {
                             new AiRecommendation
@@ -113,6 +116,7 @@ namespace RevolvAPI.Data.Seeder
                         Name = "Laufschuhe Speed X",
                         Category = "Schuhe",
                         Size = "42",
+                        Color = "Schwarz",
                         AiRecommendations = new List<AiRecommendation>
                         {
                             new AiRecommendation
@@ -141,6 +145,7 @@ namespace RevolvAPI.Data.Seeder
                         Name = "Abendkleid 'Midnight'",
                         Category = "Kleider",
                         Size = "XS",
+                        Color = "Schwarz",
                         AiRecommendations = new List<AiRecommendation>
                         {
                             new AiRecommendation

@@ -1,4 +1,4 @@
--- Check explicitly for 'revolv.Articles' using OBJECT_ID
+-- Check if the table exists
 IF OBJECT_ID(N'revolv.Articles', N'U') IS NULL
 BEGIN
     CREATE TABLE revolv.Articles (
@@ -8,5 +8,13 @@ BEGIN
         Category NVARCHAR(100),
         Size NVARCHAR(50)
     );
+END
+GO
+
+-- Add Color column if it doesn't exist
+IF COL_LENGTH('revolv.Articles', 'Color') IS NULL
+BEGIN
+    ALTER TABLE revolv.Articles 
+    ADD Color NVARCHAR(50);
 END
 GO

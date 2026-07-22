@@ -70,7 +70,7 @@ export default function Dashboard() {
     <Box className="min-h-screen bg-slate-50">
       <TopNavigationBar />
       {/* Globale Kopfzeile der App mit Titel und primären Aktionen */}
-      
+
       {/* Haupt-Layout-Splitter: Trennung zwischen Sidebar und Content */}
       <Box className="flex">
         <Sidebar />

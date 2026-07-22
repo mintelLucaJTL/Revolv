@@ -21,51 +21,6 @@ namespace RevolvAPI.Controllers
         private static readonly string[] ResolvedStatuses =
             { "Gelöst", "Erledigt", "Geschlossen", "Akzeptiert", "Abgeschlossen" };
 
-        // GET api/ai/overview
-        // Returns every article that has a linked AI recommendation, including the
-        // badge flags to render and the open/resolved progress of its AI tasks.
-        [HttpGet("overview")]
-        public async Task<IActionResult> GetAiOverview()
-        {
-            var overview = await _ctx.Articles
-                // Only include articles that have a linked AI recommendation.
-                .Where(a => a.AiRecommendations.Any())
-                .Select(a => new AiOverviewDTO
-                {
-                    ArticleNumber = a.ArticleNumber,
-                    Name = a.Name,
-                    Category = a.Category,
-                    Size = a.Size,
-                    ReturnRate = a.AiRecommendations.Select(r => r.ReturnRate).FirstOrDefault(),
-
-                    // A badge is shown when at least one entry of that type exists.
-                    HasQualityBadge = a.AiRecommendations.SelectMany(r => r.QualityIssues).Any(),
-                    HasDescriptionBadge = a.AiRecommendations.SelectMany(r => r.DescriptionProposals).Any(),
-                    HasRecommendationBadge = a.AiRecommendations.SelectMany(r => r.ActionRecommendations).Any(),
-
-                    // Open tasks: actions via IsCompleted, quality/description via Status.
-                    OpenCount =
-                        a.AiRecommendations.SelectMany(r => r.QualityIssues)
-                            .Count(q => q.Status == null || !ResolvedStatuses.Contains(q.Status)) +
-                        a.AiRecommendations.SelectMany(r => r.DescriptionProposals)
-                            .Count(d => !ResolvedStatuses.Contains(d.Status)) +
-                        a.AiRecommendations.SelectMany(r => r.ActionRecommendations)
-                            .Count(ar => !ar.IsCompleted),
-
-                    // Resolved tasks: the counterpart of the open count.
-                    ResolvedCount =
-                        a.AiRecommendations.SelectMany(r => r.QualityIssues)
-                            .Count(q => q.Status != null && ResolvedStatuses.Contains(q.Status)) +
-                        a.AiRecommendations.SelectMany(r => r.DescriptionProposals)
-                            .Count(d => ResolvedStatuses.Contains(d.Status)) +
-                        a.AiRecommendations.SelectMany(r => r.ActionRecommendations)
-                            .Count(ar => ar.IsCompleted)
-                })
-                .ToListAsync();
-
-            return Ok(overview);
-        }
-
 
         [HttpPatch("description/{id}/status")]
         public async Task<IActionResult> UpdateDescriptionStatus(int id, [FromBody] UpdateStatusDto dto)
@@ -114,6 +69,7 @@ namespace RevolvAPI.Controllers
 
             return NoContent();
         }
+
         [HttpGet("overview")]
         public async Task<IActionResult> GetOverview()
         {
@@ -136,7 +92,7 @@ namespace RevolvAPI.Controllers
                     OpenCount = r.QualityIssues.Count(q => q.Status != "Erledigt") +
                                 r.DescriptionProposals.Count(d => d.Status != "Erledigt") +
                                 r.ActionRecommendations.Count(a => !a.IsCompleted),
-                                ResolvedCount = r.QualityIssues.Count(q => q.Status == "Erledigt") +
+                    ResolvedCount = r.QualityIssues.Count(q => q.Status == "Erledigt") +
                                  r.DescriptionProposals.Count(d => d.Status == "Erledigt") +
                                  r.ActionRecommendations.Count(a => a.IsCompleted),
                 })

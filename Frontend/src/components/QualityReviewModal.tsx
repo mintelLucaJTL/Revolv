@@ -1,6 +1,12 @@
-
-
-import { Card, CardContent, CardHeader, CardTitle, Button, Text, Box } from "@jtl-software/platform-ui-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Text,
+  Box,
+} from "@jtl-software/platform-ui-react";
 import QualityWarningCard from "./QualityWarningCard";
 
 // Typ für den ausgewählten Artikel in der Qualitätsprüfung
@@ -17,14 +23,20 @@ export interface ReturnItem {
 }
 
 interface Props {
-  isOpen: boolean;               // steuert, ob das Modal sichtbar ist
-  onClose: () => void;           // Callback zum Schließen des Modals
-  item: ReturnItem | null;       // aktuell ausgewählter Artikel
-  reviewedCount: number;         // wie viele Prüfpunkte bereits bearbeitet sind
-  totalCount: number;            // Gesamtanzahl der Prüfpunkte
+  isOpen: boolean; // steuert, ob das Modal sichtbar ist
+  onClose: () => void; // Callback zum Schließen des Modals
+  item: ReturnItem | null; // aktuell ausgewählter Artikel
+  reviewedCount: number; // wie viele Prüfpunkte bereits bearbeitet sind
+  totalCount: number; // Gesamtanzahl der Prüfpunkte
 }
 
-export default function QualityReviewModal({ isOpen, onClose, item, reviewedCount, totalCount }: Props) {
+export default function QualityReviewModal({
+  isOpen,
+  onClose,
+  item,
+  reviewedCount,
+  totalCount,
+}: Props) {
   // Wenn das Modal geschlossen ist oder kein Artikel übergeben wurde, nichts rendern
   if (!isOpen || !item) return null;
 
@@ -46,7 +58,9 @@ export default function QualityReviewModal({ isOpen, onClose, item, reviewedCoun
 
               {/* Statusanzeige für die Bearbeitungsschritte */}
               <Box className="flex items-center gap-2 text-sm text-slate-500">
-                <span>{reviewedCount} / {totalCount} bearbeitet</span>
+                <span>
+                  {reviewedCount} / {totalCount} bearbeitet
+                </span>
               </Box>
             </div>
           </CardHeader>
@@ -82,7 +96,10 @@ export default function QualityReviewModal({ isOpen, onClose, item, reviewedCoun
 
                     <Text weight="bold">KI-VORSCHLAG</Text>
                     <Box className="mt-2">
-                      <Text>Empfohlen: Beschreibe die Hose als atmungsaktiv und elastisch für warme Tage.</Text>
+                      <Text>
+                        Empfohlen: Beschreibe die Hose als atmungsaktiv und elastisch für warme
+                        Tage.
+                      </Text>
                     </Box>
                   </CardContent>
                 </Card>

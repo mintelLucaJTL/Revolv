@@ -1,4 +1,11 @@
-import { Box, Card, CardContent, CardHeader, CardTitle, Text } from "@jtl-software/platform-ui-react";
+import {
+  Box,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Text,
+} from "@jtl-software/platform-ui-react";
 
 type ReturnRateLevel = "high" | "medium" | "low";
 
@@ -19,7 +26,10 @@ function getReturnRateConfig(level: ReturnRateLevel) {
     case "high":
       return { label: "Hoch", className: "bg-red-100 text-red-700 border border-red-300" };
     case "medium":
-      return { label: "Mittel", className: "bg-yellow-100 text-yellow-700 border border-yellow-300" };
+      return {
+        label: "Mittel",
+        className: "bg-yellow-100 text-yellow-700 border border-yellow-300",
+      };
     case "low":
       return { label: "Niedrig", className: "bg-green-100 text-green-700 border border-green-300" };
   }
@@ -79,7 +89,10 @@ export function ArticleCard({
       <CardContent className="pt-2 pb-4 space-y-4">
         <div className="flex flex-wrap gap-2">
           {tags.map((tag) => (
-            <span key={tag} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+            <span
+              key={tag}
+              className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700"
+            >
               {tag}
             </span>
           ))}
