@@ -9,7 +9,7 @@ const filters = ["Alle Artikel", "Qualität", "Beschreibung", "Empfehlungen"];
 interface ArticleOverview {
   id: number;
   name: string;
-  articleNo: string;
+  articleNumber: string;
   category: string;
   size: string;
   returnRate: "high" | "medium" | "low";
@@ -154,25 +154,15 @@ export default function AIRecommendationView() {
                       <ArticleCard
                         key={article.id}
                         name={article.name}
-                        articleNo={article.articleNo}
+                        articleNo={article.articleNumber}
                         category={article.category}
                         size={article.size}
                         returnRate={article.returnRate}
-                        tags={[
-                          ...(article.hasQualityBadge ? ["Qualität"] : []),
-                          ...(article.hasDescriptionBadge ? ["Beschreibung"] : []),
-                          ...(article.hasRecommendationBadge ? ["Empfehlung"] : []),
-                        ]}
-                        progress={
-                          article.openCount + article.resolvedCount > 0
-                            ? Math.round(
-                                (article.resolvedCount /
-                                  (article.openCount + article.resolvedCount)) *
-                                  100,
-                              )
-                            : 0
-                        }
+                        hasQualityBadge={article.hasQualityBadge}
+                        hasDescriptionBadge={article.hasDescriptionBadge}
+                        hasRecommendationBadge={article.hasRecommendationBadge}
                         openCount={article.openCount}
+                        resolvedCount={article.resolvedCount}
                         imageUrl={article.imageUrl}
                       />
                     ))
