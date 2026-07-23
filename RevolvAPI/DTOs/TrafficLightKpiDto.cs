@@ -8,6 +8,12 @@ namespace RevolvAPI.DTOs
         public TrafficLightGroupDto Red { get; set; } = new();
         public TrafficLightGroupDto Yellow { get; set; } = new();
         public TrafficLightGroupDto Green { get; set; } = new();
+
+        /// <summary>Yellow band starts here (from ShopSettings). Green is below.</summary>
+        public decimal YellowThreshold { get; set; }
+
+        /// <summary>Red band starts above this (from ShopSettings). Yellow is up to here.</summary>
+        public decimal RedThreshold { get; set; }
     }
 
     // Aggregated values for a single traffic-light band.

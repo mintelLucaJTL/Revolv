@@ -1,71 +1,161 @@
-import { useState, useEffect } from "react";
-import {
-  AppHeader,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Text,
-} from "@jtl-software/platform-ui-react";
+import { Box, Card, CardContent, Text } from "@jtl-software/platform-ui-react";
+import { useEffect, useState } from "react";
 import KpiCard from "../components/KpiCard";
 import TopNavigationBar from "../components/TopNavigationBar";
 import ReturnReasonsChart from "../components/ReturnReasonsChar";
 import Sidebar from "../components/Sidebar";
 
-const Cardsnav = [
+/** Raw data from the backend (DashboardKpiDto) */
+interface DashboardKpiDto {
+  wholeReturnQuote: number;
+  affectedArticle: number;
+  openKiRecommendations: number;
+  improvedProducts: number;
+}
+
+interface TrafficLightGroupDto {
+  count: number;
+  averagePercent: number;
+}
+
+/** Response from GET /api/dashboard/traffic-lights */
+interface TrafficLightKpiDto {
+  red: TrafficLightGroupDto;
+  yellow: TrafficLightGroupDto;
+  green: TrafficLightGroupDto;
+  yellowThreshold?: number;
+  redThreshold?: number;
+}
+
+interface SettingsApiDto {
+  toneOfVoice: string;
+  autoAnalyzeNewIssues: boolean;
+  thresholdYellow: number;
+  thresholdRed: number;
+}
+
+interface KpiNavCard {
+  title: string;
+  content: string;
+  value: string;
+  extra?: string;
+}
+
+type AmpelVariant = "red" | "yellow" | "green";
+
+interface AmpelTile {
+  variant: AmpelVariant;
+  badgeLabel: string;
+  smallLabel: string;
+  value: number;
+  percent: string;
+}
+
+const KPI_CARD_META: Omit<KpiNavCard, "value" | "extra">[] = [
   {
     title: "Gesamte Retourenquote",
     content: "Gesamtquote aller Retouren in diesem Monat.",
-    value: "24,8%",
-    extra: "−2,3% gegenüber letzter Woche",
   },
   {
     title: "Betroffene Artikel",
     content: "Artikel mit aktuellen Rücksendungen.",
-    value: "142",
-    extra: "+8 gegenüber gestern",
   },
   {
     title: "KI-Empfehlungen offen",
     content: "Offene Vorschläge, die noch geprüft werden müssen.",
-    value: "37",
-    extra: "−5 diese Woche",
   },
   {
     title: "Verbesserte Produkte",
     content: "Produkte, die bereits verbessert wurden.",
-    value: "89",
-    extra: "+12 in diesem Monat",
   },
 ];
 
-// vordefinierte Schwellenwerte für die KpiCards (Ampel-Logik)
-// HINWEIS: Diese Struktur wird durch dynamische Daten aus der API ersetzt
-const defaultTilesData = [
-  {
-    variant: "red",
-    badgeLabel: "ÜBER 25%",
-    smallLabel: "Hohe Retourenquote",
-    value: 0,
-    percent: "0%",
-  },
-  {
-    variant: "yellow",
-    badgeLabel: "10 – 25%",
-    smallLabel: "Mittlere Retourenquote",
-    value: 0,
-    percent: "0%",
-  },
-  {
-    variant: "green",
-    badgeLabel: "UNTER 10%",
-    smallLabel: "Niedrige Retourenquote",
-    value: 0,
-    percent: "0%",
-  },
-];
+function formatPercent(value: number): string {
+  return `${value.toLocaleString("de-DE", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
+}
+
+function formatCount(value: number): string {
+  return value.toLocaleString("de-DE");
+}
+
+function formatThreshold(value: number): string {
+  return Number(value).toLocaleString("de-DE", { maximumFractionDigits: 1 });
+}
+
+function mapKpiDtoToCards(data: DashboardKpiDto): KpiNavCard[] {
+  return [
+    {
+      ...KPI_CARD_META[0],
+      value: formatPercent(Number(data.wholeReturnQuote ?? 0)),
+    },
+    {
+      ...KPI_CARD_META[1],
+      value: formatCount(Number(data.affectedArticle ?? 0)),
+    },
+    {
+      ...KPI_CARD_META[2],
+      value: formatCount(Number(data.openKiRecommendations ?? 0)),
+    },
+    {
+      ...KPI_CARD_META[3],
+      value: formatCount(Number(data.improvedProducts ?? 0)),
+    },
+  ];
+}
+
+function mapTrafficLightsToTiles(
+  data: TrafficLightKpiDto,
+  yellowThreshold: number,
+  redThreshold: number,
+): AmpelTile[] {
+  const yellow = formatThreshold(yellowThreshold);
+  const red = formatThreshold(redThreshold);
+
+  return [
+    {
+      variant: "red",
+      badgeLabel: `ÜBER ${red}%`,
+      smallLabel: "Hohe Retourenquote",
+      value: data.red?.count ?? 0,
+      percent: formatPercent(Number(data.red?.averagePercent ?? 0)),
+    },
+    {
+      variant: "yellow",
+      badgeLabel: `${yellow} – ${red}%`,
+      smallLabel: "Mittlere Retourenquote",
+      value: data.yellow?.count ?? 0,
+      percent: formatPercent(Number(data.yellow?.averagePercent ?? 0)),
+    },
+    {
+      variant: "green",
+      badgeLabel: `UNTER ${yellow}%`,
+      smallLabel: "Niedrige Retourenquote",
+      value: data.green?.count ?? 0,
+      percent: formatPercent(Number(data.green?.averagePercent ?? 0)),
+    },
+  ];
+}
+
+function KpiCardSkeleton() {
+  return (
+    <Card className="rounded-lg bg-white p-4 shadow-sm animate-pulse">
+      <CardContent className="p-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="h-9 w-9 rounded-lg bg-slate-200" />
+            <div className="space-y-2">
+              <div className="h-8 w-20 rounded bg-slate-200" />
+              <div className="h-4 w-40 rounded bg-slate-100" />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 interface TrafficLightResponse {
   red: { count: number; averagePercent: number };
@@ -74,171 +164,159 @@ interface TrafficLightResponse {
 }
 
 export default function Dashboard() {
-  const [tilesData, setTilesData] = useState(defaultTilesData);
-  const [loading, setLoading] = useState(true);
+  const [kpiCards, setKpiCards] = useState<KpiNavCard[]>([]);
+  const [ampelTiles, setAmpelTiles] = useState<AmpelTile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchTrafficLights = async () => {
+    const loadDashboardData = async () => {
+      setIsLoading(true);
+      setError(null);
+
       try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch("http://localhost:5215/api/dashboard/traffic-lights");
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
+        // Settings + traffic-lights together: badges always use current thresholds,
+        // counts are calculated with the same thresholds on the backend.
+        const [kpiResponse, trafficResponse, settingsResponse] = await Promise.all([
+          fetch("http://localhost:5215/api/dashboard/kpi"),
+          fetch("http://localhost:5215/api/dashboard/traffic-lights"),
+          fetch("http://localhost:5215/api/settings"),
+        ]);
+
+        if (!kpiResponse.ok) {
+          throw new Error(`KPI-Anfrage fehlgeschlagen (${kpiResponse.status})`);
         }
-        
-        const data: TrafficLightResponse = await response.json();
-        
-        // Transform API response to KpiCard format
-        const transformedData = [
-          {
-            variant: "red" as const,
-            badgeLabel: "ÜBER 25%",
-            smallLabel: "Hohe Retourenquote",
-            value: data.red.count,
-            percent: `${data.red.averagePercent.toFixed(1)}%`,
-          },
-          {
-            variant: "yellow" as const,
-            badgeLabel: "10 – 25%",
-            smallLabel: "Mittlere Retourenquote",
-            value: data.yellow.count,
-            percent: `${data.yellow.averagePercent.toFixed(1)}%`,
-          },
-          {
-            variant: "green" as const,
-            badgeLabel: "UNTER 10%",
-            smallLabel: "Niedrige Retourenquote",
-            value: data.green.count,
-            percent: `${data.green.averagePercent.toFixed(1)}%`,
-          },
-        ];
-        
-        setTilesData(transformedData);
+        if (!trafficResponse.ok) {
+          throw new Error(`Ampel-Anfrage fehlgeschlagen (${trafficResponse.status})`);
+        }
+        if (!settingsResponse.ok) {
+          throw new Error(`Settings-Anfrage fehlgeschlagen (${settingsResponse.status})`);
+        }
+
+        const kpiData = (await kpiResponse.json()) as DashboardKpiDto;
+        const trafficData = (await trafficResponse.json()) as TrafficLightKpiDto;
+        const settingsData = (await settingsResponse.json()) as SettingsApiDto;
+
+        const yellowThreshold = Number(
+          trafficData.yellowThreshold ?? settingsData.thresholdYellow ?? 10,
+        );
+        const redThreshold = Number(trafficData.redThreshold ?? settingsData.thresholdRed ?? 25);
+
+        setKpiCards(mapKpiDtoToCards(kpiData));
+        setAmpelTiles(mapTrafficLightsToTiles(trafficData, yellowThreshold, redThreshold));
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Ein Fehler ist aufgetreten");
-        console.error("Failed to fetch traffic lights:", err);
-        // Use default data on error
-        setTilesData(defaultTilesData);
+        console.error("Error loading the dashboard data:", err);
+        setKpiCards([]);
+        setAmpelTiles([]);
+        setError(
+          err instanceof TypeError
+            ? "Backend nicht erreichbar. Starte RevolvAPI oder überprüfe die API-URL (http://localhost:5215)."
+            : err instanceof Error
+              ? err.message
+              : "Die Dashboard-Daten konnten nicht geladen werden.",
+        );
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchTrafficLights();
+    void loadDashboardData();
   }, []);
+
   return (
     <Box className="min-h-screen bg-slate-50">
       <TopNavigationBar />
-      {/* Globale Kopfzeile der App mit Titel und primären Aktionen */}
 
-      {/* Haupt-Layout-Splitter: Trennung zwischen Sidebar und Content */}
       <Box className="flex">
         <Sidebar />
 
-        {/* Rechter Hauptinhaltsbereich  */}
         <Box className="flex-1 p-6">
           <Text weight="bold">Retourenanalyse</Text>
 
-          {/*
-            Zweiter Content-Bereich:
-            Raster-Layout für die allgemeinen Informations- und Analyse-Karten.
-          */}
+          {error && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mt-4">
-            {Cardsnav.map((card) => {
-              const extraText = card.extra ?? "";
-              const isNegative =
-                extraText.trim().startsWith("-") || extraText.trim().startsWith("−");
+            {isLoading
+              ? Array.from({ length: 4 }, (_, index) => (
+                  <KpiCardSkeleton key={`kpi-skeleton-${index}`} />
+                ))
+              : kpiCards.map((card) => {
+                  const extraText = card.extra ?? "";
+                  const isNegative =
+                    extraText.trim().startsWith("-") || extraText.trim().startsWith("−");
 
-              return (
-                <Card
-                  key={card.title}
-                  className="rounded-lg bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <CardContent className="p-0">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-4">
-                        {/* Icon-Kreis */}
-                        <div className="rounded-lg p-2 bg-slate-100 flex items-center justify-center">
-                          <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            className="text-slate-600"
-                            aria-hidden
-                          >
-                            <path d="M7 14l5-5 5 5" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </div>
+                  return (
+                    <Card
+                      key={card.title}
+                      className="rounded-lg bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      <CardContent className="p-0">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-4">
+                            <div className="rounded-lg p-2 bg-slate-100 flex items-center justify-center">
+                              <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className="text-slate-600"
+                                aria-hidden
+                              >
+                                <path
+                                  d="M7 14l5-5 5 5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </div>
 
-                        {/* Textbereich: Wert + kurze Beschreibung */}
-                        <div>
-                          <div className="text-3xl font-bold leading-tight">{card.value}</div>
-                          <div className="text-sm text-slate-600 mt-1">{card.content}</div>
-                        </div>
-                      </div>
+                            <div>
+                              <div className="text-3xl font-bold leading-tight">{card.value}</div>
+                              <div className="text-sm text-slate-600 mt-1">{card.content}</div>
+                            </div>
+                          </div>
 
-                      {/* Rechts oben: kleines Pill-Badge für die Extra-Info */}
-                      {card.extra && (
-                        <div
-                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            isNegative
-                              ? "bg-green-50 text-green-700 border border-green-100"
-                              : "bg-red-50 text-red-700 border border-red-100"
-                          }`}
-                        >
-                          {card.extra}
+                          {card.extra && (
+                            <div
+                              className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                isNegative
+                                  ? "bg-green-50 text-green-700 border border-green-100"
+                                  : "bg-red-50 text-red-700 border border-red-100"
+                              }`}
+                            >
+                              {card.extra}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
           </div>
 
-          {/*
-            KPI-Bereich (Ampelkacheln):
-          */}
           <div className="grid gap-4 mt-6">
             <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-              {loading ? (
-                // Loading-Platzhalter für die 3 Ampelkacheln
-                <>
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="rounded-lg border border-slate-200 p-4 bg-white animate-pulse">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="w-10 h-10 rounded-full bg-slate-200" />
-                        <div className="text-slate-300">›</div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="h-4 bg-slate-200 rounded w-24" />
-                        <div className="h-8 bg-slate-200 rounded w-16" />
-                        <div className="h-4 bg-slate-200 rounded w-32 mt-2" />
-                        <div className="h-4 bg-slate-200 rounded w-28" />
-                      </div>
-                    </div>
+              {isLoading
+                ? Array.from({ length: 3 }, (_, index) => (
+                    <KpiCardSkeleton key={`ampel-skeleton-${index}`} />
+                  ))
+                : ampelTiles.map((t) => (
+                    <KpiCard
+                      key={t.smallLabel}
+                      variant={t.variant}
+                      badgeLabel={t.badgeLabel}
+                      smallLabel={t.smallLabel}
+                      value={t.value}
+                      percent={t.percent}
+                      onClick={() => {}}
+                    />
                   ))}
-                </>
-              ) : (
-                // Echte Daten
-                tilesData.map((t) => (
-                  <KpiCard
-                    key={t.smallLabel}
-                    variant={t.variant as any} // Typ-Cast, da Variante strikt "red"|"green"|"yellow" erwartet
-                    badgeLabel={t.badgeLabel}
-                    smallLabel={t.smallLabel}
-                    value={t.value}
-                    percent={t.percent}
-                    onClick={() => {}}
-                  />
-                ))
-              )}
             </div>
 
             <div className="w-full max-w-3xl mx-auto">

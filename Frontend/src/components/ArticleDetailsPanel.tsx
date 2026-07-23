@@ -35,11 +35,7 @@ export default function ArticleDetailsPanel({
 
   return (
     <>
-      <div
-        className="fixed inset-0 bg-black/40 z-40"
-        onClick={onClose}
-        aria-hidden
-      />
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} aria-hidden />
       <aside
         role="dialog"
         aria-modal="true"
