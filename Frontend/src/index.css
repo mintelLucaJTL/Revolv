@@ -1,2 +1,4 @@
 @import "@jtl-software/platform-ui-react/index.css";
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));

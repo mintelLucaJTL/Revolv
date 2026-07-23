@@ -13,8 +13,10 @@ export default function Sidebar() {
   const location = useLocation();
 
   return (
-    <Box className="w-72 min-h-[calc(100vh-72px)] bg-white border-r p-4 space-y-3">
-      <Text weight="bold">Navigation</Text>
+    <Box className="w-72 min-h-[calc(100vh-72px)] bg-white border-r border-slate-200 p-4 space-y-3 dark:bg-slate-900 dark:border-slate-700">
+      <Box className="dark:text-slate-100">
+        <Text weight="bold">Navigation</Text>
+      </Box>
 
       {navItems.map((item) => {
         const isActive = location.pathname === item.path;

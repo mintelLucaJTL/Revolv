@@ -83,22 +83,24 @@ export default function ReturnReasonsChart() {
   }, []);
 
   return (
-    <Card className="w-full">
+    <Card className="w-full dark:bg-slate-900 dark:border-slate-700">
       <CardHeader>
-        <CardTitle>Häufigste Retourengründe</CardTitle>
+        <CardTitle className="dark:text-slate-100">Häufigste Retourengründe</CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-3">
-        <Box className="text-sm text-slate-500">Gesamtverteilung aller Rücksendungen</Box>
+        <Box className="text-sm text-slate-500 dark:text-slate-400">
+          Gesamtverteilung aller Rücksendungen
+        </Box>
 
         {isLoading ? (
-          <div className="h-64 flex items-center justify-center text-sm text-slate-500">
+          <div className="h-64 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
             Lade Retourengründe...
           </div>
         ) : error ? (
           <div className="h-64 flex items-center justify-center text-sm text-red-600">{error}</div>
         ) : returnReasons.length === 0 ? (
-          <div className="h-64 flex items-center justify-center text-sm text-slate-500">
+          <div className="h-64 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
             Keine Retourengründe gefunden.
           </div>
         ) : (
@@ -122,7 +124,12 @@ export default function ReturnReasonsChart() {
                   </Pie>
                   <Tooltip
                     formatter={(value, name) => [`${Number(value ?? 0).toFixed(1)}%`, String(name)]}
-                    contentStyle={{ borderRadius: 12 }}
+                    contentStyle={{
+                      borderRadius: 12,
+                      backgroundColor: "#0f172a",
+                      borderColor: "#334155",
+                      color: "#e2e8f0",
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -132,15 +139,17 @@ export default function ReturnReasonsChart() {
               {returnReasons.map((item) => (
                 <Box
                   key={item.id}
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2"
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700"
                 >
                   <span
                     className="h-3 w-3 rounded-full"
                     style={{ backgroundColor: item.colorCode }}
                   />
-                  <Text>
-                    {item.reasonName} ({item.percentage.toFixed(1)}%)
-                  </Text>
+                  <Box className="dark:text-slate-100">
+                    <Text>
+                      {item.reasonName} ({item.percentage.toFixed(1)}%)
+                    </Text>
+                  </Box>
                 </Box>
               ))}
             </div>
