@@ -31,9 +31,40 @@ namespace RevolvAPI.Controllers
             if (proposal == null) return NotFound();
 
             proposal.Status = dto.Status;
+
+            // Keep the parent recommendation's resolved flag in sync: once every description
+            // proposal has been reviewed (accepted or rejected), the recommendation counts as
+            // resolved for the "KI-Status" column and the dashboard KPIs. Undoing a review
+            // (status back to "Ausstehend") automatically reopens it again.
+            var recommendation = await _ctx.AiRecommendations
+                .Include(r => r.DescriptionProposals)
+                .FirstOrDefaultAsync(r => r.Id == proposal.AiRecommendationId);
+
+            if (recommendation != null && recommendation.DescriptionProposals.Any())
+            {
+                recommendation.IsFullyResolved = recommendation.DescriptionProposals.All(p =>
+                    p.Status == "Akzeptiert" || p.Status == "Abgelehnt");
+            }
+
             await _ctx.SaveChangesAsync();
 
             return NoContent(); // 204 - Änderung erfolgreich gespeichert
+        }
+
+        // PATCH api/ai/description/{id}/text
+        // Saves a user-edited version of the AI-proposed description text.
+        [HttpPatch("description/{id}/text")]
+        public async Task<IActionResult> UpdateDescriptionProposedText(int id, [FromBody] UpdateProposalTextDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var proposal = await _ctx.DescriptionProposals.FindAsync(id);
+            if (proposal == null) return NotFound();
+
+            proposal.ProposedText = dto.ProposedText;
+            await _ctx.SaveChangesAsync();
+
+            return NoContent();
         }
 
         // PATCH api/ai/action/{id}/complete

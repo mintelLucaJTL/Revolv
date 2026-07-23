@@ -12,8 +12,8 @@ import {
 import TopNavigationBar from "../components/TopNavigationBar";
 import QualityReviewModal from "../components/QualityReviewModal";
 
-// Definiert die verarbeitbaren Zustände einer KI-Optimierung für einen Artikel
-type AIStatus = "ausstehend" | "in_bearbeitung" | "optimiert";
+// Values returned by GET /api/articles/returns for the "KI-Status" column (see ReturnController).
+type AIStatus = "Keine Empfehlung" | "Ausstehend" | "Angenommen" | "Abgelehnt" | "Gelöst";
 
 // Datenstruktur für einen einzelnen Eintrag in der Retourenanalyse
 interface ReturnItem {
@@ -44,6 +44,21 @@ function rateClasses(rate: number) {
   return { bg: "bg-green-50", dot: "bg-green-400", text: "text-green-700" };
 }
 
+// Farbliche Kennzeichnung für die "KI-Status"-Spalte, passend zu den Werten aus ReturnController.
+function aiStatusClasses(status: AIStatus): string {
+  switch (status) {
+    case "Angenommen":
+    case "Gelöst":
+      return "bg-green-50 text-green-700";
+    case "Abgelehnt":
+      return "bg-red-50 text-red-600";
+    case "Ausstehend":
+      return "bg-amber-50 text-amber-600";
+    default:
+      return "bg-slate-100 text-slate-500";
+  }
+}
+
 export default function RetourenAnalyseView() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,29 +78,31 @@ export default function RetourenAnalyseView() {
   // Platzhalter für den Fortschritt der Prüfschritte
   const [reviewedCount] = useState(0);
 
-  useEffect(() => {
-    const loadArticles = async () => {
-      setIsLoading(true);
+  // Extracted so it can also be re-run after the modal saves a change (e.g. accepting a
+  // description proposal), keeping the "KI-Status" column in this table in sync.
+  const loadArticles = async () => {
+    setIsLoading(true);
 
-      try {
-        const response = await fetch("http://localhost:5215/api/articles/returns");
-        if (!response.ok) {
-          throw new Error(`API-Anfrage fehlgeschlagen: ${response.status}`);
-        }
-
-        const data = (await response.json()) as ReturnItem[];
-        if (!data.every((item) => item.id !== undefined && item.id !== null)) {
-          console.warn("Retouren-Analyse: Einige Artikel aus /api/articles/returns haben keine id:", data);
-        }
-        setArticles(data);
-      } catch (error) {
-        console.error("Fehler beim Laden der Retourendaten:", error);
-        setArticles([]);
-      } finally {
-        setIsLoading(false);
+    try {
+      const response = await fetch("http://localhost:5215/api/articles/returns");
+      if (!response.ok) {
+        throw new Error(`API-Anfrage fehlgeschlagen: ${response.status}`);
       }
-    };
 
+      const data = (await response.json()) as ReturnItem[];
+      if (!data.every((item) => item.id !== undefined && item.id !== null)) {
+        console.warn("Retouren-Analyse: Einige Artikel aus /api/articles/returns haben keine id:", data);
+      }
+      setArticles(data);
+    } catch (error) {
+      console.error("Fehler beim Laden der Retourendaten:", error);
+      setArticles([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadArticles();
   }, []);
 
@@ -258,7 +275,15 @@ export default function RetourenAnalyseView() {
                               </span>
                             </td>
                             <td className="px-4 py-4 text-sm">{row.mostFrequentReason}</td>
-                            <td className="px-4 py-4 text-sm">{row.aiStatus}</td>
+                            <td className="px-4 py-4 text-sm">
+                              <span
+                                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${aiStatusClasses(
+                                  row.aiStatus,
+                                )}`}
+                              >
+                                {row.aiStatus}
+                              </span>
+                            </td>
                           </tr>
                         );
                       })}
@@ -285,6 +310,7 @@ export default function RetourenAnalyseView() {
         error={detailError}
         reviewedCount={reviewedCount}
         totalCount={2}
+        onArticleUpdated={loadArticles}
       />
     </Box>
   );
