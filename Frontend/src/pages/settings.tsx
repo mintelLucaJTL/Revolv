@@ -137,7 +137,7 @@ export default function Settings() {
   };
 
   return (
-    <Box>
+    <Box className="min-h-screen bg-slate-50">
       <TopNavigationBar />
       <Box className="flex">
         <Sidebar />

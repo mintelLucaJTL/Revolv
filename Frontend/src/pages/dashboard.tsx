@@ -157,6 +157,12 @@ function KpiCardSkeleton() {
   );
 }
 
+interface TrafficLightResponse {
+  red: { count: number; averagePercent: number };
+  yellow: { count: number; averagePercent: number };
+  green: { count: number; averagePercent: number };
+}
+
 export default function Dashboard() {
   const [kpiCards, setKpiCards] = useState<KpiNavCard[]>([]);
   const [ampelTiles, setAmpelTiles] = useState<AmpelTile[]>([]);
