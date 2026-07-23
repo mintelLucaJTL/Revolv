@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   AppHeader,
   Box,
@@ -41,31 +42,93 @@ const Cardsnav = [
 ];
 
 // vordefinierte Schwellenwerte für die KpiCards (Ampel-Logik)
-const tilesData = [
+// HINWEIS: Diese Struktur wird durch dynamische Daten aus der API ersetzt
+const defaultTilesData = [
   {
     variant: "red",
     badgeLabel: "ÜBER 25%",
     smallLabel: "Hohe Retourenquote",
-    value: 3,
-    percent: "36.7%",
-  }, //fürs ampel prinzip (KpiCard)
+    value: 0,
+    percent: "0%",
+  },
   {
     variant: "yellow",
     badgeLabel: "10 – 25%",
     smallLabel: "Mittlere Retourenquote",
-    value: 2,
-    percent: "15.3%",
+    value: 0,
+    percent: "0%",
   },
   {
     variant: "green",
     badgeLabel: "UNTER 10%",
     smallLabel: "Niedrige Retourenquote",
-    value: 1,
-    percent: "8.6%",
+    value: 0,
+    percent: "0%",
   },
 ];
 
+interface TrafficLightResponse {
+  red: { count: number; averagePercent: number };
+  yellow: { count: number; averagePercent: number };
+  green: { count: number; averagePercent: number };
+}
+
 export default function Dashboard() {
+  const [tilesData, setTilesData] = useState(defaultTilesData);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTrafficLights = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch("http://localhost:5215/api/dashboard/traffic-lights");
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        
+        const data: TrafficLightResponse = await response.json();
+        
+        // Transform API response to KpiCard format
+        const transformedData = [
+          {
+            variant: "red" as const,
+            badgeLabel: "ÜBER 25%",
+            smallLabel: "Hohe Retourenquote",
+            value: data.red.count,
+            percent: `${data.red.averagePercent.toFixed(1)}%`,
+          },
+          {
+            variant: "yellow" as const,
+            badgeLabel: "10 – 25%",
+            smallLabel: "Mittlere Retourenquote",
+            value: data.yellow.count,
+            percent: `${data.yellow.averagePercent.toFixed(1)}%`,
+          },
+          {
+            variant: "green" as const,
+            badgeLabel: "UNTER 10%",
+            smallLabel: "Niedrige Retourenquote",
+            value: data.green.count,
+            percent: `${data.green.averagePercent.toFixed(1)}%`,
+          },
+        ];
+        
+        setTilesData(transformedData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Ein Fehler ist aufgetreten");
+        console.error("Failed to fetch traffic lights:", err);
+        // Use default data on error
+        setTilesData(defaultTilesData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrafficLights();
+  }, []);
   return (
     <Box className="min-h-screen bg-slate-50">
       <TopNavigationBar />
@@ -144,17 +207,38 @@ export default function Dashboard() {
           */}
           <div className="grid gap-4 mt-6">
             <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-              {tilesData.map((t) => (
-                <KpiCard
-                  key={t.smallLabel}
-                  variant={t.variant as any} // Typ-Cast, da Variante strikt "red"|"green"|"yellow" erwartet
-                  badgeLabel={t.badgeLabel}
-                  smallLabel={t.smallLabel}
-                  value={t.value}
-                  percent={t.percent}
-                  onClick={() => {}}
-                />
-              ))}
+              {loading ? (
+                // Loading-Platzhalter für die 3 Ampelkacheln
+                <>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="rounded-lg border border-slate-200 p-4 bg-white animate-pulse">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="w-10 h-10 rounded-full bg-slate-200" />
+                        <div className="text-slate-300">›</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-slate-200 rounded w-24" />
+                        <div className="h-8 bg-slate-200 rounded w-16" />
+                        <div className="h-4 bg-slate-200 rounded w-32 mt-2" />
+                        <div className="h-4 bg-slate-200 rounded w-28" />
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                // Echte Daten
+                tilesData.map((t) => (
+                  <KpiCard
+                    key={t.smallLabel}
+                    variant={t.variant as any} // Typ-Cast, da Variante strikt "red"|"green"|"yellow" erwartet
+                    badgeLabel={t.badgeLabel}
+                    smallLabel={t.smallLabel}
+                    value={t.value}
+                    percent={t.percent}
+                    onClick={() => {}}
+                  />
+                ))
+              )}
             </div>
 
             <div className="w-full max-w-3xl mx-auto">
