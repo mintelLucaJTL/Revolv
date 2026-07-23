@@ -34,9 +34,9 @@ interface SettingsApiDto {
 }
 
 /**
- * Ampel-Farben anhand der ShopSettings-Schwellenwerte
- * (gleich wie Dashboard traffic-lights):
- * rot  > red, gelb >= yellow && <= red, grün < yellow
+ * Traffic-light colors based on the ShopSettings thresholds
+ * (same logic as the Dashboard traffic lights):
+ * red > redThreshold, yellow >= yellowThreshold && <= redThreshold, green < yellowThreshold
  */
 function rateClasses(rate: number, yellowThreshold: number, redThreshold: number) {
   if (rate > redThreshold) {
@@ -60,6 +60,10 @@ function rateClasses(rate: number, yellowThreshold: number, redThreshold: number
   };
 }
 
+<<<<<<< Updated upstream
+=======
+// Color coding for the "KI-Status" column, matching the values returned by ReturnController.
+>>>>>>> Stashed changes
 function aiStatusClasses(status: AIStatus): string {
   switch (status) {
     case "Angenommen":
@@ -87,8 +91,13 @@ export default function RetourenAnalyseView() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
+<<<<<<< Updated upstream
   const [reviewedCount] = useState(0);
 
+=======
+  // Extracted so it can also be re-run after the modal saves a change (e.g. accepting a
+  // description proposal), keeping the "KI-Status" column in this table in sync.
+>>>>>>> Stashed changes
   const loadArticles = async () => {
     setIsLoading(true);
 
@@ -329,8 +338,6 @@ export default function RetourenAnalyseView() {
         articleDetail={selectedDetail}
         isLoading={detailLoading}
         error={detailError}
-        reviewedCount={reviewedCount}
-        totalCount={2}
         onArticleUpdated={loadArticles}
       />
     </Box>
