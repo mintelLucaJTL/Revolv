@@ -33,7 +33,7 @@ export default function KpiCard({
   return (
     <Card
       // Dynamische Klassen für Rahmenfarbe + interaktive Hover-Effekte bei Klickbarkeit
-      className={`rounded-lg ${cfg.border} p-4 hover:shadow-sm transition-colors cursor-pointer`}
+      className={`rounded-lg ${cfg.border} p-4 hover:shadow-sm transition-colors cursor-pointer dark:bg-slate-900 dark:border-slate-700`}
       onClick={onClick}
       // Barrierefreiheit : Macht das Element als Button erkennbar
       role={onClick ? "button" : undefined}
@@ -43,7 +43,7 @@ export default function KpiCard({
       <CardHeader className="flex items-start justify-between p-0 mb-2">
         <div className="flex items-center gap-3">
           {/* Runder Icon-Hintergrund in Statusfarbe */}
-          <div className={`${cfg.bg} p-2 rounded-full`}>
+          <div className={`${cfg.bg} p-2 rounded-full dark:bg-slate-800`}>
             <svg
               width="18"
               height="18"
@@ -58,26 +58,26 @@ export default function KpiCard({
           </div>
         </div>
         {/* Optischer Hinweisindikator für den Nutzer (Anklickbarkeit) */}
-        <div className="text-slate-300 text-sm">›</div>
+        <div className="text-slate-300 text-sm dark:text-slate-500">›</div>
       </CardHeader>
 
       <CardContent className="p-0">
         {" "}
         {/* badgeLabel: kleiner Hinweis oben (z. B. "ÜBER 25%") */}
         {badgeLabel && (
-          <Box className="mb-2">
+          <Box className="mb-2 dark:text-slate-200">
             <Text>{badgeLabel}</Text>
           </Box>
         )}
         {/* Großer Wert mit Farb-Akzent */}
         <div className={`${cfg.accent} text-3xl font-bold`}>{value}</div>
         {/* Beschreibung / Titel */}
-        <Box className="mt-2">
+        <Box className="mt-2 dark:text-slate-100">
           <Text weight="bold">{smallLabel}</Text>
         </Box>
         {/* Optionales Prozent-Feld (kleiner Text) */}
         {percent && (
-          <Box className="mt-1">
+          <Box className="mt-1 dark:text-slate-300">
             <Text>Ø {percent} Retourenquote</Text>
           </Box>
         )}

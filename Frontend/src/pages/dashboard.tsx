@@ -224,7 +224,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <Box className="min-h-screen bg-slate-50">
+    <Box className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <TopNavigationBar />
 
       <Box className="flex">
@@ -249,6 +249,7 @@ export default function Dashboard() {
                   const isNegative =
                     extraText.trim().startsWith("-") || extraText.trim().startsWith("−");
 
+<<<<<<< Updated upstream
                   return (
                     <Card
                       key={card.title}
@@ -293,6 +294,51 @@ export default function Dashboard() {
                               {card.extra}
                             </div>
                           )}
+=======
+              return (
+                <Card
+                  key={card.title}
+                  className="rounded-lg bg-white p-4 shadow-sm hover:shadow-md transition-shadow dark:bg-slate-900 dark:text-slate-100"
+                >
+                  <CardContent className="p-0">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        {/* Icon-Kreis */}
+                        <div className="rounded-lg p-2 bg-slate-100 flex items-center justify-center dark:bg-slate-800">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className="text-slate-600 dark:text-slate-300"
+                            aria-hidden
+                          >
+                            <path d="M7 14l5-5 5 5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+
+                        {/* Textbereich: Wert + kurze Beschreibung */}
+                        <div>
+                          <div className="text-3xl font-bold leading-tight">{card.value}</div>
+                          <div className="text-sm text-slate-600 mt-1 dark:text-slate-300">
+                            {card.content}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Rechts oben: kleines Pill-Badge für die Extra-Info */}
+                      {card.extra && (
+                        <div
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            isNegative
+                              ? "bg-green-50 text-green-700 border border-green-100 dark:bg-green-950/40 dark:text-green-300 dark:border-green-900"
+                              : "bg-red-50 text-red-700 border border-red-100 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900"
+                          }`}
+                        >
+                          {card.extra}
+>>>>>>> Stashed changes
                         </div>
                       </CardContent>
                     </Card>

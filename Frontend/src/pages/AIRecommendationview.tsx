@@ -217,7 +217,7 @@ export default function AIRecommendationView() {
   const showFallbackExamples = !loading && !error && articles.length === 0;
 
   return (
-    <Box className="min-h-screen bg-slate-50">
+    <Box className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <TopNavigationBar />
       <Box className="flex">
         <Sidebar />
@@ -226,11 +226,13 @@ export default function AIRecommendationView() {
           <Box className="max-w-7xl mx-auto flex flex-col gap-4">
             <AIRecommendationHeader openCount={totalOpen} doneCount={totalResolved} />
 
-            <Card className="p-6">
+            <Card className="p-6 dark:bg-slate-900 dark:border-slate-700">
               <div className="flex flex-col gap-4">
                 <Box className="flex flex-col gap-2">
-                  <CardTitle>Artikel-Übersicht</CardTitle>
-                  <Text>Alle offenen KI-Empfehlungen auf einen Blick</Text>
+                  <CardTitle className="dark:text-slate-100">Artikel-Übersicht</CardTitle>
+                  <Box className="dark:text-slate-300">
+                    <Text>Alle offenen KI-Empfehlungen auf einen Blick</Text>
+                  </Box>
                 </Box>
 
                 <Box className="flex flex-wrap gap-2">
@@ -241,7 +243,7 @@ export default function AIRecommendationView() {
 
                 <Box className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {loading ? (
-                    <div className="text-sm text-slate-600">Lade Artikel …</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-300">Lade Artikel …</div>
                   ) : error ? (
                     <div className="text-sm text-red-600">{error}</div>
                   ) : articles.length > 0 ? (
@@ -278,7 +280,7 @@ export default function AIRecommendationView() {
                     ))
                   ) : showFallbackExamples ? (
                     <>
-                      <div className="col-span-full text-sm text-slate-600">
+                      <div className="col-span-full text-sm text-slate-600 dark:text-slate-300">
                         Keine Artikel gefunden. Hier sind Beispielartikel zum Testen:
                       </div>
                       {sampleArticles.map((article) => (
@@ -314,7 +316,7 @@ export default function AIRecommendationView() {
                       ))}
                     </>
                   ) : (
-                    <div className="text-sm text-slate-600">Keine Artikel vorhanden.</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-300">Keine Artikel vorhanden.</div>
                   )}
                 </Box>
               </div>

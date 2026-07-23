@@ -20,19 +20,25 @@ export default function TopNavigationBar() {
   };
 
   return (
-    <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 sticky top-0 z-50">
+    <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 sticky top-0 z-50 dark:bg-slate-900 dark:border-slate-700">
       {/* 1. Logo */}
       <Box className="flex items-center gap-2 w-64">
         <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center">
           <span className="text-white font-bold text-lg">R</span>
         </div>
-        <Text weight="bold">Revolv</Text>
+        <Box className="dark:text-slate-100">
+          <Text weight="bold">Revolv</Text>
+        </Box>
       </Box>
 
       {/* 2. Search */}
       <Box className="flex-1 flex justify-center px-4">
         <div className="w-full max-w-lg">
-          <Input type="text" placeholder="Search..." leftIcon={<Search size={18} />} />
+          <Input
+            type="text"
+            placeholder="Search..."
+            leftIcon={<Search size={18} />}
+          />
         </div>
       </Box>
 
