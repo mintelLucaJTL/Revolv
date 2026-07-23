@@ -11,12 +11,8 @@ import TopNavigationBar from "../components/TopNavigationBar";
 import Sidebar from "../components/Sidebar";
 import QualityReviewModal from "../components/QualityReviewModal";
 
-<<<<<<< Updated upstream
 // Values returned by GET /api/articles/returns for the "KI-Status" column (see ReturnController).
 type AIStatus = "Keine Empfehlung" | "Ausstehend" | "Angenommen" | "Abgelehnt" | "Gelöst";
-=======
-type AIStatus = "ausstehend" | "in_bearbeitung" | "optimiert";
->>>>>>> Stashed changes
 
 interface ReturnItem {
   id?: number;
@@ -32,17 +28,10 @@ interface ReturnItem {
   aiStatus: AIStatus;
 }
 
-<<<<<<< Updated upstream
 interface SettingsApiDto {
   thresholdYellow: number;
   thresholdRed: number;
 }
-
-const navItems = [
-  { label: "Dashboard", path: "/dashboard" },
-  { label: "Retourenanalyse", path: "/retouren-analyse" },
-  { label: "Ki-Empfehlungen", path: "/ki-empfehlungen" },
-];
 
 /**
  * Ampel-Farben anhand der ShopSettings-Schwellenwerte
@@ -51,23 +40,13 @@ const navItems = [
  */
 function rateClasses(rate: number, yellowThreshold: number, redThreshold: number) {
   if (rate > redThreshold) {
-    return { bg: "bg-red-50", dot: "bg-red-500", text: "text-red-700" };
-  }
-  if (rate >= yellowThreshold) {
-    return { bg: "bg-yellow-50", dot: "bg-yellow-400", text: "text-yellow-700" };
-  }
-  return { bg: "bg-green-50", dot: "bg-green-400", text: "text-green-700" };
-=======
-// Schwellenwerte: >= 30% (Hoch/Rot), >= 20% (Kritisch/Gelb), < 20% (Normal/Grün).
-function rateClasses(rate: number) {
-  if (rate >= 30) {
     return {
       bg: "bg-red-50 dark:bg-red-950/40 dark:border-red-900",
       dot: "bg-red-500",
       text: "text-red-700 dark:text-red-300",
     };
   }
-  if (rate >= 20) {
+  if (rate >= yellowThreshold) {
     return {
       bg: "bg-yellow-50 dark:bg-yellow-950/40 dark:border-yellow-900",
       dot: "bg-yellow-400",
@@ -79,31 +58,23 @@ function rateClasses(rate: number) {
     dot: "bg-green-400",
     text: "text-green-700 dark:text-green-300",
   };
->>>>>>> Stashed changes
 }
 
-// Farbliche Kennzeichnung für die "KI-Status"-Spalte, passend zu den Werten aus ReturnController.
 function aiStatusClasses(status: AIStatus): string {
   switch (status) {
     case "Angenommen":
     case "Gelöst":
-      return "bg-green-50 text-green-700";
+      return "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300";
     case "Abgelehnt":
-      return "bg-red-50 text-red-600";
+      return "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-300";
     case "Ausstehend":
-      return "bg-amber-50 text-amber-600";
+      return "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300";
     default:
-      return "bg-slate-100 text-slate-500";
+      return "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400";
   }
 }
 
 export default function RetourenAnalyseView() {
-<<<<<<< Updated upstream
-  const navigate = useNavigate();
-  const location = useLocation();
-
-=======
->>>>>>> Stashed changes
   const [query, setQuery] = useState("");
   const [desc, setDesc] = useState(true);
   const [articles, setArticles] = useState<ReturnItem[]>([]);
@@ -118,42 +89,21 @@ export default function RetourenAnalyseView() {
 
   const [reviewedCount] = useState(0);
 
-  // Extracted so it can also be re-run after the modal saves a change (e.g. accepting a
-  // description proposal), keeping the "KI-Status" column in this table in sync.
   const loadArticles = async () => {
     setIsLoading(true);
 
-<<<<<<< Updated upstream
     try {
       const response = await fetch("http://localhost:5215/api/articles/returns");
       if (!response.ok) {
         throw new Error(`API-Anfrage fehlgeschlagen: ${response.status}`);
-=======
-      try {
-        const response = await fetch("http://localhost:5215/api/articles/returns");
-        if (!response.ok) {
-          throw new Error(`API-Anfrage fehlgeschlagen: ${response.status}`);
-        }
-
-        const data = (await response.json()) as ReturnItem[];
-        if (!data.every((item) => item.id !== undefined && item.id !== null)) {
-          console.warn(
-            "Retouren-Analyse: Einige Artikel aus /api/articles/returns haben keine id:",
-            data,
-          );
-        }
-        setArticles(data);
-      } catch (error) {
-        console.error("Fehler beim Laden der Retourendaten:", error);
-        setArticles([]);
-      } finally {
-        setIsLoading(false);
->>>>>>> Stashed changes
       }
 
       const data = (await response.json()) as ReturnItem[];
       if (!data.every((item) => item.id !== undefined && item.id !== null)) {
-        console.warn("Retouren-Analyse: Einige Artikel aus /api/articles/returns haben keine id:", data);
+        console.warn(
+          "Retouren-Analyse: Einige Artikel aus /api/articles/returns haben keine id:",
+          data,
+        );
       }
       setArticles(data);
     } catch (error) {
@@ -165,7 +115,23 @@ export default function RetourenAnalyseView() {
   };
 
   useEffect(() => {
-    loadArticles();
+    void loadArticles();
+  }, []);
+
+  useEffect(() => {
+    const loadThresholds = async () => {
+      try {
+        const response = await fetch("http://localhost:5215/api/settings");
+        if (!response.ok) return;
+        const data = (await response.json()) as SettingsApiDto;
+        setYellowThreshold(Number(data.thresholdYellow));
+        setRedThreshold(Number(data.thresholdRed));
+      } catch (error) {
+        console.error("Fehler beim Laden der Schwellenwerte:", error);
+      }
+    };
+
+    void loadThresholds();
   }, []);
 
   const visible = useMemo(() => {
@@ -184,34 +150,11 @@ export default function RetourenAnalyseView() {
   }, [articles, query, desc]);
 
   return (
-<<<<<<< Updated upstream
-    <Box className="min-h-screen bg-slate-50">
-      <TopNavigationBar />
-
-      <Box className="flex">
-        <Box className="w-72 min-h-[calc(100vh-72px)] bg-white border-r p-4 space-y-3">
-          <Text weight="bold">Navigation</Text>
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Button
-                key={item.path}
-                label={item.label}
-                variant={isActive ? "default" : "ghost"}
-                fullWidth
-                onClick={() => navigate(item.path)}
-                aria-current={isActive ? "page" : undefined}
-              />
-            );
-          })}
-        </Box>
-=======
     <Box className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <TopNavigationBar />
 
       <Box className="flex">
         <Sidebar />
->>>>>>> Stashed changes
 
         <Box className="flex-1 p-6">
           <div className="flex items-center justify-between mb-4 gap-4">
@@ -231,11 +174,7 @@ export default function RetourenAnalyseView() {
             <Button label="Filter..." variant="secondary" />
           </div>
 
-<<<<<<< Updated upstream
-          <Card>
-=======
           <Card className="dark:bg-slate-900 dark:border-slate-700">
->>>>>>> Stashed changes
             <CardHeader>
               <CardTitle className="dark:text-slate-100">Artikelübersicht</CardTitle>
             </CardHeader>
@@ -290,13 +229,10 @@ export default function RetourenAnalyseView() {
                               const id = row.id ?? row.articleNumber;
 
                               if (id === undefined || id === null) {
-<<<<<<< Updated upstream
                                 console.error(
                                   "Retouren-Analyse: Artikel-ID und articleNumber fehlen für row",
                                   row,
                                 );
-=======
->>>>>>> Stashed changes
                                 setSelectedDetail(null);
                                 setDetailError(
                                   "Keine gültige Artikelkennung verfügbar. Bitte Backend /api/articles/returns prüfen.",
@@ -333,13 +269,6 @@ export default function RetourenAnalyseView() {
                               }
                             }}
                           >
-<<<<<<< Updated upstream
-                            <td className="px-4 py-4 text-sm text-gray-400">{row.articleNumber}</td>
-                            <td className="px-4 py-4 font-semibold">{row.name}</td>
-                            <td className="px-4 py-4 text-sm">{row.category}</td>
-                            <td className="px-4 py-4 text-sm">{row.size}</td>
-                            <td className="px-4 py-4 text-sm">{row.color}</td>
-=======
                             <td className="px-4 py-4 text-sm text-gray-400 dark:text-slate-500">
                               {row.articleNumber}
                             </td>
@@ -355,7 +284,6 @@ export default function RetourenAnalyseView() {
                             <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
                               {row.color ?? "—"}
                             </td>
->>>>>>> Stashed changes
                             <td className="px-4 py-4">
                               <span
                                 className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border border-transparent ${rc.bg}`}
@@ -366,8 +294,9 @@ export default function RetourenAnalyseView() {
                                 </span>
                               </span>
                             </td>
-<<<<<<< Updated upstream
-                            <td className="px-4 py-4 text-sm">{row.mostFrequentReason}</td>
+                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
+                              {row.mostFrequentReason ?? "—"}
+                            </td>
                             <td className="px-4 py-4 text-sm">
                               <span
                                 className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${aiStatusClasses(
@@ -376,13 +305,6 @@ export default function RetourenAnalyseView() {
                               >
                                 {row.aiStatus}
                               </span>
-=======
-                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                              {row.mostFrequentReason ?? "—"}
-                            </td>
-                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                              {row.aiStatus}
->>>>>>> Stashed changes
                             </td>
                           </tr>
                         );

@@ -11,7 +11,8 @@ interface SettingsApiDto {
   thresholdRed: number;
 }
 
-<<<<<<< Updated upstream
+type ThemeMode = "light" | "dark";
+
 // API endpoint for the settings.
 const API_SETTINGS = "http://localhost:5215/api/settings";
 
@@ -25,20 +26,13 @@ function applySettingsToForm(
     setRedThreshold: (v: number) => void;
   },
 ) {
-  // Set settings to the form.
   setters.setTone(data.toneOfVoice ?? "Du-Form");
   setters.setAutoAnalysis(Boolean(data.autoAnalyzeNewIssues));
   setters.setYellowThreshold(Number(data.thresholdYellow));
   setters.setRedThreshold(Number(data.thresholdRed));
 }
 
-// Main component for the settings page.
-=======
-type ThemeMode = "light" | "dark";
-
->>>>>>> Stashed changes
 export default function Settings() {
-  // State for the settings.
   const [tone, setTone] = useState("");
   const [autoAnalysis, setAutoAnalysis] = useState(false);
   const [yellowThreshold, setYellowThreshold] = useState<number | "">("");
@@ -48,9 +42,6 @@ export default function Settings() {
   const [message, setMessage] = useState<string | null>(null);
   const savingRef = useRef(false);
 
-<<<<<<< Updated upstream
-  // Load the settings from the API.
-=======
   const [theme, setTheme] = useState<ThemeMode>(() => {
     if (typeof window === "undefined") {
       return "light";
@@ -65,7 +56,6 @@ export default function Settings() {
     window.localStorage.setItem("theme", theme);
   }, [theme]);
 
->>>>>>> Stashed changes
   useEffect(() => {
     const loadSettings = async () => {
       setLoading(true);
@@ -94,7 +84,6 @@ export default function Settings() {
     void loadSettings();
   }, []);
 
-  // Handles the save button click.
   const handleSave = async () => {
     if (savingRef.current || loading) return;
     savingRef.current = true;
@@ -135,7 +124,6 @@ export default function Settings() {
         throw new Error(details || `Speichern fehlgeschlagen (${response.status}).`);
       }
 
-      // Re-fetch so the form always shows the persisted DB values (single source of truth).
       const refresh = await fetch(API_SETTINGS);
       if (!refresh.ok) {
         throw new Error("Gespeichert, aber erneutes Laden ist fehlgeschlagen.");
@@ -191,124 +179,39 @@ export default function Settings() {
         <Box className="flex-1 p-6">
           <Text weight="bold">Einstellungen</Text>
 
-<<<<<<< Updated upstream
           {loading ? (
             <Box className="mt-6">
               <Text type="xs">Lade aktuelle Einstellungen…</Text>
-=======
-          <Box className="mt-6 grid gap-4 md:grid-cols-2">
-            <Card className={`p-6 ${cardBackground}`}>
-              <Text weight="bold">Darstellung</Text>
-
-              <Box className="mt-4 space-y-4">
-                <Box className="flex items-center justify-between gap-3">
-                  <Text type="xs">Theme</Text>
-                  <Button
-                    label={themeButtonLabel}
-                    onClick={toggleTheme}
-                    variant="secondary"
-                  />
-                </Box>
-
-                <Box className="rounded border border-slate-300/30 p-3">
-                  <Text type="xs">
-                    Aktueller Modus: <strong>{theme === "dark" ? "Darkmode" : "Whitemode"}</strong>
-                  </Text>
-                </Box>
-              </Box>
-            </Card>
-
-            <Card className={`p-6 ${cardBackground}`}>
-              <Text weight="bold">KI-Konfiguration</Text>
-
-              <Box className="mt-4 space-y-4">
-                <label className="block">
-                  <Box className="mb-2">
-                    <Text type="xs">Tonalität der Produkttexte</Text>
-                  </Box>
-                  <select
-                    value={tone}
-                    onChange={(event) => setTone(event.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="Du-Form">Du-Form</option>
-                    <option value="Sie-Form">Sie-Form</option>
-                    <option value="Locker">Locker</option>
-                    <option value="Formell">Formell</option>
-                  </select>
-                </label>
-
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={autoAnalysis}
-                    onChange={(event) => setAutoAnalysis(event.target.checked)}
-                    className="h-4 w-4"
-                  />
-                  <Text type="xs">Automatische Analyse</Text>
-                </label>
-              </Box>
-            </Card>
-
-            <Card className={`p-6 ${cardBackground}`}>
-              <Text weight="bold">Retouren-Ampel</Text>
-
-              <Box className="mt-4 space-y-4">
-                <label className="block">
-                  <Box className="mb-2">
-                    <Text type="xs">Gelbe Warnung ab (%)</Text>
-                  </Box>
-                  <input
-                    type="number"
-                    value={yellowThreshold}
-                    onChange={(event) => setYellowThreshold(Number(event.target.value))}
-                    className={inputClass}
-                    placeholder="z. B. 10"
-                  />
-                </label>
-
-                <label className="block">
-                  <Box className="mb-2">
-                    <Text type="xs">Rote Warnung ab (%)</Text>
-                  </Box>
-                  <input
-                    type="number"
-                    value={redThreshold}
-                    onChange={(event) => setRedThreshold(Number(event.target.value))}
-                    className={inputClass}
-                    placeholder="z. B. 25"
-                  />
-                </label>
-              </Box>
-            </Card>
-          </Box>
-
-          <Box className="mt-6 flex flex-col gap-3">
-            {message && (
-              <Box className={message.includes("erfolgreich") ? "text-green-600" : "text-red-600"}>
-                <Text type="xs">{message}</Text>
-              </Box>
-            )}
-
-            <Button
-              label={saving ? "Speichern..." : "Speichern"}
-              onClick={handleSave}
-              disabled={saving || loading}
-            />
-          </Box>
-
-          {loading && (
-            <Box className="mt-4">
-              <Text type="xs">Lade Einstellungen…</Text>
->>>>>>> Stashed changes
             </Box>
           ) : (
             <>
-              <Box className="grid gap-4 mt-6 md:grid-cols-2">
-                <Card className="p-6">
+              <Box className="mt-6 grid gap-4 md:grid-cols-2">
+                <Card className={`p-6 ${cardBackground}`}>
+                  <Text weight="bold">Darstellung</Text>
+
+                  <Box className="mt-4 space-y-4">
+                    <Box className="flex items-center justify-between gap-3">
+                      <Text type="xs">Theme</Text>
+                      <Button
+                        label={themeButtonLabel}
+                        onClick={toggleTheme}
+                        variant="secondary"
+                      />
+                    </Box>
+
+                    <Box className="rounded border border-slate-300/30 p-3">
+                      <Text type="xs">
+                        Aktueller Modus:{" "}
+                        <strong>{theme === "dark" ? "Darkmode" : "Whitemode"}</strong>
+                      </Text>
+                    </Box>
+                  </Box>
+                </Card>
+
+                <Card className={`p-6 ${cardBackground}`}>
                   <Text weight="bold">KI-Konfiguration</Text>
 
-                  <Box className="space-y-4 mt-4">
+                  <Box className="mt-4 space-y-4">
                     <label className="block">
                       <Box className="mb-2">
                         <Text type="xs">Tonalität der Produkttexte</Text>
@@ -316,7 +219,7 @@ export default function Settings() {
                       <select
                         value={tone}
                         onChange={(event) => setTone(event.target.value)}
-                        className="w-full rounded border border-slate-200 px-3 py-2"
+                        className={inputClass}
                       >
                         <option value="Du-Form">Du-Form</option>
                         <option value="Sie-Form">Sie-Form</option>
@@ -338,10 +241,10 @@ export default function Settings() {
                   </Box>
                 </Card>
 
-                <Card className="p-6">
+                <Card className={`p-6 ${cardBackground}`}>
                   <Text weight="bold">Retouren-Ampel</Text>
 
-                  <Box className="space-y-4 mt-4">
+                  <Box className="mt-4 space-y-4">
                     <label className="block">
                       <Box className="mb-2">
                         <Text type="xs">Gelbe Warnung ab (%)</Text>
@@ -355,7 +258,7 @@ export default function Settings() {
                           const raw = event.target.value;
                           setYellowThreshold(raw === "" ? "" : Number(raw));
                         }}
-                        className="w-full rounded border border-slate-200 px-3 py-2"
+                        className={inputClass}
                         placeholder="z. B. 10"
                       />
                     </label>
@@ -373,7 +276,7 @@ export default function Settings() {
                           const raw = event.target.value;
                           setRedThreshold(raw === "" ? "" : Number(raw));
                         }}
-                        className="w-full rounded border border-slate-200 px-3 py-2"
+                        className={inputClass}
                         placeholder="z. B. 25"
                       />
                     </label>
