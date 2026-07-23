@@ -12,10 +12,8 @@ import {
 import TopNavigationBar from "../components/TopNavigationBar";
 import QualityReviewModal from "../components/QualityReviewModal";
 
-// Definiert die verarbeitbaren Zustände einer KI-Optimierung für einen Artikel
 type AIStatus = "ausstehend" | "in_bearbeitung" | "optimiert";
 
-// Datenstruktur für einen einzelnen Eintrag in der Retourenanalyse
 interface ReturnItem {
   id?: number;
   articleNumber: string;
@@ -30,17 +28,29 @@ interface ReturnItem {
   aiStatus: AIStatus;
 }
 
-// Zentrale Sidebar-Navigation für das Dashboard-Layout
+interface SettingsApiDto {
+  thresholdYellow: number;
+  thresholdRed: number;
+}
+
 const navItems = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Retourenanalyse", path: "/retouren-analyse" },
   { label: "Ki-Empfehlungen", path: "/ki-empfehlungen" },
 ];
 
-// Schwellenwerte: >= 30% (Hoch/Rot), >= 20% (Kritisch/Gelb), < 20% (Normal/Grün).
-function rateClasses(rate: number) {
-  if (rate >= 30) return { bg: "bg-red-50", dot: "bg-red-500", text: "text-red-700" };
-  if (rate >= 20) return { bg: "bg-yellow-50", dot: "bg-yellow-400", text: "text-yellow-700" };
+/**
+ * Ampel-Farben anhand der ShopSettings-Schwellenwerte
+ * (gleich wie Dashboard traffic-lights):
+ * rot  > red, gelb >= yellow && <= red, grün < yellow
+ */
+function rateClasses(rate: number, yellowThreshold: number, redThreshold: number) {
+  if (rate > redThreshold) {
+    return { bg: "bg-red-50", dot: "bg-red-500", text: "text-red-700" };
+  }
+  if (rate >= yellowThreshold) {
+    return { bg: "bg-yellow-50", dot: "bg-yellow-400", text: "text-yellow-700" };
+  }
   return { bg: "bg-green-50", dot: "bg-green-400", text: "text-green-700" };
 }
 
@@ -48,32 +58,35 @@ export default function RetourenAnalyseView() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // State für die Textsuche (Filterung), Sortierreihenfolge und Ladezustand
   const [query, setQuery] = useState("");
   const [desc, setDesc] = useState(true);
   const [articles, setArticles] = useState<ReturnItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [yellowThreshold, setYellowThreshold] = useState(10);
+  const [redThreshold, setRedThreshold] = useState(25);
 
-  // Modal-Status: ob das Modal geöffnet ist und geladene Details
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
-  // Platzhalter für den Fortschritt der Prüfschritte
   const [reviewedCount] = useState(0);
 
   useEffect(() => {
-    const loadArticles = async () => {
+    const loadData = async () => {
       setIsLoading(true);
 
       try {
-        const response = await fetch("http://localhost:5215/api/articles/returns");
-        if (!response.ok) {
-          throw new Error(`API-Anfrage fehlgeschlagen: ${response.status}`);
+        const [articlesResponse, settingsResponse] = await Promise.all([
+          fetch("http://localhost:5215/api/articles/returns"),
+          fetch("http://localhost:5215/api/settings"),
+        ]);
+
+        if (!articlesResponse.ok) {
+          throw new Error(`API-Anfrage fehlgeschlagen: ${articlesResponse.status}`);
         }
 
-        const data = (await response.json()) as ReturnItem[];
+        const data = (await articlesResponse.json()) as ReturnItem[];
         if (!data.every((item) => item.id !== undefined && item.id !== null)) {
           console.warn(
             "Retouren-Analyse: Einige Artikel aus /api/articles/returns haben keine id:",
@@ -81,6 +94,12 @@ export default function RetourenAnalyseView() {
           );
         }
         setArticles(data);
+
+        if (settingsResponse.ok) {
+          const settings = (await settingsResponse.json()) as SettingsApiDto;
+          setYellowThreshold(Number(settings.thresholdYellow ?? 10));
+          setRedThreshold(Number(settings.thresholdRed ?? 25));
+        }
       } catch (error) {
         console.error("Fehler beim Laden der Retourendaten:", error);
         setArticles([]);
@@ -89,15 +108,12 @@ export default function RetourenAnalyseView() {
       }
     };
 
-    loadArticles();
+    void loadData();
   }, []);
 
-  // Filtert und sortiert die Artikeldaten.
-  // useMemo verhindert unnötige Neuberechnungen
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
 
-    // 1. Filtern nach Name, Artikelnummer oder Kategorie
     const filtered = articles.filter(
       (d) =>
         d.name.toLowerCase().includes(q) ||
@@ -105,7 +121,6 @@ export default function RetourenAnalyseView() {
         d.category.toLowerCase().includes(q),
     );
 
-    // 2. Sortieren nach Retourenquote (Standard: Absteigend, um kritische Artikel oben zu zeigen)
     return [...filtered].sort((a, b) =>
       desc ? b.returnRate - a.returnRate : a.returnRate - b.returnRate,
     );
@@ -113,11 +128,9 @@ export default function RetourenAnalyseView() {
 
   return (
     <Box className="min-h-screen bg-slate-50">
-      {/* Header mit dynamischer Anzeige der gefilterten Artikelanzahl */}
       <TopNavigationBar />
 
       <Box className="flex">
-        {/* Linke Seitenleiste für die Navigation innerhalb der Revolve-Anwendung */}
         <Box className="w-72 min-h-[calc(100vh-72px)] bg-white border-r p-4 space-y-3">
           <Text weight="bold">Navigation</Text>
           {navItems.map((item) => {
@@ -135,9 +148,7 @@ export default function RetourenAnalyseView() {
           })}
         </Box>
 
-        {/* Hauptinhalt: Suchleiste, Sortierung und die tabellarische Übersicht */}
         <Box className="flex-1 p-6">
-          {/* Steuerungselemente über der Tabelle */}
           <div className="flex items-center justify-between mb-4 gap-4">
             <div className="flex items-center gap-3">
               <input
@@ -155,7 +166,6 @@ export default function RetourenAnalyseView() {
             <Button label="Filter..." variant="secondary" />
           </div>
 
-          {/* Card-Container für die Datentabelle */}
           <Card>
             <CardHeader>
               <CardTitle>Artikelübersicht</CardTitle>
@@ -200,7 +210,7 @@ export default function RetourenAnalyseView() {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
                       {visible.map((row) => {
-                        const rc = rateClasses(row.returnRate);
+                        const rc = rateClasses(row.returnRate, yellowThreshold, redThreshold);
                         return (
                           <tr
                             key={row.id}
@@ -223,7 +233,6 @@ export default function RetourenAnalyseView() {
                                 return;
                               }
 
-                              // Modal sofort öffnen und Details laden
                               setSelectedDetail(null);
                               setDetailError(null);
                               setDetailLoading(true);
@@ -256,7 +265,6 @@ export default function RetourenAnalyseView() {
                             <td className="px-4 py-4 text-sm">{row.category}</td>
                             <td className="px-4 py-4 text-sm">{row.size}</td>
                             <td className="px-4 py-4 text-sm">{row.color}</td>
-                            {/* Visualisierung der Retourenquote mit farbigem Statuspunkt */}
                             <td className="px-4 py-4">
                               <span
                                 className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${rc.bg}`}
@@ -281,7 +289,6 @@ export default function RetourenAnalyseView() {
         </Box>
       </Box>
 
-      {/* Modal für die Detail-Qualitätsprüfung */}
       <QualityReviewModal
         isOpen={isModalOpen}
         onClose={() => {

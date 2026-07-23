@@ -1,10 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
-using RevolvAPI.Data;
 using RevolvAPI.DTOs;
-using RevolvAPI.DTOs;
+using RevolvAPI.Services;
 using System.Threading.Tasks;
 
 namespace RevolvAPI.Controllers
@@ -73,19 +71,21 @@ namespace RevolvAPI.Controllers
         [HttpGet("overview")]
         public async Task<IActionResult> GetOverview()
         {
-            var overview = await _ctx.AiRecommendations
+            var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx);
+
+            var rows = await _ctx.AiRecommendations
                 .Include(r => r.Article)
                 .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
                 .Include(r => r.ActionRecommendations)
-                .Select(r => new AiRecommendationOverviewDto
+                .Select(r => new
                 {
-                    Id = r.Id,
+                    r.Id,
                     ArticleNumber = r.Article.ArticleNumber,
                     Name = r.Article.Name,
                     Category = r.Article.Category,
                     Size = r.Article.Size,
-                    ReturnRate = r.ReturnRate.HasValue ? (r.ReturnRate.Value > 0.2m ? "high" : r.ReturnRate.Value > 0.1m ? "medium" : "low") : "low",
+                    r.ReturnRate,
                     HasQualityBadge = r.QualityIssues.Any(),
                     HasDescriptionBadge = r.DescriptionProposals.Any(),
                     HasRecommendationBadge = r.ActionRecommendations.Any(),
@@ -97,6 +97,21 @@ namespace RevolvAPI.Controllers
                                  r.ActionRecommendations.Count(a => a.IsCompleted),
                 })
                 .ToListAsync();
+
+            var overview = rows.Select(r => new AiRecommendationOverviewDto
+            {
+                Id = r.Id,
+                ArticleNumber = r.ArticleNumber,
+                Name = r.Name,
+                Category = r.Category,
+                Size = r.Size,
+                ReturnRate = ReturnRateBandService.Classify(r.ReturnRate, yellowThreshold, redThreshold),
+                HasQualityBadge = r.HasQualityBadge,
+                HasDescriptionBadge = r.HasDescriptionBadge,
+                HasRecommendationBadge = r.HasRecommendationBadge,
+                OpenCount = r.OpenCount,
+                ResolvedCount = r.ResolvedCount,
+            }).ToList();
 
             return Ok(overview);
         }

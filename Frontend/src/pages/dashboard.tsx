@@ -23,6 +23,15 @@ interface TrafficLightKpiDto {
   red: TrafficLightGroupDto;
   yellow: TrafficLightGroupDto;
   green: TrafficLightGroupDto;
+  yellowThreshold?: number;
+  redThreshold?: number;
+}
+
+interface SettingsApiDto {
+  toneOfVoice: string;
+  autoAnalyzeNewIssues: boolean;
+  thresholdYellow: number;
+  thresholdRed: number;
 }
 
 interface KpiNavCard {
@@ -61,13 +70,6 @@ const KPI_CARD_META: Omit<KpiNavCard, "value" | "extra">[] = [
   },
 ];
 
-// Setting treshold values for the traffic lights
-// TODO: Replace with values from backend
-const AMPEL_THRESHOLDS = {
-  yellow: 10,
-  red: 25,
-} as const;
-
 function formatPercent(value: number): string {
   return `${value.toLocaleString("de-DE", {
     minimumFractionDigits: 1,
@@ -77,6 +79,10 @@ function formatPercent(value: number): string {
 
 function formatCount(value: number): string {
   return value.toLocaleString("de-DE");
+}
+
+function formatThreshold(value: number): string {
+  return Number(value).toLocaleString("de-DE", { maximumFractionDigits: 1 });
 }
 
 function mapKpiDtoToCards(data: DashboardKpiDto): KpiNavCard[] {
@@ -100,9 +106,13 @@ function mapKpiDtoToCards(data: DashboardKpiDto): KpiNavCard[] {
   ];
 }
 
-function mapTrafficLightsToTiles(data: TrafficLightKpiDto): AmpelTile[] {
-  const yellow = AMPEL_THRESHOLDS.yellow;
-  const red = AMPEL_THRESHOLDS.red;
+function mapTrafficLightsToTiles(
+  data: TrafficLightKpiDto,
+  yellowThreshold: number,
+  redThreshold: number,
+): AmpelTile[] {
+  const yellow = formatThreshold(yellowThreshold);
+  const red = formatThreshold(redThreshold);
 
   return [
     {
@@ -141,7 +151,6 @@ function KpiCardSkeleton() {
               <div className="h-4 w-40 rounded bg-slate-100" />
             </div>
           </div>
-          <div className="h-5 w-24 rounded-full bg-slate-100" />
         </div>
       </CardContent>
     </Card>
@@ -160,9 +169,12 @@ export default function Dashboard() {
       setError(null);
 
       try {
-        const [kpiResponse, trafficResponse] = await Promise.all([
+        // Settings + traffic-lights together: badges always use current thresholds,
+        // counts are calculated with the same thresholds on the backend.
+        const [kpiResponse, trafficResponse, settingsResponse] = await Promise.all([
           fetch("http://localhost:5215/api/dashboard/kpi"),
           fetch("http://localhost:5215/api/dashboard/traffic-lights"),
+          fetch("http://localhost:5215/api/settings"),
         ]);
 
         if (!kpiResponse.ok) {
@@ -171,12 +183,21 @@ export default function Dashboard() {
         if (!trafficResponse.ok) {
           throw new Error(`Ampel-Anfrage fehlgeschlagen (${trafficResponse.status})`);
         }
+        if (!settingsResponse.ok) {
+          throw new Error(`Settings-Anfrage fehlgeschlagen (${settingsResponse.status})`);
+        }
 
         const kpiData = (await kpiResponse.json()) as DashboardKpiDto;
         const trafficData = (await trafficResponse.json()) as TrafficLightKpiDto;
+        const settingsData = (await settingsResponse.json()) as SettingsApiDto;
+
+        const yellowThreshold = Number(
+          trafficData.yellowThreshold ?? settingsData.thresholdYellow ?? 10,
+        );
+        const redThreshold = Number(trafficData.redThreshold ?? settingsData.thresholdRed ?? 25);
 
         setKpiCards(mapKpiDtoToCards(kpiData));
-        setAmpelTiles(mapTrafficLightsToTiles(trafficData));
+        setAmpelTiles(mapTrafficLightsToTiles(trafficData, yellowThreshold, redThreshold));
       } catch (err) {
         console.error("Error loading the dashboard data:", err);
         setKpiCards([]);

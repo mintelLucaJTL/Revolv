@@ -14,5 +14,6 @@ namespace RevolvAPI.Data
         public DbSet<AiRecommendation> AiRecommendations { get; set; }
         public DbSet<Article> Articles { get; set; }
         public DbSet<QualityIssue> QualityIssues { get; set; }
+        public DbSet<ShopSetting> ShopSettings { get; set; }
     }
 }

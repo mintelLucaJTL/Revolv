@@ -1,11 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using RevolvAPI.Models;
+using RevolvAPI.Services;
 
 namespace RevolvAPI.Controllers
 {
@@ -16,16 +14,15 @@ namespace RevolvAPI.Controllers
         private readonly AppDbContext _ctx;
         public DashboardController(AppDbContext ctx) => _ctx = ctx;
 
-
+        // GET api/dashboard/return-reasons
+        // Returns the top 5 return reasons by count.
         [HttpGet("return-reasons")]
         public async Task<IActionResult> GetReturnReasons()
         {
-            // Gesamtanzahl aller QualityIssues für die Prozentberechnung ermitteln.
+            // Get the total count of quality issues for the percentage calculation.
             var totalCount = await _ctx.QualityIssues.CountAsync();
 
-            // Gruppieren und Zählen in der Datenbank:
-            //  null IssueText wird zu "Unbekannt"
-            //  DB macht GroupBy + Count, dann OrderByDescending + Take(5)
+            // Group the quality issues by issue text and count the number of issues for each reason.
             var grouped = await _ctx.QualityIssues
                 .GroupBy(q => q.IssueText ?? "Unbekannt")
                 .Select(g => new { Reason = g.Key, Count = g.Count() })
@@ -33,8 +30,8 @@ namespace RevolvAPI.Controllers
                 .Take(5)
                 .ToListAsync();
 
-
-            // Prozentwert berechnen (sichere Division, gerundet auf 2 Nachkommastellen
+            // Calculate the percentage of the total count for each reason.
+            // Convert the grouped data to DTOs.
             var dtos = grouped
                 .Select(x => new ReturnReasonsDTO
                 {
@@ -52,7 +49,7 @@ namespace RevolvAPI.Controllers
         [HttpGet("kpi")]
         public async Task<IActionResult> GetDashboardKpi()
         {
-            // AverageAsync wirft bei leerer Menge; daher erst zählen, dann mitteln.
+            // AverageAsync throws on an empty set; count first, then average.
             var recommendationCount = await _ctx.AiRecommendations.CountAsync();
             var wholeReturnQuote = recommendationCount > 0
                 ? await _ctx.AiRecommendations.AverageAsync(r => r.ReturnRate) ?? 0.0m
@@ -70,32 +67,40 @@ namespace RevolvAPI.Controllers
 
         // GET api/dashboard/traffic-lights
         // Returns the pre-computed counts and average return rates for the red,
-        // yellow and green bands. The client receives KPIs only, never raw articles.
         [HttpGet("traffic-lights")]
         public async Task<IActionResult> GetTrafficLightKpis()
         {
-            // Return-rate bands. Recommendations without a return rate are excluded,
-            // because a null value never satisfies these comparisons in SQL.
+            var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx);
+
+            // Calculate the traffic light KPIs.
             var kpis = new TrafficLightKpiDto
             {
-                Red = await CalculateBandAsync(_ctx.AiRecommendations.Where(r => r.ReturnRate > 25m)),
-                Yellow = await CalculateBandAsync(_ctx.AiRecommendations.Where(r => r.ReturnRate >= 10m && r.ReturnRate <= 25m)),
-                Green = await CalculateBandAsync(_ctx.AiRecommendations.Where(r => r.ReturnRate < 10m))
+                YellowThreshold = yellowThreshold,
+                RedThreshold = redThreshold,
+                Red = await CalculateBandAsync(
+                    _ctx.AiRecommendations.Where(r => r.ReturnRate > redThreshold)),
+                Yellow = await CalculateBandAsync(
+                    _ctx.AiRecommendations.Where(r =>
+                        r.ReturnRate >= yellowThreshold && r.ReturnRate <= redThreshold)),
+                Green = await CalculateBandAsync(
+                    _ctx.AiRecommendations.Where(r => r.ReturnRate < yellowThreshold)),
             };
 
             return Ok(kpis);
         }
 
-        // Aggregates a single band directly in the database. The count guards the
-        // average so an empty band returns 0 instead of failing on AVG over no rows.
+        // Calculates the traffic light KPIs for a single band.
         private static async Task<TrafficLightGroupDto> CalculateBandAsync(IQueryable<AiRecommendation> query)
         {
+            // Get the count of recommendations in the band.
             var count = await query.CountAsync();
 
+            // Get the average return rate of the recommendations in the band.
             var average = count > 0
                 ? await query.AverageAsync(r => r.ReturnRate ?? 0m)
                 : 0m;
 
+            // Return the traffic light KPIs for the band.
             return new TrafficLightGroupDto
             {
                 Count = count,
