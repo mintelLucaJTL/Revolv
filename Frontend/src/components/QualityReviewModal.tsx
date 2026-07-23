@@ -318,8 +318,6 @@ export default function QualityReviewModal({
     }
   };
 
-  if (!isOpen) return null;
-
   const hasIssues = issues.length > 0;
 
   const currentText = descriptionProposal?.currentText?.trim() ?? "";
@@ -501,6 +499,8 @@ export default function QualityReviewModal({
       isProposalReviewed,
     ],
   );
+
+  if (!isOpen) return null;
 
   const proposalActionsFooter =
     articleDetail && !isLoading && !error ? (
