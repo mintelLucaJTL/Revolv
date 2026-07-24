@@ -15,6 +15,7 @@ import SetNameModal from "./SetNameModal";
 import { fetchCurrentUser, getInitials, updateCurrentUserName } from "../utils/user";
 
 export default function TopNavigationBar() {
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [needsName, setNeedsName] = useState(false);
@@ -49,6 +50,12 @@ export default function TopNavigationBar() {
     setNeedsName(false);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchTerm.trim() !== '') {
+      navigate(`/retouren-analyse?search=${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem("authToken");
     navigate("/login");
@@ -66,12 +73,15 @@ export default function TopNavigationBar() {
         </Box>
       </Box>
 
-      {/* 2. Search */}
+      {/* 2. Search mit JTL-Input Integration */}
       <Box className="flex-1 flex justify-center px-4">
         <div className="w-full max-w-lg">
           <Input
             type="text"
-            placeholder="Search..."
+            placeholder="Nach Artikel-Nr. oder Name suchen..."
+            value={searchTerm}
+            onChange={(e: any) => setSearchTerm(e?.target?.value ?? e)}
+            onKeyDown={handleKeyDown}
             leftIcon={<Search size={18} />}
           />
         </div>
@@ -126,4 +136,4 @@ export default function TopNavigationBar() {
       <SetNameModal isOpen={needsName} onSaved={handleNameSaved} />
     </header>
   );
-}
+};
