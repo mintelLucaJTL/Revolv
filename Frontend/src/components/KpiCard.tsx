@@ -1,6 +1,15 @@
+import { useEffect, useState } from "react";
 import { Card, CardHeader, CardContent, Text, Box } from "@jtl-software/platform-ui-react";
+import { apiFetch } from "../utils/api";
 
 type Variant = "red" | "green" | "yellow";
+
+// Shape von GET /api/articles/returns?band=... (ArticleTableDTO, siehe ReturnController).
+interface FilteredArticleItem {
+  articleNumber: string;
+  name: string;
+  mostFrequentReason: string | null;
+}
 
 interface Props {
   variant: Variant; // Farbe / visueller Status der Kachel
@@ -44,6 +53,43 @@ export default function KpiCard({
 }: Props) {
   // Wähle die passenden CSS-Klassen für die gewählte Variant-Farbe.
   const cfg = CONFIG[variant];
+
+  const [articles, setArticles] = useState<FilteredArticleItem[]>([]);
+  const [isLoadingArticles, setIsLoadingArticles] = useState(false);
+  const [articlesError, setArticlesError] = useState<string | null>(null);
+
+  // Lädt die Artikel dieser Risikoklasse erst, wenn die Karte aufgeklappt wird.
+  useEffect(() => {
+    if (!isExpanded) return;
+
+    let cancelled = false;
+
+    const fetchArticles = async () => {
+      setIsLoadingArticles(true);
+      setArticlesError(null);
+
+      try {
+        const response = await apiFetch(`/api/articles/returns?band=${variant}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch articles (HTTP error: ${response.status})`);
+        }
+        const data = (await response.json()) as FilteredArticleItem[];
+        if (!cancelled) setArticles(data);
+      } catch (err) {
+        if (!cancelled) {
+          setArticlesError(err instanceof Error ? err.message : "An error occurred");
+        }
+      } finally {
+        if (!cancelled) setIsLoadingArticles(false);
+      }
+    };
+
+    void fetchArticles();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isExpanded, variant]);
 
   return (
     <Card
@@ -107,9 +153,64 @@ export default function KpiCard({
                 <Text>Ø {percent} Retourenquote</Text>
               </Box>
             )}
-            {/* Platzhalter: hier soll später die Artikel-Tabelle für diese Ampel-Stufe rein. */}
-            <div className="mt-3 rounded-lg border border-dashed border-slate-300 p-3 text-center text-xs text-slate-400 dark:border-slate-600 dark:text-slate-500">
-              Hier kommt die Artikel-Tabelle hin
+            {/* Artikel-Tabelle für diese Ampel-Stufe: eigenes, kompaktes Markup statt der
+                generischen <Table>, deren feste Höhe und Boxed-Look nicht in die Karte passten. */}
+            <div
+              className={`mt-3 overflow-hidden rounded-lg border ${cfg.border} dark:border-slate-700`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {articlesError ? (
+                <div className="p-3 text-center text-xs text-red-600">{articlesError}</div>
+              ) : isLoadingArticles ? (
+                <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                  {Array.from({ length: 3 }, (_, index) => (
+                    <div key={index} className="flex items-center gap-2 px-3 py-2 animate-pulse">
+                      <div className="h-3 w-12 rounded bg-slate-200 dark:bg-slate-700" />
+                      <div className="h-3 w-24 rounded bg-slate-200 dark:bg-slate-700" />
+                    </div>
+                  ))}
+                </div>
+              ) : articles.length === 0 ? (
+                <div className="p-3 text-center text-xs text-slate-500 dark:text-slate-400">
+                  Keine Artikel in dieser Risikoklasse.
+                </div>
+              ) : (
+                <div className="max-h-56 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className={`${cfg.bg} dark:bg-slate-800 sticky top-0`}>
+                      <tr>
+                        <th className="px-3 py-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
+                          Artikel-Nr.
+                        </th>
+                        <th className="px-3 py-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
+                          Produktname
+                        </th>
+                        <th className="px-3 py-1.5 text-left font-medium text-slate-600 dark:text-slate-300">
+                          Retourengrund
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                      {articles.map((article) => (
+                        <tr
+                          key={article.articleNumber}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                        >
+                          <td className="px-3 py-2 text-slate-400 dark:text-slate-500">
+                            {article.articleNumber}
+                          </td>
+                          <td className="px-3 py-2 font-semibold text-slate-900 dark:text-slate-100">
+                            {article.name}
+                          </td>
+                          <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                            {article.mostFrequentReason ?? "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </>
         ) : (

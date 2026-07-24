@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using RevolvAPI.Models;
+using RevolvAPI.Services;
 
 namespace RevolvAPI.Controllers
 {
@@ -17,8 +18,9 @@ namespace RevolvAPI.Controllers
 
         public ReturnController(AppDbContext ctx) => _ctx = ctx;
 
+        // band (optional): "red" | "yellow" | "green" - filtert auf die Ampel-Risikoklasse (siehe DashboardController.GetTrafficLightKpis).
         [HttpGet("returns")]
-        public async Task<IActionResult> GetArticleReturns()
+        public async Task<IActionResult> GetArticleReturns([FromQuery] string? band = null)
         {
             // Lade Artikel inkl. AiRecommendations, deren QualityIssues (nötig für MostFrequentReason)
             // und DescriptionProposals (nötig für den granularen KI-Status).
@@ -90,6 +92,26 @@ namespace RevolvAPI.Controllers
                 })
                 .OrderByDescending(d => d.ReturnRate)
                 .ToList();
+
+            if (!string.IsNullOrEmpty(band))
+            {
+                var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx);
+
+                List<ArticleTableDTO>? filtered = band.ToLowerInvariant() switch
+                {
+                    "red" => dtos.Where(d => d.ReturnRate > redThreshold).ToList(),
+                    "yellow" => dtos.Where(d => d.ReturnRate >= yellowThreshold && d.ReturnRate <= redThreshold).ToList(),
+                    "green" => dtos.Where(d => d.ReturnRate < yellowThreshold).ToList(),
+                    _ => null,
+                };
+
+                if (filtered == null)
+                {
+                    return BadRequest("band must be red, yellow or green");
+                }
+
+                dtos = filtered;
+            }
 
             return Ok(dtos);
         }
