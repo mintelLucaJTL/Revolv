@@ -14,7 +14,8 @@ export function isQualityIssueResolved(status?: string | null): boolean {
 
 export function isDescriptionProposalReviewed(status?: string | null): boolean {
   return (
-    status === DESCRIPTION_PROPOSAL_STATUS_ACCEPTED || status === DESCRIPTION_PROPOSAL_STATUS_REJECTED
+    status === DESCRIPTION_PROPOSAL_STATUS_ACCEPTED ||
+    status === DESCRIPTION_PROPOSAL_STATUS_REJECTED
   );
 }
 
@@ -42,7 +43,9 @@ export interface ReviewProgress {
  */
 export function calculateReviewProgress(input: ReviewProgressInput): ReviewProgress {
   const totalCount =
-    input.qualityIssueCount + input.actionRecommendationCount + (input.hasDescriptionProposal ? 1 : 0);
+    input.qualityIssueCount +
+    input.actionRecommendationCount +
+    (input.hasDescriptionProposal ? 1 : 0);
 
   const reviewedCount =
     input.resolvedQualityIssueCount +

@@ -157,17 +157,14 @@ export default function Settings() {
     theme === "dark" ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900";
 
   const cardBackground =
-    theme === "dark"
-      ? "bg-slate-900 border border-slate-700"
-      : "bg-white border border-slate-200";
+    theme === "dark" ? "bg-slate-900 border border-slate-700" : "bg-white border border-slate-200";
 
   const inputClass =
     theme === "dark"
       ? "w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 outline-none"
       : "w-full rounded border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none";
 
-  const themeButtonLabel =
-    theme === "dark" ? "Zum White-Mode wechseln" : "Zum Dark-Mode wechseln";
+  const themeButtonLabel = theme === "dark" ? "Zum White-Mode wechseln" : "Zum Dark-Mode wechseln";
 
   return (
     <Box className={`min-h-screen ${pageBackground}`}>
@@ -192,11 +189,7 @@ export default function Settings() {
                   <Box className="mt-4 space-y-4">
                     <Box className="flex items-center justify-between gap-3">
                       <Text type="xs">Theme</Text>
-                      <Button
-                        label={themeButtonLabel}
-                        onClick={toggleTheme}
-                        variant="secondary"
-                      />
+                      <Button label={themeButtonLabel} onClick={toggleTheme} variant="secondary" />
                     </Box>
 
                     <Box className="rounded border border-slate-300/30 p-3">
