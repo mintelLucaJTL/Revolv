@@ -1,32 +1,26 @@
-import { Box, Card, Stack, Input, Button, CardTitle } from "@jtl-software/platform-ui-react";
+import { Box, Card, Stack, Button, CardTitle } from "@jtl-software/platform-ui-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 export default function Registrieren() {
   const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
     if (loading) return;
 
-    const emailEl = document.querySelector(
-      'input[placeholder="E-Mail"]',
-    ) as HTMLInputElement | null;
-    const pwEl = document.querySelector('input[placeholder="Passwort"]') as HTMLInputElement | null;
-    const confirmEl = document.querySelector(
-      'input[placeholder="Passwort bestätigen"]',
-    ) as HTMLInputElement | null;
+    const trimmedName = name.trim();
 
-    if (!emailEl || !pwEl || !confirmEl) {
-      alert("Eingabefelder nicht gefunden");
+    if (!trimmedName) {
+      alert("Bitte gib deinen Namen ein");
       return;
     }
 
-    const email = emailEl.value.trim();
-    const password = pwEl.value;
-    const confirm = confirmEl.value;
-
-    if (password !== confirm) {
+    if (password !== confirmPassword) {
       alert("Passwörter stimmen nicht überein");
       return;
     }
@@ -37,7 +31,7 @@ export default function Registrieren() {
       const res = await fetch("http://localhost:5215/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name: trimmedName, email, password }),
       });
 
       if (res.ok) {
@@ -63,10 +57,33 @@ export default function Registrieren() {
       <Card className="w-full max-w-md p-8">
         <Stack>
           <CardTitle>Account erstellen</CardTitle>
-          <Input placeholder="Name" />
-          <Input placeholder="E-Mail" type="email" />
-          <Input placeholder="Passwort" type="password" />
-          <Input placeholder="Passwort bestätigen" type="password" />
+          <input
+            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="E-Mail"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Passwort"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <input
+            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Passwort bestätigen"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
           <Button label={loading ? "Registriere..." : "Registrieren"} onClick={handleRegister} />
           <Button label="Zurück zum login" variant="secondary" onClick={() => navigate("/login")} />
         </Stack>
