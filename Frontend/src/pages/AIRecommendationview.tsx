@@ -404,6 +404,7 @@ export default function AIRecommendationView() {
         article={
           selectedArticle
             ? {
+                id: selectedArticle.id,
                 image: selectedArticle.imageUrl,
                 name: selectedArticle.name,
                 number: selectedArticle.articleNo,
