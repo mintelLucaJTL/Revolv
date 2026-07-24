@@ -409,6 +409,8 @@ export default function AIRecommendationView() {
                 name: selectedArticle.name,
                 number: selectedArticle.articleNo,
                 returnRate: selectedArticle.returnRate,
+                category: selectedArticle.category,
+                size: selectedArticle.size,
               }
             : null
         }
