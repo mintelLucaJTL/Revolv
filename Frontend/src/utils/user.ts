@@ -33,6 +33,18 @@ export async function updateCurrentUserName(name: string): Promise<CurrentUser> 
   return response.json();
 }
 
+// DELETE /api/user/me - lets the user delete their own account.
+// Backend returns 204 No Content on success, so there is no response body to parse.
+export async function deleteCurrentUser(): Promise<void> {
+  const response = await apiFetch("/api/user/me", {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+}
+
 // Turns "Luke Jansen" into "LJ". Falls back to the first two letters of a
 // single-word name/email, e.g. "luke@example.com" -> "LU".
 export function getInitials(name: string | null | undefined): string {

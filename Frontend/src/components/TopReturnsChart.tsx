@@ -1,10 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Box,
-} from "@jtl-software/platform-ui-react";
+import { Card, CardContent, CardHeader, CardTitle, Box } from "@jtl-software/platform-ui-react";
 import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from "recharts";
 import { apiFetch } from "../utils/api";
@@ -30,9 +24,7 @@ interface TopReturnedArticleChartItem {
 const CHART_COLORS = ["#EF4444", "#F97316", "#F59E0B", "#84CC16", "#10B981"];
 
 function ChartSkeleton() {
-  return (
-    <div className="animate-pulse h-64 rounded-xl bg-slate-100 dark:bg-slate-800" />
-  );
+  return <div className="animate-pulse h-64 rounded-xl bg-slate-100 dark:bg-slate-800" />;
 }
 
 // Component for the top-returned-articles chart
@@ -94,7 +86,9 @@ export default function TopReturnsChart() {
   return (
     <Card className="w-full dark:bg-slate-900 dark:border-slate-700">
       <CardHeader>
-        <CardTitle className="dark:text-slate-100">Top 5 Artikel mit höchster Retourenquote</CardTitle>
+        <CardTitle className="dark:text-slate-100">
+          Top 5 Artikel mit höchster Retourenquote
+        </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-3">
