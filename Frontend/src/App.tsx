@@ -7,13 +7,15 @@ import RetourenAnalyse from "./pages/Retouren-Analyse";
 import AIRecommendationView from "./pages/AIRecommendationview";
 import Registrieren from "./pages/register";
 import Settings from "./pages/settings";
+import { isTokenExpired } from "./utils/api";
 
 // Diese Komponente schützt eine Route vor Zugriff ohne gültiges Token.
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
   const token = localStorage.getItem("authToken");
 
-  if (!token) {
+  if (!token || isTokenExpired(token)) {
+    localStorage.removeItem("authToken");
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
