@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using RevolvAPI.Data;
+using RevolvAPI.Data.Seeder;
 using RevolvAPI.Services;
 using System.Text;
-using RevolvAPI.Data.Seeder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +15,28 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Add SwaggerGen to the container
+builder.Services.AddSwaggerGen(c =>
+{
+    // Define the security scheme (Bearer Token)
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization Header. \r\n\r\n Bitte 'Bearer ' (mit Leerzeichen!) vor dein Token schreiben.\r\n\r\nBeispiel: 'Bearer eyJhbGciOiJIUzI1...'",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    // Apply the security scheme to all endpoints in Swagger
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecuritySchemeReference("Bearer", document),
+            new List<string>()
+        }
+    });
+});
 
 // configure the database connection
 var connectionString = builder.Configuration.GetConnectionString("WawiConnection");
