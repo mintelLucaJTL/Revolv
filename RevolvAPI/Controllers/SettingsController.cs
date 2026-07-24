@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using RevolvAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace RevolvAPI.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/settings")]
     public class SettingsController : ControllerBase
     {

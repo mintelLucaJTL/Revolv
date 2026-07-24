@@ -3,9 +3,12 @@ using RevolvAPI.Controllers;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+
 namespace RevolvAPI.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/quality")]
     public class QualityController : ControllerBase
     {

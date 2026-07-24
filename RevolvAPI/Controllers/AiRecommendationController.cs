@@ -4,10 +4,12 @@ using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using RevolvAPI.Services;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace RevolvAPI.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/ai")]
     public class AiRecommendationController : ControllerBase
     {
@@ -173,30 +175,30 @@ namespace RevolvAPI.Controllers
                 ReturnRate = recommendation.ReturnRate,
                 IsFullyResolved = recommendation.IsFullyResolved,
                 QualityIssues = recommendation.QualityIssues
-                    .Select(q => new QualityIssueDetailDto 
-                    { 
-                        Id = q.Id, 
-                        IssueText = q.IssueText, 
-                        Status = q.Status 
+                    .Select(q => new QualityIssueDetailDto
+                    {
+                        Id = q.Id,
+                        IssueText = q.IssueText,
+                        Status = q.Status
                     })
                     .ToList(),
                 DescriptionProposals = recommendation.DescriptionProposals
-                    .Select(d => new DescriptionProposalDetailDto 
-                    { 
-                        Id = d.Id, 
-                        CurrentText = d.CurrentText, 
-                        ProposedText = d.ProposedText, 
-                        Status = d.Status 
+                    .Select(d => new DescriptionProposalDetailDto
+                    {
+                        Id = d.Id,
+                        CurrentText = d.CurrentText,
+                        ProposedText = d.ProposedText,
+                        Status = d.Status
                     })
                     .ToList(),
                 ActionRecommendations = recommendation.ActionRecommendations
-                    .Select(a => new ActionRecommendationDetailDto 
-                    { 
-                        Id = a.Id, 
-                        ActionText = a.ActionText, 
-                        ImpactBadge = a.ImpactBadge, 
-                        Priority = a.Priority, 
-                        IsCompleted = a.IsCompleted 
+                    .Select(a => new ActionRecommendationDetailDto
+                    {
+                        Id = a.Id,
+                        ActionText = a.ActionText,
+                        ImpactBadge = a.ImpactBadge,
+                        Priority = a.Priority,
+                        IsCompleted = a.IsCompleted
                     })
                     .ToList()
             };
