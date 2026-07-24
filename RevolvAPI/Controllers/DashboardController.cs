@@ -107,6 +107,27 @@ namespace RevolvAPI.Controllers
                 AveragePercent = Math.Round(average, 2)
             };
         }
+        // GET api/dashboard/latest-returns
+        // Returns the most recently reported quality issues (used for the dashboard live feed).
+        [HttpGet("latest-returns")]
+        public async Task<IActionResult> GetLatestReturns()
+        {
+            var latestReturns = await _ctx.QualityIssues
+                .Include(q => q.AiRecommendation)
+                .ThenInclude(r => r.Article)
+                .OrderByDescending(q => q.Id)
+                .Take(5)
+                .Select(q => new ReturnListItemDto
+                {
+                    ArticleNumber = q.AiRecommendation.Article.ArticleNumber ?? string.Empty,
+                    Name = q.AiRecommendation.Article.Name ?? "Unbekannt",
+                    IssueText = q.IssueText ?? "Unbekannt"
+                })
+                .ToListAsync();
+
+            return Ok(latestReturns);
+        }
+
         [HttpGet("top-returned-articles")]
         public async Task<IActionResult> GetTopReturnedArticles()
         {

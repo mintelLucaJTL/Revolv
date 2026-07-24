@@ -76,7 +76,14 @@ export default function TopNavigationBar() {
       {/* 2. Search mit JTL-Input Integration */}
       <Box className="flex-1 flex justify-center px-4">
         <div className="w-full max-w-lg">
-          <Input type="text" placeholder="Search..." leftIcon={<Search size={18} />} />
+          <Input
+            type="text"
+            placeholder="Search..."
+            leftIcon={<Search size={18} />}
+            value={searchTerm}
+            onChange={(newValue) => setSearchTerm(newValue)}
+            onKeyDown={handleKeyDown}
+          />
         </div>
       </Box>
 
