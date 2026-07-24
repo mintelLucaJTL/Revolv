@@ -4,6 +4,7 @@ import KpiCard from "../components/KpiCard";
 import TopNavigationBar from "../components/TopNavigationBar";
 import ReturnReasonsChart from "../components/ReturnReasonsChar";
 import Sidebar from "../components/Sidebar";
+import LatestReturnsList from "../components/LatestReturnsList";
 
 /** Raw data from the backend (DashboardKpiDto) */
 interface DashboardKpiDto {
@@ -321,8 +322,9 @@ export default function Dashboard() {
                   ))}
             </div>
 
-            <div className="w-full max-w-3xl mx-auto">
+            <div className="w-full mt-6 grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
               <ReturnReasonsChart />
+              <LatestReturnsList />
             </div>
           </div>
         </Box>

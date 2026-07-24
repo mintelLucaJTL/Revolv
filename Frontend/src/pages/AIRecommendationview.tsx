@@ -316,7 +316,9 @@ export default function AIRecommendationView() {
                       ))}
                     </>
                   ) : (
-                    <div className="text-sm text-slate-600 dark:text-slate-300">Keine Artikel vorhanden.</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-300">
+                      Keine Artikel vorhanden.
+                    </div>
                   )}
                 </Box>
               </div>
