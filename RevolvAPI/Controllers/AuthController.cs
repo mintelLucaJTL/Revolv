@@ -55,6 +55,7 @@ namespace RevolvAPI.Controllers
             // Create a new user and hash the password
             var user = new User
             {
+                Name = r.Name.Trim(),
                 Email = r.Email,
                 PasswordHash = _passwordService.HashPassword(r.Password), // hash the password
                 CreatedAt = DateTime.UtcNow

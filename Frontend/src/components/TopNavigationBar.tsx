@@ -9,10 +9,45 @@ import {
 } from "@jtl-software/platform-ui-react";
 
 import { Bell, Search, Settings, LogOut, Edit } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import SetNameModal from "./SetNameModal";
+import { fetchCurrentUser, getInitials, updateCurrentUserName } from "../utils/user";
 
 export default function TopNavigationBar() {
   const navigate = useNavigate();
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [needsName, setNeedsName] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchCurrentUser()
+      .then((user) => {
+        if (!isMounted) return;
+        if (user.name && user.name.trim()) {
+          setDisplayName(user.name.trim());
+          setNeedsName(false);
+        } else {
+          // Existing user from before the "Name" field existed - ask them to set one.
+          setDisplayName(user.email);
+          setNeedsName(true);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load current user:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleNameSaved = async (name: string) => {
+    const updated = await updateCurrentUserName(name);
+    setDisplayName(updated.name ?? name);
+    setNeedsName(false);
+  };
 
   const logout = () => {
     localStorage.removeItem("authToken");
@@ -81,12 +116,14 @@ export default function TopNavigationBar() {
           {/* Profile button */}
           <Button
             variant="secondary"
-            icon={<Avatar text="MM" shape="circle" />}
-            label="Max Mustermann"
+            icon={<Avatar text={getInitials(displayName)} shape="circle" />}
+            label={displayName ?? "…"}
             aria-label="Profile menu"
           />
         </JTLDropdown>
       </Box>
+
+      <SetNameModal isOpen={needsName} onSaved={handleNameSaved} />
     </header>
   );
 }
