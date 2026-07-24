@@ -80,6 +80,38 @@ const sampleArticles: ArticleOverview[] = [
   },
 ];
 
+function ArticleCardSkeleton() {
+  return (
+    <Card className="w-full animate-pulse dark:bg-slate-900 dark:border-slate-700">
+      <div className="p-4 pb-2">
+        <div className="flex items-start justify-between gap-4">
+          <div className="h-20 w-20 flex-shrink-0 rounded-lg bg-slate-200 dark:bg-slate-700" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-4 w-40 rounded bg-slate-200 dark:bg-slate-700" />
+            <div className="h-3 w-28 rounded bg-slate-100 dark:bg-slate-800" />
+            <div className="h-3 w-32 rounded bg-slate-100 dark:bg-slate-800" />
+            <div className="h-3 w-16 rounded bg-slate-100 dark:bg-slate-800" />
+          </div>
+          <div className="h-6 w-28 flex-shrink-0 rounded-full bg-slate-200 dark:bg-slate-700" />
+        </div>
+      </div>
+      <div className="space-y-4 px-4 pb-4 pt-2">
+        <div className="flex gap-2">
+          <div className="h-6 w-16 rounded-full bg-slate-100 dark:bg-slate-800" />
+          <div className="h-6 w-20 rounded-full bg-slate-100 dark:bg-slate-800" />
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <div className="h-3 w-16 rounded bg-slate-100 dark:bg-slate-800" />
+            <div className="h-3 w-20 rounded bg-slate-100 dark:bg-slate-800" />
+          </div>
+          <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800" />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 /**
  * Header-Komponente für die KI-Empfehlungsseite.
  */
@@ -275,7 +307,9 @@ export default function AIRecommendationView() {
 
                 <Box className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {loading ? (
-                    <div className="text-sm text-slate-600 dark:text-slate-300">Lade Artikel …</div>
+                    Array.from({ length: 6 }, (_, index) => (
+                      <ArticleCardSkeleton key={`article-skeleton-${index}`} />
+                    ))
                   ) : error ? (
                     <div className="text-sm text-red-600">{error}</div>
                   ) : articles.length > 0 ? (

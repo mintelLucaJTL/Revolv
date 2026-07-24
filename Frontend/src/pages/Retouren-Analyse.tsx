@@ -76,6 +76,37 @@ function aiStatusClasses(status: AIStatus): string {
   }
 }
 
+function TableRowSkeleton() {
+  return (
+    <tr className="animate-pulse">
+      <td className="px-4 py-4">
+        <div className="h-4 w-16 rounded bg-slate-200 dark:bg-slate-700" />
+      </td>
+      <td className="px-4 py-4">
+        <div className="h-4 w-36 rounded bg-slate-200 dark:bg-slate-700" />
+      </td>
+      <td className="px-4 py-4">
+        <div className="h-4 w-20 rounded bg-slate-100 dark:bg-slate-800" />
+      </td>
+      <td className="px-4 py-4">
+        <div className="h-4 w-10 rounded bg-slate-100 dark:bg-slate-800" />
+      </td>
+      <td className="px-4 py-4">
+        <div className="h-4 w-14 rounded bg-slate-100 dark:bg-slate-800" />
+      </td>
+      <td className="px-4 py-4">
+        <div className="h-7 w-16 rounded-full bg-slate-200 dark:bg-slate-700" />
+      </td>
+      <td className="px-4 py-4">
+        <div className="h-4 w-28 rounded bg-slate-100 dark:bg-slate-800" />
+      </td>
+      <td className="px-4 py-4">
+        <div className="h-6 w-24 rounded-full bg-slate-200 dark:bg-slate-700" />
+      </td>
+    </tr>
+  );
+}
+
 export default function RetourenAnalyseView() {
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState("");
@@ -189,11 +220,7 @@ export default function RetourenAnalyseView() {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                {isLoading ? (
-                  <div className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                    Lade Artikeldaten...
-                  </div>
-                ) : articles.length === 0 ? (
+                {!isLoading && articles.length === 0 ? (
                   <div className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">
                     Keine zurückgesendeten Artikel gefunden.
                   </div>
@@ -228,96 +255,100 @@ export default function RetourenAnalyseView() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100 dark:bg-slate-900 dark:divide-slate-700">
-                      {visible.map((row) => {
-                        const rc = rateClasses(row.returnRate, yellowThreshold, redThreshold);
-                        return (
-                          <tr
-                            key={row.id ?? row.articleNumber}
-                            className="hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-                            onClick={async () => {
-                              const id = row.id ?? row.articleNumber;
+                      {isLoading
+                        ? Array.from({ length: 6 }, (_, index) => (
+                            <TableRowSkeleton key={`table-skeleton-${index}`} />
+                          ))
+                        : visible.map((row) => {
+                            const rc = rateClasses(row.returnRate, yellowThreshold, redThreshold);
+                            return (
+                              <tr
+                                key={row.id ?? row.articleNumber}
+                                className="hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                                onClick={async () => {
+                                  const id = row.id ?? row.articleNumber;
 
-                              if (id === undefined || id === null) {
-                                console.error(
-                                  "Retouren-Analyse: Artikel-ID und articleNumber fehlen für row",
-                                  row,
-                                );
-                                setSelectedDetail(null);
-                                setDetailError(
-                                  "Keine gültige Artikelkennung verfügbar. Bitte Backend /api/articles/returns prüfen.",
-                                );
-                                setDetailLoading(false);
-                                setIsModalOpen(true);
-                                return;
-                              }
+                                  if (id === undefined || id === null) {
+                                    console.error(
+                                      "Retouren-Analyse: Artikel-ID und articleNumber fehlen für row",
+                                      row,
+                                    );
+                                    setSelectedDetail(null);
+                                    setDetailError(
+                                      "Keine gültige Artikelkennung verfügbar. Bitte Backend /api/articles/returns prüfen.",
+                                    );
+                                    setDetailLoading(false);
+                                    setIsModalOpen(true);
+                                    return;
+                                  }
 
-                              setSelectedDetail(null);
-                              setDetailError(null);
-                              setDetailLoading(true);
-                              setIsModalOpen(true);
-                              try {
-                                const res = await fetch(
-                                  `http://localhost:5215/api/articles/${encodeURIComponent(String(id))}`,
-                                );
-                                if (!res.ok) {
-                                  const text = await res.text();
-                                  throw new Error(`HTTP ${res.status}: ${text}`);
-                                }
-                                const dto = await res.json();
-                                setSelectedDetail(dto);
-                              } catch (e) {
-                                console.error("Fehler beim Laden der Artikeldetails:", e);
-                                setDetailError(
-                                  e instanceof Error
-                                    ? e.message
-                                    : "Die Artikeldetails konnten nicht geladen werden.",
-                                );
-                                setSelectedDetail(null);
-                              } finally {
-                                setDetailLoading(false);
-                              }
-                            }}
-                          >
-                            <td className="px-4 py-4 text-sm text-gray-400 dark:text-slate-500">
-                              {row.articleNumber}
-                            </td>
-                            <td className="px-4 py-4 font-semibold text-slate-900 dark:text-slate-100">
-                              {row.name}
-                            </td>
-                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                              {row.category}
-                            </td>
-                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                              {row.size}
-                            </td>
-                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                              {row.color ?? "—"}
-                            </td>
-                            <td className="px-4 py-4">
-                              <span
-                                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border border-transparent ${rc.bg}`}
+                                  setSelectedDetail(null);
+                                  setDetailError(null);
+                                  setDetailLoading(true);
+                                  setIsModalOpen(true);
+                                  try {
+                                    const res = await fetch(
+                                      `http://localhost:5215/api/articles/${encodeURIComponent(String(id))}`,
+                                    );
+                                    if (!res.ok) {
+                                      const text = await res.text();
+                                      throw new Error(`HTTP ${res.status}: ${text}`);
+                                    }
+                                    const dto = await res.json();
+                                    setSelectedDetail(dto);
+                                  } catch (e) {
+                                    console.error("Fehler beim Laden der Artikeldetails:", e);
+                                    setDetailError(
+                                      e instanceof Error
+                                        ? e.message
+                                        : "Die Artikeldetails konnten nicht geladen werden.",
+                                    );
+                                    setSelectedDetail(null);
+                                  } finally {
+                                    setDetailLoading(false);
+                                  }
+                                }}
                               >
-                                <span className={`w-2 h-2 rounded-full ${rc.dot}`} />
-                                <span className={`font-semibold ${rc.text}`}>
-                                  {row.returnRate.toFixed(1)}%
-                                </span>
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                              {row.mostFrequentReason ?? "—"}
-                            </td>
-                            <td className="px-4 py-4 text-sm">
-                              <span
-                                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${aiStatusClasses(
-                                  row.aiStatus,
-                                )}`}
-                              >
-                                {row.aiStatus}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                                <td className="px-4 py-4 text-sm text-gray-400 dark:text-slate-500">
+                                  {row.articleNumber}
+                                </td>
+                                <td className="px-4 py-4 font-semibold text-slate-900 dark:text-slate-100">
+                                  {row.name}
+                                </td>
+                                <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
+                                  {row.category}
+                                </td>
+                                <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
+                                  {row.size}
+                                </td>
+                                <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
+                                  {row.color ?? "—"}
+                                </td>
+                                <td className="px-4 py-4">
+                                  <span
+                                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border border-transparent ${rc.bg}`}
+                                  >
+                                    <span className={`w-2 h-2 rounded-full ${rc.dot}`} />
+                                    <span className={`font-semibold ${rc.text}`}>
+                                      {row.returnRate.toFixed(1)}%
+                                    </span>
+                                  </span>
+                                </td>
+                                <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
+                                  {row.mostFrequentReason ?? "—"}
+                                </td>
+                                <td className="px-4 py-4 text-sm">
+                                  <span
+                                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${aiStatusClasses(
+                                      row.aiStatus,
+                                    )}`}
+                                  >
+                                    {row.aiStatus}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
                     </tbody>
                   </table>
                 )}
