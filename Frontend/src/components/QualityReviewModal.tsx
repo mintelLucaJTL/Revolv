@@ -16,9 +16,7 @@ import {
   QUALITY_ISSUE_STATUS_PENDING,
   QUALITY_ISSUE_STATUS_RESOLVED,
 } from "../utils/qualityReviewProgress";
-
-// Base URL of the backend API, matching the convention used across the rest of the frontend.
-const API_BASE_URL = "http://localhost:5215";
+import { apiFetch } from "../utils/api";
 
 // DTO from the backend with the required fields (matches QualityIssueDTO)
 interface QualityIssue {
@@ -172,7 +170,7 @@ export default function QualityReviewModal({
     setActionSaveError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/ai/action/${rec.id}/complete`, {
+      const response = await apiFetch(`/api/ai/action/${rec.id}/complete`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isCompleted: nextIsCompleted }),
@@ -216,7 +214,7 @@ export default function QualityReviewModal({
     setQualityIssueSaveError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/ai/quality/${issue.id}/status`, {
+      const response = await apiFetch(`/api/ai/quality/${issue.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -264,14 +262,11 @@ export default function QualityReviewModal({
     setProposalActionError(null);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/ai/description/${descriptionProposalId}/text`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ proposedText: draftProposedText }),
-        },
-      );
+      const response = await apiFetch(`/api/ai/description/${descriptionProposalId}/text`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ proposedText: draftProposedText }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -295,14 +290,11 @@ export default function QualityReviewModal({
     setProposalActionError(null);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/ai/description/${descriptionProposalId}/status`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
-        },
-      );
+      const response = await apiFetch(`/api/ai/description/${descriptionProposalId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
