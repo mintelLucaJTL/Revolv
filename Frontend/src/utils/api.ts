@@ -7,6 +7,17 @@ function getAuthHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// Prüft, ob ein JWT abgelaufen ist. Bei kaputtem/ungültigem Token wird "abgelaufen" angenommen.
+export function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (!payload.exp) return false;
+    return payload.exp < Date.now() / 1000;
+  } catch {
+    return true;
+  }
+}
+
 /**
  * @param path Relative path (e.g. "/api/settings") or absolute URL.
  * @param options Same options as `fetch`; any custom headers are merged on top of the auth header.
