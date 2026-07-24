@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
@@ -9,7 +8,6 @@ using RevolvAPI.Services;
 namespace RevolvAPI.Controllers
 {
     [ApiController]
-    [Authorize]
     [Route("api/dashboard")]
     public class DashboardController : ControllerBase
     {
@@ -109,5 +107,24 @@ namespace RevolvAPI.Controllers
                 AveragePercent = Math.Round(average, 2)
             };
         }
+        [HttpGet("top-returned-articles")]
+        public async Task<IActionResult> GetTopReturnedArticles()
+        {
+            var topReturns = await _ctx.AiRecommendations
+                .Include(r => r.Article)
+                .Where(r => r.ReturnRate != null)
+                .OrderByDescending(r => r.ReturnRate)
+                .Take(5)
+                .Select(r => new TopReturnedArticleDto
+                {
+                    ArticleNumber = r.Article.ArticleNumber ?? string.Empty,
+                    Name = r.Article.Name ?? "Unbekannt",
+                    ReturnRate = r.ReturnRate ?? 0m
+                })
+                .ToListAsync();
+
+            return Ok(topReturns);
+        }
+
     }
 }

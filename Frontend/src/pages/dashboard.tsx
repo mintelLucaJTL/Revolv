@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import KpiCard from "../components/KpiCard";
 import TopNavigationBar from "../components/TopNavigationBar";
 import ReturnReasonsChart from "../components/ReturnReasonsChar";
+import TopReturnsChart from "../components/TopReturnsChart";
 import Sidebar from "../components/Sidebar";
 import LatestReturnsList from "../components/LatestReturnsList";
 import { apiFetch } from "../utils/api";
@@ -322,6 +323,8 @@ export default function Dashboard() {
                     />
                   ))}
             </div>
+
+            <TopReturnsChart />
 
             <div className="w-full mt-6 grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
               <ReturnReasonsChart />
