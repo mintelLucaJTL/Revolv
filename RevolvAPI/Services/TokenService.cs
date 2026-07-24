@@ -1,5 +1,6 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using RevolvAPI.Models;
@@ -43,6 +44,13 @@ namespace RevolvAPI.Services
                 // Include the user's role, in this case, we are assigning a default role of "User"
                 new Claim(ClaimTypes.Role, "User")
             };
+
+            // Include the user's display name if they already set one. Kept optional here because
+            // the source of truth is GET /api/user/me, which also works for users without a name yet.
+            if (!string.IsNullOrWhiteSpace(user.Name))
+            {
+                claims = claims.Append(new Claim(ClaimTypes.Name, user.Name)).ToArray();
+            }
 
             // Create the JWT token with the specified issuer, audience, claims, expiration time, and signing credentials
             var token = new JwtSecurityToken(

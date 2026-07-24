@@ -5,7 +5,6 @@ const navItems = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Retourenanalyse", path: "/retouren-analyse" },
   { label: "Ki-Empfehlungen", path: "/ki-empfehlungen" },
-
 ];
 
 export default function Sidebar() {

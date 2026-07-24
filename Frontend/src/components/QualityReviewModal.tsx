@@ -450,9 +450,7 @@ export default function QualityReviewModal({
           })}
         </div>
 
-        {actionSaveError ? (
-          <p className="mt-2 text-xs text-red-600">{actionSaveError}</p>
-        ) : null}
+        {actionSaveError ? <p className="mt-2 text-xs text-red-600">{actionSaveError}</p> : null}
       </div>
     ) : null;
 
@@ -505,9 +503,7 @@ export default function QualityReviewModal({
   const proposalActionsFooter =
     articleDetail && !isLoading && !error ? (
       <div className="mt-6 flex flex-col items-end gap-2">
-        {proposalActionError ? (
-          <p className="text-xs text-red-600">{proposalActionError}</p>
-        ) : null}
+        {proposalActionError ? <p className="text-xs text-red-600">{proposalActionError}</p> : null}
 
         {descriptionProposalId === undefined ? (
           // No AI description proposal exists for this article, so there is nothing to accept/reject/edit.
