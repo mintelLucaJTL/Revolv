@@ -147,5 +147,61 @@ namespace RevolvAPI.Controllers
             return Ok(overview);
         }
 
+
+        [HttpGet("recommendations/{articleId}")]
+        public async Task<IActionResult> GetRecommendation(int articleId)
+        {
+            var recommendation = await _ctx.AiRecommendations
+                .Include(r => r.Article)
+                .Include(r => r.QualityIssues)
+                .Include(r => r.DescriptionProposals)
+                .Include(r => r.ActionRecommendations)
+                .FirstOrDefaultAsync(r => r.ArticleId == articleId);
+
+            if (recommendation == null)
+                return NotFound(new { message = "Keine KI-Empfehlungen für diesen Artikel gefunden." });
+
+            // In DTO umwandeln ohne Circular References
+            var dto = new AiRecommendationDetailDto
+            {
+                ArticleId = recommendation.Article!.Id,
+                ArticleNumber = recommendation.Article.ArticleNumber,
+                ArticleName = recommendation.Article.Name,
+                Category = recommendation.Article.Category,
+                Size = recommendation.Article.Size,
+                AiSummaryText = recommendation.AiSummaryText,
+                ReturnRate = recommendation.ReturnRate,
+                IsFullyResolved = recommendation.IsFullyResolved,
+                QualityIssues = recommendation.QualityIssues
+                    .Select(q => new QualityIssueDetailDto 
+                    { 
+                        Id = q.Id, 
+                        IssueText = q.IssueText, 
+                        Status = q.Status 
+                    })
+                    .ToList(),
+                DescriptionProposals = recommendation.DescriptionProposals
+                    .Select(d => new DescriptionProposalDetailDto 
+                    { 
+                        Id = d.Id, 
+                        CurrentText = d.CurrentText, 
+                        ProposedText = d.ProposedText, 
+                        Status = d.Status 
+                    })
+                    .ToList(),
+                ActionRecommendations = recommendation.ActionRecommendations
+                    .Select(a => new ActionRecommendationDetailDto 
+                    { 
+                        Id = a.Id, 
+                        ActionText = a.ActionText, 
+                        ImpactBadge = a.ImpactBadge, 
+                        Priority = a.Priority, 
+                        IsCompleted = a.IsCompleted 
+                    })
+                    .ToList()
+            };
+
+            return Ok(dto);
+        }
     }
 }
