@@ -55,7 +55,9 @@ export default function KpiCard({
       tabIndex={onClick ? 0 : undefined}
       aria-label={smallLabel}
     >
-      <CardHeader className={`flex items-start justify-between p-0 ${isExpanded ? "mb-2" : "mb-1"}`}>
+      <CardHeader
+        className={`flex items-start justify-between p-0 ${isExpanded ? "mb-2" : "mb-1"}`}
+      >
         <div className="flex items-center gap-3">
           {/* Runder Icon-Button in Statusfarbe: klappt die Karte ein/aus */}
           <button

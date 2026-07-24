@@ -64,6 +64,28 @@ namespace RevolvAPI.Controllers
             return Ok(new UserDto { Id = user.Id, Email = user.Email, Name = user.Name });
         }
 
+        [HttpDelete("me")]
+        public async Task<IActionResult> DeleteMe()
+        {
+            var userId = GetCurrentUserId();
+
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var user = await _ctx.Users.FindAsync(userId.Value);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            _ctx.Users.Remove(user);
+            await _ctx.SaveChangesAsync();
+            return NoContent(); // 204 - User deleted successfully
+        }
+
         // Reads the user id out of the "sub"/NameIdentifier claim that TokenService puts into the JWT.
         private int? GetCurrentUserId()
         {

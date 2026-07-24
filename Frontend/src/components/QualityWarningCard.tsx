@@ -34,9 +34,7 @@ export default function QualityWarningCard({
           {/* Icon circle for the warning */}
           <div
             className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-              isChecked
-                ? "bg-slate-200 dark:bg-slate-800"
-                : "bg-red-100 dark:bg-red-900/50"
+              isChecked ? "bg-slate-200 dark:bg-slate-800" : "bg-red-100 dark:bg-red-900/50"
             }`}
           >
             <span

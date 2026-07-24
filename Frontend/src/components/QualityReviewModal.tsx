@@ -326,11 +326,15 @@ export default function QualityReviewModal({
 
   // Main grid content: Quality Warnings on the left, Description on the right
   const mainContent = isLoading ? (
-    <div className="p-6 text-center text-sm text-slate-600 dark:text-slate-400">Lade Artikeldetails…</div>
+    <div className="p-6 text-center text-sm text-slate-600 dark:text-slate-400">
+      Lade Artikeldetails…
+    </div>
   ) : error ? (
     <div className="p-6 text-center text-sm text-red-600 dark:text-red-400">{error}</div>
   ) : !articleDetail ? (
-    <div className="p-6 text-center text-sm text-slate-600 dark:text-slate-400">Keine Artikeldaten vorhanden.</div>
+    <div className="p-6 text-center text-sm text-slate-600 dark:text-slate-400">
+      Keine Artikeldaten vorhanden.
+    </div>
   ) : (
     <div className="grid gap-6 lg:grid-cols-2">
       {/* Left side: Quality Warnings */}
@@ -458,7 +462,9 @@ export default function QualityReviewModal({
           })}
         </div>
 
-        {actionSaveError ? <p className="mt-2 text-xs text-red-600 dark:text-red-400">{actionSaveError}</p> : null}
+        {actionSaveError ? (
+          <p className="mt-2 text-xs text-red-600 dark:text-red-400">{actionSaveError}</p>
+        ) : null}
       </div>
     ) : null;
 
@@ -474,7 +480,9 @@ export default function QualityReviewModal({
               key={index}
               className="rounded-2xl rounded-tl-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-4 py-3"
             >
-              <p className="text-sm italic text-slate-600 dark:text-slate-300">&ldquo;{comment}&rdquo;</p>
+              <p className="text-sm italic text-slate-600 dark:text-slate-300">
+                &ldquo;{comment}&rdquo;
+              </p>
             </div>
           ))}
         </div>
@@ -511,7 +519,9 @@ export default function QualityReviewModal({
   const proposalActionsFooter =
     articleDetail && !isLoading && !error ? (
       <div className="mt-6 flex flex-col items-end gap-2">
-        {proposalActionError ? <p className="text-xs text-red-600 dark:text-red-400">{proposalActionError}</p> : null}
+        {proposalActionError ? (
+          <p className="text-xs text-red-600 dark:text-red-400">{proposalActionError}</p>
+        ) : null}
 
         {descriptionProposalId === undefined ? (
           <p className="text-xs text-slate-400 dark:text-slate-500">
