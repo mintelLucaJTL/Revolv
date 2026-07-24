@@ -148,6 +148,7 @@ export default function AIRecommendationView() {
   const [articles, setArticles] = useState<ArticleOverview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState("Alle Artikel");
 
   const [selectedArticle, setSelectedArticle] = useState<ArticleOverview | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -204,6 +205,32 @@ export default function AIRecommendationView() {
     );
   }, [articles]);
 
+  const filteredArticles = useMemo(() => {
+    switch (activeFilter) {
+      case "Qualität":
+        return articles.filter((a) => a.hasQualityBadge);
+      case "Beschreibung":
+        return articles.filter((a) => a.hasDescriptionBadge);
+      case "Empfehlungen":
+        return articles.filter((a) => a.hasRecommendationBadge);
+      default:
+        return articles;
+    }
+  }, [articles, activeFilter]);
+
+  const filteredSampleArticles = useMemo(() => {
+    switch (activeFilter) {
+      case "Qualität":
+        return sampleArticles.filter((a) => a.hasQualityBadge);
+      case "Beschreibung":
+        return sampleArticles.filter((a) => a.hasDescriptionBadge);
+      case "Empfehlungen":
+        return sampleArticles.filter((a) => a.hasRecommendationBadge);
+      default:
+        return sampleArticles;
+    }
+  }, [activeFilter]);
+
   function openArticlePanel(article: ArticleOverview) {
     setSelectedArticle(article);
     setPanelOpen(true);
@@ -237,7 +264,12 @@ export default function AIRecommendationView() {
 
                 <Box className="flex flex-wrap gap-2">
                   {filters.map((filter) => (
-                    <Button key={filter} label={filter} variant="secondary" />
+                    <Button
+                      key={filter}
+                      label={filter}
+                      variant={activeFilter === filter ? "default" : "secondary"}
+                      onClick={() => setActiveFilter(filter)}
+                    />
                   ))}
                 </Box>
 
@@ -247,43 +279,49 @@ export default function AIRecommendationView() {
                   ) : error ? (
                     <div className="text-sm text-red-600">{error}</div>
                   ) : articles.length > 0 ? (
-                    articles.map((article) => (
-                      <div
-                        key={article.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => openArticlePanel(article)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            openArticlePanel(article);
-                          }
-                        }}
-                        className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
-                        aria-label={`Artikel ${article.name} öffnen`}
-                      >
-                        <ArticleCard
-                          name={article.name}
-                          articleNo={article.articleNo}
-                          category={article.category}
-                          size={article.size}
-                          returnRate={article.returnRate}
-                          hasQualityBadge={article.hasQualityBadge}
-                          hasDescriptionBadge={article.hasDescriptionBadge}
-                          hasRecommendationBadge={article.hasRecommendationBadge}
-                          openCount={article.openCount}
-                          resolvedCount={article.resolvedCount}
-                          imageUrl={article.imageUrl}
-                          onOpen={() => openArticlePanel(article)}
-                        />
+                    filteredArticles.length > 0 ? (
+                      filteredArticles.map((article) => (
+                        <div
+                          key={article.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => openArticlePanel(article)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              openArticlePanel(article);
+                            }
+                          }}
+                          className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                          aria-label={`Artikel ${article.name} öffnen`}
+                        >
+                          <ArticleCard
+                            name={article.name}
+                            articleNo={article.articleNo}
+                            category={article.category}
+                            size={article.size}
+                            returnRate={article.returnRate}
+                            hasQualityBadge={article.hasQualityBadge}
+                            hasDescriptionBadge={article.hasDescriptionBadge}
+                            hasRecommendationBadge={article.hasRecommendationBadge}
+                            openCount={article.openCount}
+                            resolvedCount={article.resolvedCount}
+                            imageUrl={article.imageUrl}
+                            onOpen={() => openArticlePanel(article)}
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-slate-600 dark:text-slate-300">
+                        Keine Artikel für diesen Filter.
                       </div>
-                    ))
+                    )
                   ) : showFallbackExamples ? (
                     <>
                       <div className="col-span-full text-sm text-slate-600 dark:text-slate-300">
                         Keine Artikel gefunden. Hier sind Beispielartikel zum Testen:
                       </div>
-                      {sampleArticles.map((article) => (
+                      {filteredSampleArticles.map((article) => (
                         <div
                           key={article.id}
                           role="button"

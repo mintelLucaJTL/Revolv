@@ -49,6 +49,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// Required so [Authorize] (used by UserController for GET/PATCH api/user/me) works at runtime.
+builder.Services.AddAuthorization();
+
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 

@@ -10,6 +10,7 @@ import {
 import TopNavigationBar from "../components/TopNavigationBar";
 import Sidebar from "../components/Sidebar";
 import QualityReviewModal from "../components/QualityReviewModal";
+import { useSearchParams } from "react-router-dom";
 
 // Values returned by GET /api/articles/returns for the "KI-Status" column (see ReturnController).
 type AIStatus = "Keine Empfehlung" | "Ausstehend" | "Angenommen" | "Abgelehnt" | "Gelöst";
@@ -76,6 +77,7 @@ function aiStatusClasses(status: AIStatus): string {
 }
 
 export default function RetourenAnalyseView() {
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [desc, setDesc] = useState(true);
   const [articles, setArticles] = useState<ReturnItem[]>([]);
@@ -87,6 +89,13 @@ export default function RetourenAnalyseView() {
   const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const searchQuery = searchParams.get("search");
+    if (searchQuery !== null) {
+      setQuery(searchQuery);
+    }
+  }, [searchParams]);
 
   // Extracted so it can also be re-run after the modal saves a change (e.g. accepting a
   // description proposal), keeping the "KI-Status" column in this table in sync.
