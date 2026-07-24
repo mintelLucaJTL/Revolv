@@ -28,6 +28,27 @@ interface ReturnReasonChartItem {
 // Colors for the chart
 const CHART_COLORS = ["#3B82F6", "#EF4444", "#F59E0B", "#10B981", "#8B5CF6", "#64748B"];
 
+function ChartSkeleton() {
+  return (
+    <div className="animate-pulse space-y-3">
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-44 w-44 rounded-full border-[28px] border-slate-200 dark:border-slate-700" />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div
+            key={`legend-skeleton-${index}`}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700"
+          >
+            <div className="h-3 w-3 rounded-full bg-slate-200 dark:bg-slate-700" />
+            <div className="h-3 w-24 rounded bg-slate-100 dark:bg-slate-800" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Component for the return reasons chart
 export default function ReturnReasonsChart() {
   const [returnReasons, setReturnReasons] = useState<ReturnReasonChartItem[]>([]);
@@ -94,9 +115,7 @@ export default function ReturnReasonsChart() {
         </Box>
 
         {isLoading ? (
-          <div className="h-64 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
-            Lade Retourengründe...
-          </div>
+          <ChartSkeleton />
         ) : error ? (
           <div className="h-64 flex items-center justify-center text-sm text-red-600">{error}</div>
         ) : returnReasons.length === 0 ? (
