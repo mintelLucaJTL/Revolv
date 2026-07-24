@@ -11,6 +11,7 @@ import TopNavigationBar from "../components/TopNavigationBar";
 import Sidebar from "../components/Sidebar";
 import QualityReviewModal from "../components/QualityReviewModal";
 import { useSearchParams } from "react-router-dom";
+import { apiFetch } from "../utils/api";
 
 // Values returned by GET /api/articles/returns for the "KI-Status" column (see ReturnController).
 type AIStatus = "Keine Empfehlung" | "Ausstehend" | "Angenommen" | "Abgelehnt" | "Gelöst";
@@ -134,7 +135,7 @@ export default function RetourenAnalyseView() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5215/api/articles/returns");
+      const response = await apiFetch("/api/articles/returns");
       if (!response.ok) {
         throw new Error(`API-Anfrage fehlgeschlagen: ${response.status}`);
       }
@@ -162,7 +163,7 @@ export default function RetourenAnalyseView() {
   useEffect(() => {
     const loadThresholds = async () => {
       try {
-        const response = await fetch("http://localhost:5215/api/settings");
+        const response = await apiFetch("/api/settings");
         if (!response.ok) return;
         const data = (await response.json()) as SettingsApiDto;
         setYellowThreshold(Number(data.thresholdYellow));
@@ -287,8 +288,8 @@ export default function RetourenAnalyseView() {
                                   setDetailLoading(true);
                                   setIsModalOpen(true);
                                   try {
-                                    const res = await fetch(
-                                      `http://localhost:5215/api/articles/${encodeURIComponent(String(id))}`,
+                                    const res = await apiFetch(
+                                      `/api/articles/${encodeURIComponent(String(id))}`,
                                     );
                                     if (!res.ok) {
                                       const text = await res.text();

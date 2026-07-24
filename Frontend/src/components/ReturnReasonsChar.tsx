@@ -8,6 +8,7 @@ import {
 } from "@jtl-software/platform-ui-react";
 import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { apiFetch } from "../utils/api";
 
 // DTO for the return reasons
 interface ReturnReasonDto {
@@ -65,7 +66,7 @@ export default function ReturnReasonsChart() {
 
       try {
         // Load the return reasons from the API
-        const response = await fetch("http://localhost:5215/api/dashboard/return-reasons");
+        const response = await apiFetch("/api/dashboard/return-reasons");
 
         // Check if the request was successful
         if (!response.ok) {

@@ -8,8 +8,7 @@ import {
   Table,
 } from "@jtl-software/platform-ui-react";
 import type { ITableColumnProps } from "@jtl-software/platform-ui-react";
-
-const API_BASE_URL = "http://localhost:5215";
+import { apiFetch } from "../utils/api";
 
 interface LatestReturnItem {
   articleNumber: string;
@@ -49,7 +48,7 @@ export default function LatestReturnsList() {
       setError(null);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/dashboard/latest-returns`);
+        const response = await apiFetch("/api/dashboard/latest-returns");
         if (!response.ok) {
           throw new Error(`Failed to fetch latest returns (HTTP error: ${response.status})`);
         }

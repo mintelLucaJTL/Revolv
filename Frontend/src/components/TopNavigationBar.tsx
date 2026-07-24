@@ -15,7 +15,7 @@ import SetNameModal from "./SetNameModal";
 import { fetchCurrentUser, getInitials, updateCurrentUserName } from "../utils/user";
 
 export default function TopNavigationBar() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [needsName, setNeedsName] = useState(false);
@@ -51,7 +51,7 @@ export default function TopNavigationBar() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchTerm.trim() !== '') {
+    if (e.key === "Enter" && searchTerm.trim() !== "") {
       navigate(`/retouren-analyse?search=${encodeURIComponent(searchTerm.trim())}`);
     }
   };

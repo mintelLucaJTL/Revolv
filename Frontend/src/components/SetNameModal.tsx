@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Button, Card, CardContent, CardHeader, CardTitle, Text } from "@jtl-software/platform-ui-react";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Text,
+} from "@jtl-software/platform-ui-react";
 
 interface Props {
   isOpen: boolean;

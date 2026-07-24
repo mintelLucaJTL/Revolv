@@ -4,6 +4,7 @@ import { ArticleCard } from "../components/ArticleCard";
 import Sidebar from "../components/Sidebar";
 import TopNavigationBar from "../components/TopNavigationBar";
 import ArticleDetailsPanel from "../components/ArticleDetailsPanel";
+import { apiFetch } from "../utils/api";
 
 /**
  * Filter-Labels für die obere Filterleiste.
@@ -188,7 +189,7 @@ export default function AIRecommendationView() {
   useEffect(() => {
     const fetchOverview = async () => {
       try {
-        const response = await fetch("http://localhost:5215/api/ai/overview");
+        const response = await apiFetch("/api/ai/overview");
 
         if (!response.ok) {
           throw new Error(`Fehler beim Laden der KI-Übersicht (${response.status})`);

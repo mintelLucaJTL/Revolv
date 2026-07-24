@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Box, Card, Button, Text } from "@jtl-software/platform-ui-react";
 import Sidebar from "../components/Sidebar";
 import TopNavigationBar from "../components/TopNavigationBar";
+import { apiFetch } from "../utils/api";
 
 // DTO for the settings API.
 interface SettingsApiDto {
@@ -14,7 +15,7 @@ interface SettingsApiDto {
 type ThemeMode = "light" | "dark";
 
 // API endpoint for the settings.
-const API_SETTINGS = "http://localhost:5215/api/settings";
+const API_SETTINGS = "/api/settings";
 
 // Applies the settings to the form.
 function applySettingsToForm(
@@ -61,7 +62,7 @@ export default function Settings() {
       setLoading(true);
       setMessage(null);
       try {
-        const response = await fetch(API_SETTINGS);
+        const response = await apiFetch(API_SETTINGS);
         if (!response.ok) {
           throw new Error("Einstellungen konnten nicht geladen werden.");
         }
@@ -106,7 +107,7 @@ export default function Settings() {
         throw new Error("Gelber Schwellenwert muss kleiner als der rote sein (0–100).");
       }
 
-      const response = await fetch(API_SETTINGS, {
+      const response = await apiFetch(API_SETTINGS, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -124,7 +125,7 @@ export default function Settings() {
         throw new Error(details || `Speichern fehlgeschlagen (${response.status}).`);
       }
 
-      const refresh = await fetch(API_SETTINGS);
+      const refresh = await apiFetch(API_SETTINGS);
       if (!refresh.ok) {
         throw new Error("Gespeichert, aber erneutes Laden ist fehlgeschlagen.");
       }

@@ -5,6 +5,7 @@ import TopNavigationBar from "../components/TopNavigationBar";
 import ReturnReasonsChart from "../components/ReturnReasonsChar";
 import Sidebar from "../components/Sidebar";
 import LatestReturnsList from "../components/LatestReturnsList";
+import { apiFetch } from "../utils/api";
 
 /** Raw data from the backend (DashboardKpiDto) */
 interface DashboardKpiDto {
@@ -179,9 +180,9 @@ export default function Dashboard() {
         // Settings + traffic-lights together: badges always use current thresholds,
         // counts are calculated with the same thresholds on the backend.
         const [kpiResponse, trafficResponse, settingsResponse] = await Promise.all([
-          fetch("http://localhost:5215/api/dashboard/kpi"),
-          fetch("http://localhost:5215/api/dashboard/traffic-lights"),
-          fetch("http://localhost:5215/api/settings"),
+          apiFetch("/api/dashboard/kpi"),
+          apiFetch("/api/dashboard/traffic-lights"),
+          apiFetch("/api/settings"),
         ]);
 
         if (!kpiResponse.ok) {

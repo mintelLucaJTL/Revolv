@@ -1,6 +1,5 @@
 // Shared helpers for reading/updating the profile of the currently logged-in user.
-// Base URL of the backend API, matching the convention used across the rest of the frontend.
-const API_BASE_URL = "http://localhost:5215";
+import { apiFetch } from "./api";
 
 export interface CurrentUser {
   id: number;
@@ -8,16 +7,9 @@ export interface CurrentUser {
   name: string | null;
 }
 
-function authHeaders(): HeadersInit {
-  const token = localStorage.getItem("authToken");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 // GET /api/user/me - profile of the currently authenticated user (based on the JWT token).
 export async function fetchCurrentUser(): Promise<CurrentUser> {
-  const response = await fetch(`${API_BASE_URL}/api/user/me`, {
-    headers: { ...authHeaders() },
-  });
+  const response = await apiFetch("/api/user/me");
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -28,9 +20,9 @@ export async function fetchCurrentUser(): Promise<CurrentUser> {
 
 // PATCH /api/user/me - lets the user set/update their own display name.
 export async function updateCurrentUserName(name: string): Promise<CurrentUser> {
-  const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+  const response = await apiFetch("/api/user/me", {
     method: "PATCH",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
   });
 
