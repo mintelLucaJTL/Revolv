@@ -67,12 +67,12 @@ const PROPOSAL_STATUS_PENDING = "Ausstehend";
 function getPriorityBadgeClasses(priority?: string): string {
   const normalized = priority?.toLowerCase() ?? "";
   if (normalized.includes("hoch") || normalized.includes("high")) {
-    return "bg-red-50 text-red-600 border border-red-100";
+    return "bg-red-50 text-red-600 border border-red-100 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800";
   }
   if (normalized.includes("mittel") || normalized.includes("medium")) {
-    return "bg-amber-50 text-amber-600 border border-amber-100";
+    return "bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800";
   }
-  return "bg-slate-100 text-slate-500 border border-slate-200";
+  return "bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
 }
 
 export interface ArticleDetailDTO {
@@ -91,8 +91,6 @@ interface Props {
   articleDetail?: ArticleDetailDTO | null;
   isLoading?: boolean;
   error?: string | null;
-  // Called after a change (checkbox, accept/reject, edit) was successfully persisted to the
-  // backend, so the parent view can refresh e.g. the "KI-Status" table column.
   onArticleUpdated?: () => void;
 }
 
@@ -104,35 +102,38 @@ export default function QualityReviewModal({
   error = null,
   onArticleUpdated,
 }: Props) {
+  // Extract AI recommendations data from prop safely
   const aiRec = articleDetail?.aiRecommendations?.[0];
   const issues = aiRec?.qualityIssues ?? [];
   const actionRecommendations = aiRec?.actionRecommendations ?? [];
   const descriptionProposal = aiRec?.descriptionProposals?.[0];
   const descriptionProposalId = descriptionProposal?.id;
 
-  // Local checkbox state so the UI can react instantly; every toggle is also persisted to the backend
-  // via PATCH /api/ai/action/{id}/complete so the state is shared across all users of the dashboard.
+  // Track completed state for action recommendations locally so checkmarks toggle instantly.
   const [completedActionIds, setCompletedActionIds] = useState<Set<string | number>>(new Set());
   const [actionSaveError, setActionSaveError] = useState<string | null>(null);
 
-  // Same pattern as the action recommendations above, but for the quality issue "Überprüft"
-  // toggle, persisted via PATCH /api/ai/quality/{id}/status so it is shared across all users.
+  // Track completed state for quality issues locally so "Überprüft" toggles instantly.
   const [completedQualityIssueIds, setCompletedQualityIssueIds] = useState<Set<string | number>>(
     new Set(),
   );
   const [qualityIssueSaveError, setQualityIssueSaveError] = useState<string | null>(null);
 
-  // Local state for the description proposal review (accept / reject / edit).
+  // Status of the description proposal ("Ausstehend", "Akzeptiert", "Abgelehnt")
   const [proposalStatus, setProposalStatus] = useState<string>("");
+  // Text displayed for the proposed description (matches backend, updated on edit)
   const [proposedTextValue, setProposedTextValue] = useState("");
+  // Inline edit state for the proposal text
   const [isEditingProposal, setIsEditingProposal] = useState(false);
   const [draftProposedText, setDraftProposedText] = useState("");
   const [isSavingProposalText, setIsSavingProposalText] = useState(false);
+  // Async status when clicking accept/reject/undo
   const [savingProposalAction, setSavingProposalAction] = useState<
     "accept" | "reject" | "undo" | null
   >(null);
   const [proposalActionError, setProposalActionError] = useState<string | null>(null);
 
+  // Sync state whenever the loaded article / AI recommendation changes
   useEffect(() => {
     const initiallyCompleted = actionRecommendations
       .filter((rec) => rec.isCompleted)
@@ -150,14 +151,14 @@ export default function QualityReviewModal({
     setProposedTextValue(descriptionProposal?.proposedText?.trim() ?? "");
     setIsEditingProposal(false);
     setProposalActionError(null);
-    // Only re-sync when a different article/recommendation is loaded into the modal.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiRec?.id]);
 
+  // Handle checking / unchecking an action recommendation.
+  // Performs optimistic UI update and rolls back if the backend PATCH fails.
   const toggleActionRecommendation = async (rec: ActionRecommendation) => {
     const nextIsCompleted = !completedActionIds.has(rec.id);
 
-    // Optimistic update so the checkbox reacts immediately.
+    // Optimistic local state update
     setCompletedActionIds((prev) => {
       const next = new Set(prev);
       if (nextIsCompleted) {
@@ -180,11 +181,12 @@ export default function QualityReviewModal({
         throw new Error(`HTTP ${response.status}`);
       }
 
+      // Refresh parent dataset so the overview page reflects updated state
       onArticleUpdated?.();
     } catch (err) {
       console.error("Failed to save action recommendation completion:", err);
 
-      // Roll back the optimistic update on failure.
+      // Rollback optimistic state
       setCompletedActionIds((prev) => {
         const next = new Set(prev);
         if (nextIsCompleted) {
@@ -198,10 +200,12 @@ export default function QualityReviewModal({
     }
   };
 
+  // Handle checking / unchecking a quality issue ("Überprüft").
+  // Performs optimistic UI update and rolls back if the backend PATCH fails.
   const toggleQualityIssue = async (issue: QualityIssue) => {
     const nextIsResolved = !completedQualityIssueIds.has(issue.id);
 
-    // Optimistic update so the button reacts immediately.
+    // Optimistic local state update
     setCompletedQualityIssueIds((prev) => {
       const next = new Set(prev);
       if (nextIsResolved) {
@@ -226,11 +230,12 @@ export default function QualityReviewModal({
         throw new Error(`HTTP ${response.status}`);
       }
 
+      // Refresh parent dataset so the overview page reflects updated state
       onArticleUpdated?.();
     } catch (err) {
       console.error("Failed to save quality issue status:", err);
 
-      // Roll back the optimistic update on failure.
+      // Rollback optimistic state
       setCompletedQualityIssueIds((prev) => {
         const next = new Set(prev);
         if (nextIsResolved) {
@@ -244,17 +249,20 @@ export default function QualityReviewModal({
     }
   };
 
+  // Start inline editing of the proposal text
   const startEditingProposal = () => {
     setDraftProposedText(proposedTextValue);
     setIsEditingProposal(true);
     setProposalActionError(null);
   };
 
+  // Cancel inline editing of the proposal text
   const cancelEditingProposal = () => {
     setIsEditingProposal(false);
     setProposalActionError(null);
   };
 
+  // Save edited proposal text to the backend
   const saveProposedText = async () => {
     if (descriptionProposalId === undefined) return;
 
@@ -283,6 +291,7 @@ export default function QualityReviewModal({
     }
   };
 
+  // Update status of proposal (Akzeptiert / Abgelehnt / Ausstehend)
   const updateProposalStatus = async (status: string, action: "accept" | "reject" | "undo") => {
     if (descriptionProposalId === undefined) return;
 
@@ -314,14 +323,17 @@ export default function QualityReviewModal({
 
   const currentText = descriptionProposal?.currentText?.trim() ?? "";
   const summaryText = aiRec?.aiSummaryText ?? "";
+
+  // Main grid content: Quality Warnings on the left, Description on the right
   const mainContent = isLoading ? (
-    <div className="p-6 text-center text-sm text-slate-600">Lade Artikeldetails…</div>
+    <div className="p-6 text-center text-sm text-slate-600 dark:text-slate-400">Lade Artikeldetails…</div>
   ) : error ? (
-    <div className="p-6 text-center text-sm text-red-600">{error}</div>
+    <div className="p-6 text-center text-sm text-red-600 dark:text-red-400">{error}</div>
   ) : !articleDetail ? (
-    <div className="p-6 text-center text-sm text-slate-600">Keine Artikeldaten vorhanden.</div>
+    <div className="p-6 text-center text-sm text-slate-600 dark:text-slate-400">Keine Artikeldaten vorhanden.</div>
   ) : (
     <div className="grid gap-6 lg:grid-cols-2">
+      {/* Left side: Quality Warnings */}
       <div className="space-y-4">
         <Text weight="bold">Qualitätsprüfung</Text>
 
@@ -337,7 +349,7 @@ export default function QualityReviewModal({
             />
           ))
         ) : (
-          <Card className="border border-gray-100 bg-slate-50">
+          <Card className="border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
             <CardContent className="p-4">
               <Text>Keine Qualitätswarnungen</Text>
             </CardContent>
@@ -345,14 +357,15 @@ export default function QualityReviewModal({
         )}
 
         {qualityIssueSaveError ? (
-          <p className="text-xs text-red-600">{qualityIssueSaveError}</p>
+          <p className="text-xs text-red-600 dark:text-red-400">{qualityIssueSaveError}</p>
         ) : null}
       </div>
 
+      {/* Right side: Product Description comparison */}
       <div className="space-y-4">
         <Text weight="bold">Produktbeschreibung</Text>
 
-        <Card className="border border-gray-100 bg-slate-50">
+        <Card className="border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
           <CardContent className="p-4">
             <Text weight="bold">Aktuell</Text>
             <Box className="mt-2 mb-4">
@@ -370,7 +383,7 @@ export default function QualityReviewModal({
                   value={draftProposedText}
                   onChange={(e) => setDraftProposedText(e.target.value)}
                   rows={5}
-                  className="w-full rounded-lg border border-blue-200 p-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-950 p-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               ) : proposedTextValue ? (
                 <Text>{proposedTextValue}</Text>
@@ -388,6 +401,7 @@ export default function QualityReviewModal({
     completedActionIds.has(rec.id),
   ).length;
 
+  // Action Recommendations Section
   const actionRecommendationsSection =
     articleDetail && !isLoading && !error && actionRecommendations.length > 0 ? (
       <div className="mt-6">
@@ -404,7 +418,7 @@ export default function QualityReviewModal({
             return (
               <label
                 key={rec.id}
-                className="flex items-center gap-4 rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm cursor-pointer transition-colors hover:border-blue-200"
+                className="flex items-center gap-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 shadow-sm cursor-pointer transition-colors hover:border-blue-400 dark:hover:border-blue-600"
               >
                 <input
                   type="checkbox"
@@ -415,7 +429,9 @@ export default function QualityReviewModal({
 
                 <span
                   className={`flex-1 text-sm ${
-                    isChecked ? "text-slate-400 line-through" : "text-slate-900"
+                    isChecked
+                      ? "text-slate-400 dark:text-slate-500 line-through"
+                      : "text-slate-900 dark:text-slate-100"
                   }`}
                 >
                   {rec.actionText ?? "Empfehlung"}
@@ -423,7 +439,7 @@ export default function QualityReviewModal({
 
                 <div className="flex flex-shrink-0 items-center gap-2">
                   {rec.impactBadge ? (
-                    <span className="rounded-full border border-green-100 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 transition-colors hover:bg-green-100">
+                    <span className="rounded-full border border-green-100 dark:border-green-800/50 bg-green-50 dark:bg-green-950/40 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-300">
                       {rec.impactBadge}
                     </span>
                   ) : null}
@@ -442,10 +458,11 @@ export default function QualityReviewModal({
           })}
         </div>
 
-        {actionSaveError ? <p className="mt-2 text-xs text-red-600">{actionSaveError}</p> : null}
+        {actionSaveError ? <p className="mt-2 text-xs text-red-600 dark:text-red-400">{actionSaveError}</p> : null}
       </div>
     ) : null;
 
+  // Placeholder Customer Comments Section
   const customerCommentsSection =
     articleDetail && !isLoading && !error ? (
       <div className="mt-6">
@@ -455,9 +472,9 @@ export default function QualityReviewModal({
           {PLACEHOLDER_CUSTOMER_COMMENTS.map((comment, index) => (
             <div
               key={index}
-              className="rounded-2xl rounded-tl-sm border border-gray-100 bg-slate-50 px-4 py-3"
+              className="rounded-2xl rounded-tl-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-4 py-3"
             >
-              <p className="text-sm italic text-slate-600">&ldquo;{comment}&rdquo;</p>
+              <p className="text-sm italic text-slate-600 dark:text-slate-300">&ldquo;{comment}&rdquo;</p>
             </div>
           ))}
         </div>
@@ -466,9 +483,7 @@ export default function QualityReviewModal({
 
   const isProposalReviewed = isDescriptionProposalStatusReviewed(proposalStatus);
 
-  // Derived (not hard-coded) "n / total bearbeitet" summary counter for the current article.
-  // Recomputed from the actual quality issues, action recommendations and description proposal
-  // state, so it always matches what is really reviewed instead of a static parent-supplied value.
+  // Review progress computation
   const reviewProgress = useMemo(
     () =>
       calculateReviewProgress({
@@ -492,14 +507,14 @@ export default function QualityReviewModal({
 
   if (!isOpen) return null;
 
+  // Bottom action buttons for proposal review
   const proposalActionsFooter =
     articleDetail && !isLoading && !error ? (
       <div className="mt-6 flex flex-col items-end gap-2">
-        {proposalActionError ? <p className="text-xs text-red-600">{proposalActionError}</p> : null}
+        {proposalActionError ? <p className="text-xs text-red-600 dark:text-red-400">{proposalActionError}</p> : null}
 
         {descriptionProposalId === undefined ? (
-          // No AI description proposal exists for this article, so there is nothing to accept/reject/edit.
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
             Kein KI-Textvorschlag für diesen Artikel vorhanden – nichts zu prüfen.
           </p>
         ) : isProposalReviewed ? (
@@ -507,8 +522,8 @@ export default function QualityReviewModal({
             <span
               className={`rounded-full px-3 py-1 text-xs font-semibold ${
                 proposalStatus === PROPOSAL_STATUS_ACCEPTED
-                  ? "bg-green-50 text-green-700"
-                  : "bg-red-50 text-red-600"
+                  ? "bg-green-50 text-green-700 dark:bg-green-950/60 dark:text-green-300"
+                  : "bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-300"
               }`}
             >
               {proposalStatus === PROPOSAL_STATUS_ACCEPTED
@@ -564,14 +579,13 @@ export default function QualityReviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 p-4"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-xs p-4"
       onClick={(e) => {
-        // Close only when the backdrop itself (not a modal child) was clicked.
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="my-8 w-full max-w-6xl bg-white rounded-[28px] shadow-2xl overflow-hidden">
-        <Card className="rounded-none border-none shadow-none">
+      <div className="my-8 w-full max-w-6xl bg-white dark:bg-slate-900 rounded-[28px] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
+        <Card className="rounded-none border-none shadow-none bg-transparent">
           <CardHeader className="px-6 py-5">
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
@@ -583,7 +597,7 @@ export default function QualityReviewModal({
                   type="button"
                   onClick={onClose}
                   aria-label="Modal schließen"
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -599,7 +613,7 @@ export default function QualityReviewModal({
               </div>
 
               {summaryText ? (
-                <Box className="mt-2 text-sm text-slate-600">
+                <Box className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                   <Text weight="semibold">Zusammenfassung</Text>
                   <Box className="mt-1">
                     <Text>{summaryText}</Text>
@@ -607,7 +621,7 @@ export default function QualityReviewModal({
                 </Box>
               ) : null}
 
-              <Box className="flex items-center gap-2 text-sm text-slate-500">
+              <Box className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                 <span>
                   {reviewProgress.reviewedCount} / {reviewProgress.totalCount} bearbeitet
                 </span>

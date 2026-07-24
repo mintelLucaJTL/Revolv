@@ -25,8 +25,8 @@ export default function QualityWarningCard({
     <Card
       className={
         isChecked
-          ? "border border-gray-100 bg-slate-50 rounded-2xl shadow-sm"
-          : "border border-red-100 bg-red-50 rounded-2xl shadow-sm"
+          ? "border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 rounded-2xl shadow-sm"
+          : "border border-red-200 dark:border-red-900/50 bg-red-50/70 dark:bg-red-950/30 rounded-2xl shadow-sm"
       }
     >
       <CardHeader className="p-4">
@@ -34,10 +34,18 @@ export default function QualityWarningCard({
           {/* Icon circle for the warning */}
           <div
             className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-              isChecked ? "bg-slate-200" : "bg-red-100"
+              isChecked
+                ? "bg-slate-200 dark:bg-slate-800"
+                : "bg-red-100 dark:bg-red-900/50"
             }`}
           >
-            <span className={isChecked ? "text-slate-500 font-bold" : "text-red-600 font-bold"}>
+            <span
+              className={
+                isChecked
+                  ? "text-slate-600 dark:text-slate-300 font-bold"
+                  : "text-red-600 dark:text-red-400 font-bold"
+              }
+            >
               {isChecked ? "✓" : "!"}
             </span>
           </div>
