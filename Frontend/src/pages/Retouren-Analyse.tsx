@@ -10,6 +10,7 @@ import {
 import TopNavigationBar from "../components/TopNavigationBar";
 import Sidebar from "../components/Sidebar";
 import QualityReviewModal from "../components/QualityReviewModal";
+import { useSearchParams } from "react-router-dom";
 
 // Values returned by GET /api/articles/returns for the "KI-Status" column (see ReturnController).
 type AIStatus = "Keine Empfehlung" | "Ausstehend" | "Angenommen" | "Abgelehnt" | "Gelöst";
@@ -34,9 +35,9 @@ interface SettingsApiDto {
 }
 
 /**
- * Ampel-Farben anhand der ShopSettings-Schwellenwerte
- * (gleich wie Dashboard traffic-lights):
- * rot  > red, gelb >= yellow && <= red, grün < yellow
+ * Traffic-light colors based on the ShopSettings thresholds
+ * (same logic as the Dashboard traffic lights):
+ * red > redThreshold, yellow >= yellowThreshold && <= redThreshold, green < yellowThreshold
  */
 function rateClasses(rate: number, yellowThreshold: number, redThreshold: number) {
   if (rate > redThreshold) {
@@ -60,6 +61,7 @@ function rateClasses(rate: number, yellowThreshold: number, redThreshold: number
   };
 }
 
+// Color coding for the "KI-Status" column, matching the values returned by ReturnController.
 function aiStatusClasses(status: AIStatus): string {
   switch (status) {
     case "Angenommen":
@@ -75,6 +77,7 @@ function aiStatusClasses(status: AIStatus): string {
 }
 
 export default function RetourenAnalyseView() {
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [desc, setDesc] = useState(true);
   const [articles, setArticles] = useState<ReturnItem[]>([]);
@@ -87,8 +90,15 @@ export default function RetourenAnalyseView() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
-  const [reviewedCount] = useState(0);
+  useEffect(() => {
+    const searchQuery = searchParams.get("search");
+    if (searchQuery !== null) {
+      setQuery(searchQuery);
+    }
+  }, [searchParams]);
 
+  // Extracted so it can also be re-run after the modal saves a change (e.g. accepting a
+  // description proposal), keeping the "KI-Status" column in this table in sync.
   const loadArticles = async () => {
     setIsLoading(true);
 
@@ -171,7 +181,7 @@ export default function RetourenAnalyseView() {
                 onClick={() => setDesc((s) => !s)}
               />
             </div>
-            <Button label="Filter..." variant="secondary" />
+          
           </div>
 
           <Card className="dark:bg-slate-900 dark:border-slate-700">
@@ -329,8 +339,6 @@ export default function RetourenAnalyseView() {
         articleDetail={selectedDetail}
         isLoading={detailLoading}
         error={detailError}
-        reviewedCount={reviewedCount}
-        totalCount={2}
         onArticleUpdated={loadArticles}
       />
     </Box>

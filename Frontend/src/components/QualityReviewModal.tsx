@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -9,15 +9,22 @@ import {
   Box,
 } from "@jtl-software/platform-ui-react";
 import QualityWarningCard from "./QualityWarningCard";
+import {
+  calculateReviewProgress,
+  isDescriptionProposalReviewed as isDescriptionProposalStatusReviewed,
+  isQualityIssueResolved,
+  QUALITY_ISSUE_STATUS_PENDING,
+  QUALITY_ISSUE_STATUS_RESOLVED,
+} from "../utils/qualityReviewProgress";
 
 // Base URL of the backend API, matching the convention used across the rest of the frontend.
 const API_BASE_URL = "http://localhost:5215";
 
-// DTO vom Backend mit den benötigten Feldern
+// DTO from the backend with the required fields (matches QualityIssueDTO)
 interface QualityIssue {
   id: string | number;
-  title?: string;
-  description?: string;
+  issueText?: string;
+  status?: string;
 }
 
 export interface DescriptionProposal {
@@ -86,8 +93,6 @@ interface Props {
   articleDetail?: ArticleDetailDTO | null;
   isLoading?: boolean;
   error?: string | null;
-  reviewedCount: number;
-  totalCount: number;
   // Called after a change (checkbox, accept/reject, edit) was successfully persisted to the
   // backend, so the parent view can refresh e.g. the "KI-Status" table column.
   onArticleUpdated?: () => void;
@@ -99,11 +104,10 @@ export default function QualityReviewModal({
   articleDetail,
   isLoading = false,
   error = null,
-  reviewedCount,
-  totalCount,
   onArticleUpdated,
 }: Props) {
   const aiRec = articleDetail?.aiRecommendations?.[0];
+  const issues = aiRec?.qualityIssues ?? [];
   const actionRecommendations = aiRec?.actionRecommendations ?? [];
   const descriptionProposal = aiRec?.descriptionProposals?.[0];
   const descriptionProposalId = descriptionProposal?.id;
@@ -112,6 +116,13 @@ export default function QualityReviewModal({
   // via PATCH /api/ai/action/{id}/complete so the state is shared across all users of the dashboard.
   const [completedActionIds, setCompletedActionIds] = useState<Set<string | number>>(new Set());
   const [actionSaveError, setActionSaveError] = useState<string | null>(null);
+
+  // Same pattern as the action recommendations above, but for the quality issue "Überprüft"
+  // toggle, persisted via PATCH /api/ai/quality/{id}/status so it is shared across all users.
+  const [completedQualityIssueIds, setCompletedQualityIssueIds] = useState<Set<string | number>>(
+    new Set(),
+  );
+  const [qualityIssueSaveError, setQualityIssueSaveError] = useState<string | null>(null);
 
   // Local state for the description proposal review (accept / reject / edit).
   const [proposalStatus, setProposalStatus] = useState<string>("");
@@ -130,6 +141,12 @@ export default function QualityReviewModal({
       .map((rec) => rec.id);
     setCompletedActionIds(new Set(initiallyCompleted));
     setActionSaveError(null);
+
+    const initiallyResolvedIssues = issues
+      .filter((iss) => isQualityIssueResolved(iss.status))
+      .map((iss) => iss.id);
+    setCompletedQualityIssueIds(new Set(initiallyResolvedIssues));
+    setQualityIssueSaveError(null);
 
     setProposalStatus(descriptionProposal?.status ?? "");
     setProposedTextValue(descriptionProposal?.proposedText?.trim() ?? "");
@@ -180,6 +197,52 @@ export default function QualityReviewModal({
         return next;
       });
       setActionSaveError("Änderung konnte nicht gespeichert werden. Bitte erneut versuchen.");
+    }
+  };
+
+  const toggleQualityIssue = async (issue: QualityIssue) => {
+    const nextIsResolved = !completedQualityIssueIds.has(issue.id);
+
+    // Optimistic update so the button reacts immediately.
+    setCompletedQualityIssueIds((prev) => {
+      const next = new Set(prev);
+      if (nextIsResolved) {
+        next.add(issue.id);
+      } else {
+        next.delete(issue.id);
+      }
+      return next;
+    });
+    setQualityIssueSaveError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/ai/quality/${issue.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: nextIsResolved ? QUALITY_ISSUE_STATUS_RESOLVED : QUALITY_ISSUE_STATUS_PENDING,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      onArticleUpdated?.();
+    } catch (err) {
+      console.error("Failed to save quality issue status:", err);
+
+      // Roll back the optimistic update on failure.
+      setCompletedQualityIssueIds((prev) => {
+        const next = new Set(prev);
+        if (nextIsResolved) {
+          next.delete(issue.id);
+        } else {
+          next.add(issue.id);
+        }
+        return next;
+      });
+      setQualityIssueSaveError("Änderung konnte nicht gespeichert werden. Bitte erneut versuchen.");
     }
   };
 
@@ -255,9 +318,6 @@ export default function QualityReviewModal({
     }
   };
 
-  if (!isOpen) return null;
-
-  const issues = aiRec?.qualityIssues || [];
   const hasIssues = issues.length > 0;
 
   const currentText = descriptionProposal?.currentText?.trim() ?? "";
@@ -277,9 +337,10 @@ export default function QualityReviewModal({
           issues.map((iss) => (
             <QualityWarningCard
               key={iss.id}
-              title={iss.title ?? "Warnung"}
-              description={iss.description ?? "Keine Beschreibung verfügbar."}
-              onChecked={() => {}}
+              title="Qualitätswarnung"
+              description={iss.issueText ?? "Keine Beschreibung verfügbar."}
+              isChecked={completedQualityIssueIds.has(iss.id)}
+              onToggleChecked={() => toggleQualityIssue(iss)}
               onCreateTicket={() => {}}
             />
           ))
@@ -290,6 +351,10 @@ export default function QualityReviewModal({
             </CardContent>
           </Card>
         )}
+
+        {qualityIssueSaveError ? (
+          <p className="text-xs text-red-600">{qualityIssueSaveError}</p>
+        ) : null}
       </div>
 
       <div className="space-y-4">
@@ -409,8 +474,33 @@ export default function QualityReviewModal({
       </div>
     ) : null;
 
-  const isProposalReviewed =
-    proposalStatus === PROPOSAL_STATUS_ACCEPTED || proposalStatus === PROPOSAL_STATUS_REJECTED;
+  const isProposalReviewed = isDescriptionProposalStatusReviewed(proposalStatus);
+
+  // Derived (not hard-coded) "n / total bearbeitet" summary counter for the current article.
+  // Recomputed from the actual quality issues, action recommendations and description proposal
+  // state, so it always matches what is really reviewed instead of a static parent-supplied value.
+  const reviewProgress = useMemo(
+    () =>
+      calculateReviewProgress({
+        qualityIssueCount: issues.length,
+        resolvedQualityIssueCount: issues.filter((iss) => completedQualityIssueIds.has(iss.id))
+          .length,
+        actionRecommendationCount: actionRecommendations.length,
+        completedActionRecommendationCount: completedActionCount,
+        hasDescriptionProposal: descriptionProposalId !== undefined,
+        isDescriptionProposalReviewed: isProposalReviewed,
+      }),
+    [
+      issues,
+      completedQualityIssueIds,
+      actionRecommendations.length,
+      completedActionCount,
+      descriptionProposalId,
+      isProposalReviewed,
+    ],
+  );
+
+  if (!isOpen) return null;
 
   const proposalActionsFooter =
     articleDetail && !isLoading && !error ? (
@@ -531,7 +621,7 @@ export default function QualityReviewModal({
 
               <Box className="flex items-center gap-2 text-sm text-slate-500">
                 <span>
-                  {reviewedCount} / {totalCount} bearbeitet
+                  {reviewProgress.reviewedCount} / {reviewProgress.totalCount} bearbeitet
                 </span>
               </Box>
             </div>
