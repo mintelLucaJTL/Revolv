@@ -25,8 +25,9 @@ interface TopReturnedArticleChartItem {
   colorCode: string;
 }
 
-// Colors for the chart (same palette as the return-reasons chart)
-const CHART_COLORS = ["#3B82F6", "#EF4444", "#F59E0B", "#10B981", "#8B5CF6", "#64748B"];
+// Colors by rank: highest return rate (index 0, most critical) in signal red,
+// descending to green for the lowest of the top 5.
+const CHART_COLORS = ["#EF4444", "#F97316", "#F59E0B", "#84CC16", "#10B981"];
 
 function ChartSkeleton() {
   return (

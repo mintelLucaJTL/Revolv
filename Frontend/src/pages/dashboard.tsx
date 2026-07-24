@@ -144,14 +144,14 @@ function mapTrafficLightsToTiles(
 
 function KpiCardSkeleton() {
   return (
-    <Card className="rounded-lg bg-white p-4 shadow-sm animate-pulse">
+    <Card className="rounded-lg bg-white p-4 shadow-sm animate-pulse dark:bg-slate-900 dark:border-slate-700">
       <CardContent className="p-0">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className="h-9 w-9 rounded-lg bg-slate-200" />
+            <div className="h-9 w-9 rounded-lg bg-slate-200 dark:bg-slate-700" />
             <div className="space-y-2">
-              <div className="h-8 w-20 rounded bg-slate-200" />
-              <div className="h-4 w-40 rounded bg-slate-100" />
+              <div className="h-8 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+              <div className="h-4 w-40 rounded bg-slate-100 dark:bg-slate-800" />
             </div>
           </div>
         </div>
@@ -171,6 +171,8 @@ export default function Dashboard() {
   const [ampelTiles, setAmpelTiles] = useState<AmpelTile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Geteilter Auf-/Zuklapp-Status: alle drei Ampel-Karten klappen gemeinsam auf/zu.
+  const [isAmpelExpanded, setIsAmpelExpanded] = useState(false);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -260,25 +262,6 @@ export default function Dashboard() {
                       <CardContent className="p-0">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-start gap-4">
-                            <div className="rounded-lg p-2 bg-slate-100 flex items-center justify-center dark:bg-slate-800">
-                              <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                className="text-slate-600 dark:text-slate-300"
-                                aria-hidden
-                              >
-                                <path
-                                  d="M7 14l5-5 5 5"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </div>
-
                             <div>
                               <div className="text-3xl font-bold leading-tight">{card.value}</div>
                               <div className="text-sm text-slate-600 mt-1 dark:text-slate-300">
@@ -320,13 +303,15 @@ export default function Dashboard() {
                       value={t.value}
                       percent={t.percent}
                       onClick={() => {}}
+                      isExpanded={isAmpelExpanded}
+                      onToggleExpanded={() => setIsAmpelExpanded((prev) => !prev)}
                     />
                   ))}
             </div>
 
             <TopReturnsChart />
 
-            <div className="w-full mt-6 grid gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="w-full mt-6 grid gap-6 grid-cols-1 lg:grid-cols-2">
               <ReturnReasonsChart />
               <LatestReturnsList />
             </div>
