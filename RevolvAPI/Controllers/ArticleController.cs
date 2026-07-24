@@ -2,10 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace RevolvAPI.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/articles")]
     public class ArticleController : ControllerBase
     {

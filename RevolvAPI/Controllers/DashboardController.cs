@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
@@ -8,6 +9,7 @@ using RevolvAPI.Services;
 namespace RevolvAPI.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/dashboard")]
     public class DashboardController : ControllerBase
     {
