@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
-using RevolvAPI.Models;
 using RevolvAPI.Services;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -15,13 +14,7 @@ namespace RevolvAPI.Controllers
     public class AiRecommendationController : ControllerBase
     {
         private readonly AppDbContext _ctx;
-        private readonly IAiService _aiService;
-
-        public AiRecommendationController(AppDbContext ctx, IAiService aiService)
-        {
-            _ctx = ctx;
-            _aiService = aiService;
-        }
+        public AiRecommendationController(AppDbContext ctx) => _ctx = ctx;
 
         // Status values that mark an AI task as resolved. Any other value
         // (e.g. "Offen", "Ausstehend", "In Prüfung", "Ticket erstellt") counts as open.
@@ -211,73 +204,6 @@ namespace RevolvAPI.Controllers
             };
 
             return Ok(dto);
-        }
-
-        // POST api/ai/analyze/{articleId}
-        // Startet die KI-Analyse für einen Artikel und persistiert das Ergebnis als neue
-        // AiRecommendation inkl. DescriptionProposal und ActionRecommendations.
-        [HttpPost("analyze/{articleId}")]
-        public async Task<IActionResult> AnalyzeArticle(int articleId)
-        {
-            var article = await _ctx.Articles
-                .Include(a => a.AiRecommendations)
-                    .ThenInclude(r => r.QualityIssues)
-                .FirstOrDefaultAsync(a => a.Id == articleId);
-
-            if (article == null)
-            {
-                return NotFound(new { message = "Artikel nicht gefunden." });
-            }
-
-            // Retourengründe aus allen bisherigen QualityIssues des Artikels sammeln.
-            var returnReasons = article.AiRecommendations
-                .SelectMany(r => r.QualityIssues)
-                .Select(q => q.IssueText)
-                .Where(t => !string.IsNullOrWhiteSpace(t))
-                .Select(t => t!)
-                .Distinct()
-                .ToList();
-
-            var currentDescription = article.AiRecommendations
-                .SelectMany(r => r.DescriptionProposals)
-                .Select(d => d.CurrentText)
-                .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
-
-            var aiResult = await _aiService.AnalyzeArticleAsync(
-                article.Name ?? "Unbekannter Artikel",
-                currentDescription,
-                returnReasons);
-
-            // Antwort der KI in echte DB-Modelle umwandeln.
-            var recommendation = new AiRecommendation
-            {
-                ArticleId = article.Id,
-                AiSummaryText = aiResult.SummaryText,
-                IsFullyResolved = false,
-            };
-
-            recommendation.DescriptionProposals.Add(new DescriptionProposal
-            {
-                CurrentText = currentDescription,
-                ProposedText = aiResult.ProposedDescription,
-                Status = "Ausstehend",
-            });
-
-            foreach (var action in aiResult.ActionRecommendations)
-            {
-                recommendation.ActionRecommendations.Add(new ActionRecommendation
-                {
-                    ActionText = action.ActionText,
-                    ImpactBadge = action.ImpactBadge,
-                    Priority = action.Priority,
-                    IsCompleted = false,
-                });
-            }
-
-            _ctx.AiRecommendations.Add(recommendation);
-            await _ctx.SaveChangesAsync();
-
-            return Ok(new { recommendationId = recommendation.Id });
         }
     }
 }
