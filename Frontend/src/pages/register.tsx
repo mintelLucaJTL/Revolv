@@ -52,33 +52,36 @@ export default function Registrieren() {
     }
   };
 
+  const inputClassName =
+    "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-blue-900";
+
   return (
-    <Box className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <Card className="w-full max-w-md p-8">
+    <Box className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      <Card className="w-full max-w-md p-8 dark:bg-slate-900 dark:border-slate-700">
         <Stack>
-          <CardTitle>Account erstellen</CardTitle>
+          <CardTitle className="dark:text-slate-100">Account erstellen</CardTitle>
           <input
-            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClassName}
             placeholder="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <input
-            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClassName}
             placeholder="E-Mail"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
           <input
-            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClassName}
             placeholder="Passwort"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <input
-            className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClassName}
             placeholder="Passwort bestätigen"
             type="password"
             value={confirmPassword}
