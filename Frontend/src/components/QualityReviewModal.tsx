@@ -17,6 +17,7 @@ import {
   QUALITY_ISSUE_STATUS_RESOLVED,
 } from "../utils/qualityReviewProgress";
 import { apiFetch } from "../utils/api";
+import { useToast } from "./Toast";
 
 // DTO from the backend with the required fields (matches QualityIssueDTO)
 interface QualityIssue {
@@ -92,6 +93,7 @@ interface Props {
   isLoading?: boolean;
   error?: string | null;
   onArticleUpdated?: () => void;
+  onRefetchDetail?: () => void | Promise<void>;
 }
 
 export default function QualityReviewModal({
@@ -101,7 +103,12 @@ export default function QualityReviewModal({
   isLoading = false,
   error = null,
   onArticleUpdated,
+  onRefetchDetail,
 }: Props) {
+  const { showToast } = useToast();
+
+  // Async status for the manual "KI-Analyse generieren" trigger.
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   // Extract AI recommendations data from prop safely
   const aiRec = articleDetail?.aiRecommendations?.[0];
   const issues = aiRec?.qualityIssues ?? [];
@@ -152,6 +159,34 @@ export default function QualityReviewModal({
     setIsEditingProposal(false);
     setProposalActionError(null);
   }, [aiRec?.id]);
+
+  // Trigger a fresh AI analysis run for this article and refresh the displayed data on success.
+  const handleAnalyze = async () => {
+    if (!articleDetail?.id) return;
+
+    setIsAnalyzing(true);
+    try {
+      const response = await apiFetch(`/api/ai/analyze/${articleDetail.id}`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      await onRefetchDetail?.();
+      onArticleUpdated?.();
+      showToast({ type: "success", message: "KI-Analyse abgeschlossen." });
+    } catch (err) {
+      console.error("Failed to trigger AI analysis:", err);
+      showToast({
+        type: "error",
+        message: "KI-Analyse konnte nicht gestartet werden. Bitte erneut versuchen.",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   // Handle checking / unchecking an action recommendation.
   // Performs optimistic UI update and rolls back if the backend PATCH fails.
@@ -603,23 +638,32 @@ export default function QualityReviewModal({
                   <CardTitle>Qualitätsprüfung</CardTitle>
                   <Text>Prüfe den Artikel und vergleiche aktuellen Text mit KI-Vorschlag.</Text>
                 </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  aria-label="Modal schließen"
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    className="h-5 w-5"
-                    aria-hidden="true"
+                <div className="flex flex-shrink-0 items-center gap-2">
+                  <Button
+                    label={isAnalyzing ? "Analysiert…" : "KI-Analyse generieren"}
+                    variant="highlight"
+                    onClick={handleAnalyze}
+                    isLoading={isAnalyzing}
+                    disabled={isAnalyzing || !articleDetail?.id}
+                  />
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label="Modal schließen"
+                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
-                  </svg>
-                </button>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      className="h-5 w-5"
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {summaryText ? (

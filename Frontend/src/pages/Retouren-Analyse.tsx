@@ -118,9 +118,40 @@ export default function RetourenAnalyseView() {
   const [redThreshold, setRedThreshold] = useState(25);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | number | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+
+  // Lädt die Artikeldetails für eine gegebene ID; wird sowohl beim Öffnen des Modals
+  // als auch für den Refresh nach einer neuen KI-Analyse verwendet.
+  const fetchArticleDetail = async (id: string | number) => {
+    setDetailError(null);
+    setDetailLoading(true);
+    try {
+      const res = await apiFetch(`/api/articles/${encodeURIComponent(String(id))}`);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text}`);
+      }
+      const dto = await res.json();
+      setSelectedDetail(dto);
+    } catch (e) {
+      console.error("Fehler beim Laden der Artikeldetails:", e);
+      setDetailError(
+        e instanceof Error ? e.message : "Die Artikeldetails konnten nicht geladen werden.",
+      );
+      setSelectedDetail(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // Lädt die Details des aktuell geöffneten Artikels erneut (z.B. nach einer KI-Analyse).
+  const refetchSelectedDetail = async () => {
+    if (selectedId === null) return;
+    await fetchArticleDetail(selectedId);
+  };
 
   useEffect(() => {
     const searchQuery = searchParams.get("search");
@@ -274,6 +305,7 @@ export default function RetourenAnalyseView() {
                                       "Retouren-Analyse: Artikel-ID und articleNumber fehlen für row",
                                       row,
                                     );
+                                    setSelectedId(null);
                                     setSelectedDetail(null);
                                     setDetailError(
                                       "Keine gültige Artikelkennung verfügbar. Bitte Backend /api/articles/returns prüfen.",
@@ -283,31 +315,10 @@ export default function RetourenAnalyseView() {
                                     return;
                                   }
 
+                                  setSelectedId(id);
                                   setSelectedDetail(null);
-                                  setDetailError(null);
-                                  setDetailLoading(true);
                                   setIsModalOpen(true);
-                                  try {
-                                    const res = await apiFetch(
-                                      `/api/articles/${encodeURIComponent(String(id))}`,
-                                    );
-                                    if (!res.ok) {
-                                      const text = await res.text();
-                                      throw new Error(`HTTP ${res.status}: ${text}`);
-                                    }
-                                    const dto = await res.json();
-                                    setSelectedDetail(dto);
-                                  } catch (e) {
-                                    console.error("Fehler beim Laden der Artikeldetails:", e);
-                                    setDetailError(
-                                      e instanceof Error
-                                        ? e.message
-                                        : "Die Artikeldetails konnten nicht geladen werden.",
-                                    );
-                                    setSelectedDetail(null);
-                                  } finally {
-                                    setDetailLoading(false);
-                                  }
+                                  await fetchArticleDetail(id);
                                 }}
                               >
                                 <td className="px-4 py-4 text-sm text-gray-400 dark:text-slate-500">
@@ -363,6 +374,7 @@ export default function RetourenAnalyseView() {
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
+          setSelectedId(null);
           setSelectedDetail(null);
           setDetailError(null);
           setDetailLoading(false);
@@ -371,6 +383,7 @@ export default function RetourenAnalyseView() {
         isLoading={detailLoading}
         error={detailError}
         onArticleUpdated={loadArticles}
+        onRefetchDetail={refetchSelectedDetail}
       />
     </Box>
   );

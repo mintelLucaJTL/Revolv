@@ -8,6 +8,7 @@ import AIRecommendationView from "./pages/AIRecommendationview";
 import Registrieren from "./pages/register";
 import Settings from "./pages/settings";
 import { isTokenExpired } from "./utils/api";
+import { ToastProvider } from "./components/Toast";
 
 // Diese Komponente schützt eine Route vor Zugriff ohne gültiges Token.
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -26,51 +27,53 @@ export default function App() {
   const token = localStorage.getItem("authToken");
 
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to={token ? "/login" : "/dashboard"} replace />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Registrieren />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/retouren-analyse"
-        element={
-          <ProtectedRoute>
-            <RetourenAnalyse />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/ki-empfehlungen"
-        element={
-          <ProtectedRoute>
-            <AIRecommendationView />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <ToastProvider>
+      <Routes>
+        <Route path="/" element={<Navigate to={token ? "/login" : "/dashboard"} replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Registrieren />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/retouren-analyse"
+          element={
+            <ProtectedRoute>
+              <RetourenAnalyse />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ki-empfehlungen"
+          element={
+            <ProtectedRoute>
+              <AIRecommendationView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </ToastProvider>
   );
 }
