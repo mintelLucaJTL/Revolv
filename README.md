@@ -11,10 +11,11 @@ Revolv ist ein spezialisiertes Modul zur intelligenten Analyse und Optimierung v
 5. [Setup – Schritt für Schritt](#setup--schritt-für-schritt)
 6. [Backend testen (Swagger + Auth)](#backend-testen-swagger--auth)
 7. [API-Endpunkte im Überblick](#api-endpunkte-im-überblick)
-8. [Frontend-Routen](#frontend-routen)
-9. [Code-Qualität (Husky)](#code-qualität-husky)
-10. [Nützliche Befehle](#nützliche-befehle)
-11. [Troubleshooting](#troubleshooting)
+8. [KI-Antwortkontrakt (AiResponseDTO)](#ki-antwortkontrakt-airesponsedto)
+9. [Frontend-Routen](#frontend-routen)
+10. [Code-Qualität (Husky)](#code-qualität-husky)
+11. [Nützliche Befehle](#nützliche-befehle)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -43,7 +44,7 @@ Revolv/
 │   ├── Data/           # AppDbContext + DbSeeder (Demo-Daten)
 │   ├── DTOs/           # Datenübertragungsobjekte für die API
 │   ├── Models/         # EF-Core-Entitäten
-│   └── Services/       # TokenService, PasswordService, ReturnRateBandService
+│   └── Services/       # TokenService, PasswordService, AiService, ReturnRateBandService
 ├── Frontend/           # React + TypeScript (Vite)
 │   └── src/
 │       ├── pages/       # Login, Dashboard, Retouren-Analyse, KI-Empfehlungen, ...
@@ -236,6 +237,64 @@ Alle Endpunkte außer den `Auth`-Endpunkten benötigen den `Authorization: Beare
 | Methode | Endpunkt | Beschreibung |
 |---------|----------|---------------|
 | `GET` | `/test-db` | Prüft die Datenbankverbindung (kein Auth nötig) |
+
+---
+
+## KI-Antwortkontrakt (AiResponseDTO)
+
+Damit Entity Framework die KI-Ergebnisse zuverlässig in SQL speichern kann, muss die KI **immer dieselbe JSON-Struktur** liefern. Dafür gibt es:
+
+| Datei | Rolle |
+|-------|--------|
+| `RevolvAPI/DTOs/AiResponseDTO.cs` | Fester C#-Vertrag (`Summary`, `DescriptionProposals`, `ActionRecommendations`) |
+| `RevolvAPI/Services/AiService.cs` | Master-Prompt + `ParseAiResponse(...)` via `JsonSerializer.Deserialize<AiResponseDTO>` |
+| `RevolvAPI/Services/IAiService.cs` | Interface (DI: `AddScoped<IAiService, AiService>`) |
+
+### Erwartetes JSON
+
+```json
+{
+  "summary": "Kurze Analyse der Retourenursachen",
+  "descriptionProposals": [
+    {
+      "currentText": "Aktuelle Produktbeschreibung",
+      "proposedText": "Verbesserte Produktbeschreibung"
+    }
+  ],
+  "actionRecommendations": [
+    {
+      "actionText": "Konkrete Handlungsempfehlung",
+      "impactBadge": "-10% Retouren",
+      "priority": "High"
+    }
+  ]
+}
+```
+
+`descriptionProposals` und `actionRecommendations` dürfen leere Arrays sein. `priority` nur `High`, `Medium` oder `Low`.
+
+### Mapping auf die Datenbank
+
+| JSON-Feld | EF-Model / Spalte |
+|-----------|-------------------|
+| `summary` | `AiRecommendation.AiSummaryText` |
+| `descriptionProposals[].currentText` | `DescriptionProposal.CurrentText` |
+| `descriptionProposals[].proposedText` | `DescriptionProposal.ProposedText` |
+| `actionRecommendations[].actionText` | `ActionRecommendation.ActionText` |
+| `actionRecommendations[].impactBadge` | `ActionRecommendation.ImpactBadge` |
+| `actionRecommendations[].priority` | `ActionRecommendation.Priority` |
+
+App-eigene Felder wie `Status`, `IsCompleted` und IDs setzt die API selbst (Defaults in den Models) – die KI liefert sie nicht.
+
+### Parsing
+
+`AiService.ParseAiResponse(rawText)`:
+
+1. Entfernt optionale Markdown-Fences (` ```json ... ``` `).
+2. Deserialisiert mit `JsonSerializer.Deserialize<AiResponseDTO>(...)`.
+3. Bei ungültigem/leerem JSON: `null` (kein Absturz).
+
+Der Master-Prompt (`AiService.MasterPrompt`) weist die KI an, **ausschließlich** dieses JSON zurückzugeben.
 
 ---
 

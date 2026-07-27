@@ -1,45 +1,98 @@
-﻿using RevolvAPI.DTOs;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using RevolvAPI.DTOs;
 
 namespace RevolvAPI.Services
 {
-    // Fake-Implementierung ohne echten OpenAI-Call - kostet nichts.
-    // Erzeugt plausible, aber statische Analyse-Ergebnisse auf Basis der Eingaben,
-    // damit der komplette Flow (Endpoint -> DB) getestet werden kann, ohne API-Kosten.
-    // Sobald ein echtes Budget/API-Key vorhanden ist, kann diese Klasse 1:1 durch eine
-    // Implementierung ersetzt werden, die wirklich die OpenAI-API aufruft - das Interface
-    // IAiService bleibt dabei unverändert.
+    /// <summary>
+    /// Defines the master prompt for fashion-return analysis and deserializes
+    /// the AI reply into <see cref="AiResponseDTO"/> for EF persistence.
+    /// </summary>
     public class AiService : IAiService
     {
-        public Task<AiResponseDTO> AnalyzeArticleAsync(
-            string articleName,
-            string? currentDescription,
-            IEnumerable<string> returnReasons)
+        private static readonly JsonSerializerOptions DeserializeOptions = new()
         {
-            var reasons = returnReasons.ToList();
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        };
 
-            var summary = reasons.Any()
-                ? $"Erhöhte Retourenquote bei \"{articleName}\". Häufigste Gründe: {string.Join(", ", reasons)}. Handlungsbedarf bei Beschreibung und Größenangaben."
-                : $"Keine spezifischen Retourengründe für \"{articleName}\" erfasst. Allgemeine Überprüfung der Produktbeschreibung empfohlen.";
+        /// <inheritdoc />
+        public string MasterPrompt =>
+            """
+            Du bist ein Mode-Analyst. Analysiere folgende Retourendaten.
+            Antworte AUSSCHLIESSLICH in folgendem JSON-Format (kein Markdown, kein erklärender Text außerhalb des JSON):
 
-            var proposedDescription = string.IsNullOrWhiteSpace(currentDescription)
-                ? $"{articleName} - überarbeitete Beschreibung mit klaren Angaben zu Passform, Material und Pflegehinweisen (Platzhalter, KI-Anbindung noch nicht aktiv)."
-                : $"{currentDescription.Trim()} Ergänzung: klare Hinweise zu Passform und Größe, um Fehlkäufe zu vermeiden (Platzhalter, KI-Anbindung noch nicht aktiv).";
-
-            var actions = new List<AiActionRecommendationDTO>
             {
-                new() { ActionText = "Größentabelle prüfen und aktualisieren", ImpactBadge = "-10% Retouren", Priority = "Hoch" },
-                new() { ActionText = "Materialangaben in Beschreibung ergänzen", ImpactBadge = "-6% Retouren", Priority = "Mittel" },
-                new() { ActionText = "Produktfotos auf Konsistenz prüfen", ImpactBadge = "-4% Retouren", Priority = "Niedrig" },
-            };
+              "summary": "Kurze Analyse der Retourenursachen",
+              "descriptionProposals": [
+                {
+                  "currentText": "Aktuelle Produktbeschreibung",
+                  "proposedText": "Verbesserte Produktbeschreibung"
+                }
+              ],
+              "actionRecommendations": [
+                {
+                  "actionText": "Konkrete Handlungsempfehlung",
+                  "impactBadge": "z.B. -10% Retouren",
+                  "priority": "High|Medium|Low"
+                }
+              ]
+            }
 
-            var result = new AiResponseDTO
+            Regeln:
+            - Antworte nur mit gültigem JSON, das exakt diese Struktur hat.
+            - descriptionProposals und actionRecommendations sind Arrays (können leer sein []).
+            - priority darf nur High, Medium oder Low sein.
+            - Keine zusätzlichen Felder.
+            """;
+
+        /// <inheritdoc />
+        public AiResponseDTO? ParseAiResponse(string? rawAiText)
+        {
+            if (string.IsNullOrWhiteSpace(rawAiText))
             {
-                SummaryText = summary,
-                ProposedDescription = proposedDescription,
-                ActionRecommendations = actions,
-            };
+                return null;
+            }
 
-            return Task.FromResult(result);
+            var json = ExtractJsonPayload(rawAiText);
+
+            try
+            {
+                return JsonSerializer.Deserialize<AiResponseDTO>(json, DeserializeOptions);
+            }
+            catch (JsonException)
+            {
+                // Invalid or truncated AI output must not crash the API.
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Removes optional ```json ... ``` fences so Deserialize gets plain JSON.
+        /// </summary>
+        private static string ExtractJsonPayload(string raw)
+        {
+            var trimmed = raw.Trim();
+
+            var fenceMatch = Regex.Match(
+                trimmed,
+                @"^```(?:json)?\s*(.*?)\s*```$",
+                RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+            if (fenceMatch.Success)
+            {
+                return fenceMatch.Groups[1].Value.Trim();
+            }
+
+            // Fallback: first { ... } block if the model added prose around the JSON.
+            var start = trimmed.IndexOf('{');
+            var end = trimmed.LastIndexOf('}');
+            if (start >= 0 && end > start)
+            {
+                return trimmed[start..(end + 1)];
+            }
+
+            return trimmed;
         }
     }
 }
