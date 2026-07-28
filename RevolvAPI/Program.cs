@@ -76,7 +76,8 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
-builder.Services.AddScoped<IAiService, AiService>();
+// AddHttpClient<TInterface, TImplementation> registriert AiService UND injiziert einen verwalteten HttpClient hinein.
+builder.Services.AddHttpClient<IAiService, AiService>();
 
 var app = builder.Build();
 
@@ -111,6 +112,25 @@ app.MapGet("/test-db", async (AppDbContext db) =>
     {
         // Return a problem message with the exception details if an error occurs during the connection attempt.
         return Results.Problem($"Error while connecting: {ex.Message}");
+    }
+});
+
+// Temporärer manueller Test-Endpoint für die KI-Service-Verdrahtung (Ticket: "Backend-Service für KI-API").
+// Provider ist noch nicht angebunden (wartet auf IT-Freigabe) -> liefert aktuell bewusst einen
+// Fehler im Terminal statt eine echte KI-Antwort. Sobald AiProvider:* konfiguriert und
+// GenerateAnalysisAsync implementiert ist, gibt dieser Endpoint die echte Antwort aus.
+app.MapGet("/test-ai", async (IAiService ai) =>
+{
+    try
+    {
+        var reply = await ai.GenerateAnalysisAsync("Hallo KI");
+        Console.WriteLine($"[AI Test] Antwort: {reply}");
+        return Results.Ok(reply);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[AI Test] Fehler: {ex.Message}");
+        return Results.Problem(ex.Message);
     }
 });
 

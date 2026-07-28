@@ -5,11 +5,23 @@ using RevolvAPI.DTOs;
 namespace RevolvAPI.Services
 {
     /// <summary>
-    /// Defines the master prompt for fashion-return analysis and deserializes
-    /// the AI reply into <see cref="AiResponseDTO"/> for EF persistence.
+    /// Kommuniziert mit dem externen KI-Anbieter, um Artikel-Retouren zu analysieren, und
+    /// deserialisiert die KI-Antwort in ein <see cref="AiResponseDTO"/> zur Persistierung via EF.
+    /// HINWEIS: Welcher Anbieter (OpenAI / Azure OpenAI / etc.) genutzt wird, steht noch nicht fest
+    /// (wartet auf Freigabe der IT-Abteilung) — <see cref="GenerateAnalysisAsync"/> ist bis dahin
+    /// nur ein Platzhalter.
     /// </summary>
     public class AiService : IAiService
     {
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+
+        public AiService(HttpClient httpClient, IConfiguration configuration)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+        }
+
         private static readonly JsonSerializerOptions DeserializeOptions = new()
         {
             PropertyNameCaseInsensitive = true,
@@ -65,6 +77,72 @@ namespace RevolvAPI.Services
                 // Invalid or truncated AI output must not crash the API.
                 return null;
             }
+        }
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// PLATZHALTER: Der KI-Anbieter steht noch nicht fest (wartet auf Freigabe der IT-Abteilung).
+        /// _httpClient und _configuration sind bereits per DI verdrahtet (siehe Program.cs:
+        /// AddHttpClient&lt;IAiService, AiService&gt;() und AiProvider:* in appsettings.json), damit hier
+        /// nur noch der eigentliche HTTP-Call für den gewählten Anbieter ergänzt werden muss, sobald
+        /// Endpoint/Auth-Schema (Bearer-Token, api-key-Header, Query-Param, ...) feststehen.
+        /// </remarks>
+        public Task<string> GenerateAnalysisAsync(string prompt)
+        {
+            var endpoint = _configuration["AiProvider:Endpoint"];
+            var apiKey = _configuration["AiProvider:ApiKey"];
+
+            if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException(
+                    "Es ist noch kein KI-Provider angebunden (wartet auf Freigabe der IT-Abteilung). " +
+                    "Sobald ein Anbieter feststeht: AiProvider:Endpoint in appsettings.json setzen, " +
+                    "AiProvider:ApiKey per 'dotnet user-secrets set AiProvider:ApiKey <key>' hinterlegen " +
+                    "(niemals in appsettings.json / Git!) und den HTTP-Call in " +
+                    "AiService.GenerateAnalysisAsync implementieren.");
+            }
+
+            // TODO: sobald der Provider feststeht, hier den echten HTTP-Call über _httpClient bauen.
+            throw new NotImplementedException(
+                "AiProvider ist konfiguriert, aber der HTTP-Call wurde noch nicht implementiert.");
+        }
+
+        /// <inheritdoc />
+        public async Task<AiAnalysisResult> AnalyzeArticleAsync(
+            string articleName, string? currentDescription, List<string> returnReasons)
+        {
+            var reasonsBlock = returnReasons.Count > 0
+                ? string.Join("\n", returnReasons.Select(r => $"- {r}"))
+                : "- Keine dokumentierten Retourengründe";
+
+            var prompt = $"""
+                {MasterPrompt}
+
+                Artikel: {articleName}
+                Aktuelle Produktbeschreibung: {currentDescription ?? "Keine Beschreibung vorhanden"}
+                Retourengründe:
+                {reasonsBlock}
+                """;
+
+            var rawResponse = await GenerateAnalysisAsync(prompt);
+            var parsed = ParseAiResponse(rawResponse);
+
+            if (parsed == null)
+            {
+                return new AiAnalysisResult
+                {
+                    SummaryText = "Die KI-Antwort konnte nicht verarbeitet werden.",
+                    ProposedDescription = currentDescription,
+                    ActionRecommendations = new(),
+                };
+            }
+
+            return new AiAnalysisResult
+            {
+                SummaryText = parsed.Summary,
+                ProposedDescription = parsed.DescriptionProposals.FirstOrDefault()?.ProposedText ?? currentDescription,
+                ActionRecommendations = parsed.ActionRecommendations,
+            };
         }
 
         /// <summary>
