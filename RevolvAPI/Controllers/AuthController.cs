@@ -44,10 +44,10 @@ namespace RevolvAPI.Controllers
 
         // POST: api/auth/register
         [HttpPost("register")]
-        public IActionResult Register([FromBody] RegisterRequest r)
+        public async Task<IActionResult> Register([FromBody] RegisterRequest r)
         {
             // Check if the email already exists
-            if (_ctx.Users.Any(u => u.Email == r.Email))
+            if (await _ctx.Users.AnyAsync(u => u.Email == r.Email))
             {
                 return BadRequest("Email already exists");
             }
@@ -63,7 +63,19 @@ namespace RevolvAPI.Controllers
 
             // Save the new user to the database
             _ctx.Users.Add(user);
-            _ctx.SaveChanges();
+
+            try
+            {
+                await _ctx.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // Fängt den Fall ab, dass zwischen der Any()-Prüfung oben und diesem SaveChanges
+                // ein zweiter, gleichzeitiger Request dieselbe E-Mail registriert hat - der
+                // Unique-Index in AppDbContext schlägt dann hier zu statt einen zweiten Account
+                // zuzulassen.
+                return Conflict("Email already exists");
+            }
 
             return Ok();
         }
