@@ -252,16 +252,19 @@ namespace RevolvAPI.Controllers
             var recommendation = new AiRecommendation
             {
                 ArticleId = article.Id,
-                AiSummaryText = aiResult.SummaryText,
+                AiSummaryText = aiResult.Summary,
                 IsFullyResolved = false,
             };
 
-            recommendation.DescriptionProposals.Add(new DescriptionProposal
+            foreach (var proposal in aiResult.DescriptionProposals)
             {
-                CurrentText = currentDescription,
-                ProposedText = aiResult.ProposedDescription,
-                Status = "Ausstehend",
-            });
+                recommendation.DescriptionProposals.Add(new DescriptionProposal
+                {
+                    CurrentText = proposal.CurrentText ?? currentDescription,
+                    ProposedText = proposal.ProposedText,
+                    Status = "Ausstehend",
+                });
+            }
 
             foreach (var action in aiResult.ActionRecommendations)
             {
