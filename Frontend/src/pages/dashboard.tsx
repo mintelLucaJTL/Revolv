@@ -7,6 +7,7 @@ import TopReturnsChart from "../components/TopReturnsChart";
 import Sidebar from "../components/Sidebar";
 import LatestReturnsList from "../components/LatestReturnsList";
 import { apiFetch } from "../utils/api";
+const REFRESH_INTERVAL_MS = 5*60_000; // 60 Sekunden
 
 /** Raw data from the backend (DashboardKpiDto) */
 interface DashboardKpiDto {
@@ -170,13 +171,21 @@ export default function Dashboard() {
   const [kpiCards, setKpiCards] = useState<KpiNavCard[]>([]);
   const [ampelTiles, setAmpelTiles] = useState<AmpelTile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Geteilter Auf-/Zuklapp-Status: alle drei Ampel-Karten klappen gemeinsam auf/zu.
   const [isAmpelExpanded, setIsAmpelExpanded] = useState(false);
 
   useEffect(() => {
-    const loadDashboardData = async () => {
-      setIsLoading(true);
+    const loadDashboardData = async (isBackgroundRefresh: boolean) => {
+      // Beim automatischen Reload keinen vollen Loading-Zustand setzen,
+      // sonst flackern die Skeleton-Karten alle 60 Sekunden auf.
+      if (isBackgroundRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
       setError(null);
 
       try {
@@ -209,10 +218,15 @@ export default function Dashboard() {
 
         setKpiCards(mapKpiDtoToCards(kpiData));
         setAmpelTiles(mapTrafficLightsToTiles(trafficData, yellowThreshold, redThreshold));
+        setLastUpdated(new Date());
       } catch (err) {
         console.error("Error loading the dashboard data:", err);
-        setKpiCards([]);
-        setAmpelTiles([]);
+        // Bei einem Hintergrund-Refresh die zuletzt erfolgreich geladenen Daten stehen lassen,
+        // statt die ganze Seite mit einer Fehlermeldung zu überschreiben.
+        if (!isBackgroundRefresh) {
+          setKpiCards([]);
+          setAmpelTiles([]);
+        }
         setError(
           err instanceof TypeError
             ? "Backend nicht erreichbar. Starte RevolvAPI oder überprüfe die API-URL (http://localhost:5215)."
@@ -222,10 +236,17 @@ export default function Dashboard() {
         );
       } finally {
         setIsLoading(false);
+        setIsRefreshing(false);
       }
     };
 
-    void loadDashboardData();
+    void loadDashboardData(false);
+
+    const intervalId = setInterval(() => {
+      void loadDashboardData(true);
+    }, REFRESH_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   return (
@@ -236,7 +257,22 @@ export default function Dashboard() {
         <Sidebar />
 
         <Box className="flex-1 p-6">
-          <Text weight="bold">Retourenanalyse</Text>
+          <Box className="flex items-center gap-2">
+            <Text weight="bold">Retourenanalyse</Text>
+            {isRefreshing && (
+              <span
+                className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"
+                title="Aktualisiere..."
+                aria-label="Aktualisiere Daten"
+              />
+            )}
+            {lastUpdated && (
+              <span className="text-xs text-slate-400 dark:text-slate-500">
+                Zuletzt aktualisiert:{" "}
+                {lastUpdated.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </Box>
 
           {error && (
             <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
