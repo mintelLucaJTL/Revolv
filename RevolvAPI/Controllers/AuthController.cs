@@ -49,7 +49,7 @@ namespace RevolvAPI.Controllers
             // Check if the email already exists
             if (await _ctx.Users.AnyAsync(u => u.Email == r.Email))
             {
-                return BadRequest("Email already exists");
+                return Conflict(new { message = "Diese E-Mail-Adresse wird bereits verwendet." });
             }
 
             // Create a new user and hash the password
@@ -74,7 +74,7 @@ namespace RevolvAPI.Controllers
                 // ein zweiter, gleichzeitiger Request dieselbe E-Mail registriert hat - der
                 // Unique-Index in AppDbContext schlägt dann hier zu statt einen zweiten Account
                 // zuzulassen.
-                return Conflict("Email already exists");
+                return Conflict(new { message = "Diese E-Mail-Adresse wird bereits verwendet." });
             }
 
             return Ok();
