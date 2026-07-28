@@ -1,13 +1,12 @@
+using System.Text;
+using System.Text.Json;
 using RevolvAPI.DTOs;
 
 namespace RevolvAPI.Services
 {
-    // Fake-Implementierung ohne echten OpenAI-Call - kostet nichts.
-    // Erzeugt plausible, aber statische Analyse-Ergebnisse auf Basis der Eingaben,
-    // damit der komplette Flow (Endpoint -> DB) getestet werden kann, ohne API-Kosten.
-    // Sobald ein echtes Budget/API-Key vorhanden ist, kann diese Klasse 1:1 durch eine
-    // Implementierung ersetzt werden, die wirklich die OpenAI-API aufruft - das Interface
-    // IAiService bleibt dabei unverändert.
+    // AnalyzeArticleAsync erzeugt weiterhin plausible, statische Analyse-Ergebnisse
+    // (unverändert von den Teamkollegen übernommen). GenerateAnalysisAsync ruft seit
+    // der OpenRouter-Freigabe (Key von Sebastian) echt die KI-API auf.
     public class AiService : IAiService
     {
         // Bereits per DI verdrahtet (siehe Program.cs: AddHttpClient<IAiService, AiService>()),
@@ -57,15 +56,49 @@ namespace RevolvAPI.Services
             return Task.FromResult(result);
         }
 
-        // Fake-Implementierung wie AnalyzeArticleAsync: kein echter HTTP-Call, kostet nichts.
-        // Sobald ein Anbieter/Budget freigegeben ist, hier den echten _httpClient-Call gegen
-        // AiProvider:Endpoint (appsettings.json) mit AiProvider:ApiKey (User Secrets) einbauen.
-        public Task<string> GenerateAnalysisAsync(string prompt)
+        // Echter Call gegen OpenRouter (OpenAI-kompatible Chat-Completions-API).
+        public async Task<string> GenerateAnalysisAsync(string prompt)
         {
-            var fakeReply =
-                $"[Platzhalter-Antwort, keine echte KI-Anbindung] Prompt erhalten ({prompt.Length} Zeichen).";
+            var endpoint = _configuration["AiProvider:Endpoint"];
+            var model = _configuration["AiProvider:Model"];
+            var apiKey = _configuration["AiProvider:ApiKey"];
 
-            return Task.FromResult(fakeReply);
+            if (string.IsNullOrWhiteSpace(endpoint) ||
+                string.IsNullOrWhiteSpace(model) ||
+                string.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new InvalidOperationException(
+                    "KI-Provider nicht vollständig konfiguriert. AiProvider:Endpoint/Model in " +
+                    "appsettings.json und AiProvider:ApiKey per 'dotnet user-secrets set' prüfen.");
+            }
+
+            var requestBody = new
+            {
+                model,
+                messages = new[] { new { role = "user", content = prompt } },
+            };
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+            request.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.SendAsync(request);
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException(
+                    $"OpenRouter-Anfrage fehlgeschlagen ({(int)response.StatusCode}): {responseBody}");
+            }
+
+            using var doc = JsonDocument.Parse(responseBody);
+            var content = doc.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString();
+
+            return content ?? string.Empty;
         }
     }
 }
