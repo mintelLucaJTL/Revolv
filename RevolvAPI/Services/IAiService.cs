@@ -10,5 +10,10 @@ namespace RevolvAPI.Services
             string articleName,
             string? currentDescription,
             IEnumerable<string> returnReasons);
+
+        // Platzhalter für den direkten KI-Aufruf: Prompt rein, rohe Text-Antwort raus.
+        // Solange kein Anbieter/Budget freigegeben ist (wartet auf IT), liefert die
+        // Implementierung eine statische Fake-Antwort statt eines echten HTTP-Calls.
+        Task<string> GenerateAnalysisAsync(string prompt);
     }
 }
