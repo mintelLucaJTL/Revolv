@@ -10,6 +10,18 @@ namespace RevolvAPI.Services
     // IAiService bleibt dabei unverändert.
     public class AiService : IAiService
     {
+        // Bereits per DI verdrahtet (siehe Program.cs: AddHttpClient<IAiService, AiService>()),
+        // damit für GenerateAnalysisAsync später nur noch der echte HTTP-Call ergänzt werden muss,
+        // sobald ein Anbieter/Budget feststeht.
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+
+        public AiService(HttpClient httpClient, IConfiguration configuration)
+        {
+            _httpClient = httpClient;
+            _configuration = configuration;
+        }
+
         public Task<AiResponseDTO> AnalyzeArticleAsync(
             string articleName,
             string? currentDescription,
@@ -43,6 +55,17 @@ namespace RevolvAPI.Services
             };
 
             return Task.FromResult(result);
+        }
+
+        // Fake-Implementierung wie AnalyzeArticleAsync: kein echter HTTP-Call, kostet nichts.
+        // Sobald ein Anbieter/Budget freigegeben ist, hier den echten _httpClient-Call gegen
+        // AiProvider:Endpoint (appsettings.json) mit AiProvider:ApiKey (User Secrets) einbauen.
+        public Task<string> GenerateAnalysisAsync(string prompt)
+        {
+            var fakeReply =
+                $"[Platzhalter-Antwort, keine echte KI-Anbindung] Prompt erhalten ({prompt.Length} Zeichen).";
+
+            return Task.FromResult(fakeReply);
         }
     }
 }
