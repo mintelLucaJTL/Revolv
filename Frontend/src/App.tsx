@@ -9,6 +9,8 @@ import Registrieren from "./pages/register";
 import Settings from "./pages/settings";
 import { isTokenExpired } from "./utils/api";
 import { ToastProvider } from "./components/Toast";
+import ForgotPassword from "./pages/forgot-password";
+import ResetPassword from "./pages/reset-password";
 
 function hasValidSession(): boolean {
   const token = localStorage.getItem("authToken");
@@ -57,6 +59,22 @@ export default function App() {
           element={
             <PublicOnlyRoute>
               <Registrieren />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicOnlyRoute>
+              <ForgotPassword />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <PublicOnlyRoute>
+              <ResetPassword />
             </PublicOnlyRoute>
           }
         />

@@ -99,22 +99,23 @@ export default function LoginPage() {
             />
 
             <Text type="small">Password</Text>
-            <Box className="relative w-full">
-              <input
-                className={`${inputClassName} pr-28`}
-                placeholder="••••••••"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <Box className="absolute right-1 top-1/2 -translate-y-1/2">
-                <Button
-                  label="Reset now"
-                  variant="ghost"
-                  onClick={() => navigate("/reset-password")}
-                />
-              </Box>
-            </Box>
+            <input
+              className={inputClassName}
+              placeholder="••••••••"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+
+            <div className="text-right text-sm">
+              <button
+                type="button"
+                onClick={() => navigate("/forgot-password")}
+                className="text-blue-600 hover:underline dark:text-blue-400"
+              >
+                Passwort vergessen?
+              </button>
+            </div>
 
             {error ? (
               <div className="text-sm text-red-600 dark:text-red-400">{error}</div>

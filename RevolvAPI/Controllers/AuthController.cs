@@ -14,13 +14,20 @@ namespace RevolvAPI.Controllers
         private readonly AppDbContext _ctx;
         private readonly ITokenService _tokenService;
         private readonly IPasswordService _passwordService;
+        private readonly IEmailService _emailService;
 
-        public AuthController(AppDbContext ctx, ITokenService tokenService, IPasswordService passwordService)
+        public AuthController(
+            AppDbContext ctx,
+            ITokenService tokenService,
+            IPasswordService passwordService,
+            IEmailService emailService)
         {
             _ctx = ctx;
             _tokenService = tokenService;
             _passwordService = passwordService;
+            _emailService = emailService;
         }
+
 
         // POST: api/auth/login
         [HttpPost("login")]
@@ -101,6 +108,47 @@ namespace RevolvAPI.Controllers
 
             // Return the number of users whose passwords were migrated
             return Ok(new { migrated = users.Count });
+        }
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest r)
+        {
+            var user = await _ctx.Users.FirstOrDefaultAsync(u => u.Email == r.Email);
+
+            // Nur wenn der User existiert, Token setzen und "senden" - die Antwort an den
+            // Client bleibt in beiden Fällen gleich, damit man über die Response nicht
+            // herausfinden kann, welche E-Mails registriert sind.
+            if (user != null)
+            {
+                user.PasswordResetToken = Guid.NewGuid().ToString();
+                user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
+
+                await _ctx.SaveChangesAsync();
+
+                var resetLink = $"http://localhost:5173/reset-password?token={user.PasswordResetToken}";
+                await _emailService.SendPasswordResetEmailAsync(user.Email, resetLink);
+            }
+
+
+            return Ok(new { message = "Falls ein Account existiert, haben wir einen Reset-Link gesendet." });
+        }
+        // POST: api/auth/reset-password
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest r)
+        {
+            var user = await _ctx.Users.FirstOrDefaultAsync(u => u.PasswordResetToken == r.Token);
+
+            if (user == null || user.ResetTokenExpires == null || user.ResetTokenExpires < DateTime.UtcNow)
+            {
+                return BadRequest(new { message = "Der Reset-Link ist ungültig oder abgelaufen." });
+            }
+
+            user.PasswordHash = _passwordService.HashPassword(r.NewPassword);
+            user.PasswordResetToken = null;
+            user.ResetTokenExpires = null;
+
+            await _ctx.SaveChangesAsync();
+
+            return Ok(new { message = "Passwort erfolgreich zurückgesetzt." });
         }
     }
 }

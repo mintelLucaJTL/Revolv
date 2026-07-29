@@ -13,5 +13,7 @@ namespace RevolvAPI.Models
         // and are asked to set one via PATCH /api/user/me (see UserController).
         public string? Name { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? PasswordResetToken { get; set; }
+        public DateTime? ResetTokenExpires { get; set; }
     }
 }
