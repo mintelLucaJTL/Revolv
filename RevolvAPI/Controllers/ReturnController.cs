@@ -58,7 +58,7 @@ namespace RevolvAPI.Controllers
                             status = "Angenommen";
                         else if (proposals.All(p => p.Status == "Abgelehnt"))
                             status = "Abgelehnt";
-                         else
+                        else
                             status = "Ausstehend";
                     }
                     else
