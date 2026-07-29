@@ -10,28 +10,56 @@ import Settings from "./pages/settings";
 import { isTokenExpired } from "./utils/api";
 import { ToastProvider } from "./components/Toast";
 
+function hasValidSession(): boolean {
+  const token = localStorage.getItem("authToken");
+  if (!token || isTokenExpired(token)) {
+    localStorage.removeItem("authToken");
+    return false;
+  }
+  return true;
+}
+
 // Diese Komponente schützt eine Route vor Zugriff ohne gültiges Token.
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const token = localStorage.getItem("authToken");
 
-  if (!token || isTokenExpired(token)) {
-    localStorage.removeItem("authToken");
+  if (!hasValidSession()) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return children;
 }
 
-export default function App() {
-  const token = localStorage.getItem("authToken");
+// Verhindert, dass ein bereits gültig eingeloggter Nutzer /login oder /register aufruft.
+function PublicOnlyRoute({ children }: { children: ReactNode }) {
+  if (hasValidSession()) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
+  return children;
+}
+
+export default function App() {
   return (
     <ToastProvider>
       <Routes>
-        <Route path="/" element={<Navigate to={token ? "/login" : "/dashboard"} replace />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Registrieren />} />
+        <Route path="/" element={<Navigate to={hasValidSession() ? "/dashboard" : "/login"} replace />} />
+        <Route
+          path="/login"
+          element={
+            <PublicOnlyRoute>
+              <Login />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicOnlyRoute>
+              <Registrieren />
+            </PublicOnlyRoute>
+          }
+        />
         <Route
           path="/dashboard"
           element={
