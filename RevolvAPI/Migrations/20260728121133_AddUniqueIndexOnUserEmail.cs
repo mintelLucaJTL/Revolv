@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -11,222 +10,183 @@ namespace RevolvAPI.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.EnsureSchema(
-                name: "revolv");
+            // Idempotent bootstrap: create the full EF model schema when missing, skip when
+            // objects already exist (e.g. local DBs created via Database/*.sql). Safe for both
+            // greenfield product installs and existing developer databases.
+            migrationBuilder.Sql(@"
+IF SCHEMA_ID(N'revolv') IS NULL EXEC(N'CREATE SCHEMA [revolv];');
 
-            migrationBuilder.EnsureSchema(
-                name: "dbo");
+IF OBJECT_ID(N'revolv.Articles', N'U') IS NULL
+BEGIN
+    CREATE TABLE [revolv].[Articles] (
+        [Id] int NOT NULL IDENTITY,
+        [ArticleNumber] nvarchar(max) NULL,
+        [Name] nvarchar(max) NULL,
+        [Category] nvarchar(max) NULL,
+        [Size] nvarchar(max) NULL,
+        [Color] nvarchar(max) NULL,
+        CONSTRAINT [PK_Articles] PRIMARY KEY ([Id])
+    );
+END
 
-            migrationBuilder.CreateTable(
-                name: "Articles",
-                schema: "revolv",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ArticleNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Category = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Size = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Color = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Articles", x => x.Id);
-                });
+IF OBJECT_ID(N'revolv.ShopSettings', N'U') IS NULL
+BEGIN
+    CREATE TABLE [revolv].[ShopSettings] (
+        [Id] int NOT NULL IDENTITY,
+        [ToneOfVoice] nvarchar(max) NOT NULL,
+        [ThresholdYellow] decimal(5,2) NOT NULL,
+        [ThresholdRed] decimal(5,2) NOT NULL,
+        [AutoAnalyzeNewIssues] bit NOT NULL,
+        CONSTRAINT [PK_ShopSettings] PRIMARY KEY ([Id])
+    );
+END
 
-            migrationBuilder.CreateTable(
-                name: "ShopSettings",
-                schema: "revolv",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ToneOfVoice = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ThresholdYellow = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    ThresholdRed = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    AutoAnalyzeNewIssues = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ShopSettings", x => x.Id);
-                });
+IF OBJECT_ID(N'revolv.Users', N'U') IS NULL
+BEGIN
+    CREATE TABLE [revolv].[Users] (
+        [Id] int NOT NULL IDENTITY,
+        [Email] nvarchar(450) NOT NULL,
+        [PasswordHash] nvarchar(max) NOT NULL,
+        [Name] nvarchar(max) NULL,
+        [CreatedAt] datetime2 NOT NULL,
+        CONSTRAINT [PK_Users] PRIMARY KEY ([Id])
+    );
+END
+ELSE IF COL_LENGTH(N'revolv.Users', N'Name') IS NULL
+BEGIN
+    ALTER TABLE [revolv].[Users] ADD [Name] nvarchar(max) NULL;
+END
 
-            migrationBuilder.CreateTable(
-                name: "Users",
-                schema: "revolv",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Email = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Users", x => x.Id);
-                });
+IF OBJECT_ID(N'revolv.AiRecommendations', N'U') IS NULL
+BEGIN
+    CREATE TABLE [revolv].[AiRecommendations] (
+        [Id] int NOT NULL IDENTITY,
+        [ArticleId] int NOT NULL,
+        [AiSummaryText] nvarchar(max) NULL,
+        [ReturnRate] decimal(5,2) NULL,
+        [IsFullyResolved] bit NOT NULL,
+        CONSTRAINT [PK_AiRecommendations] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_AiRecommendations_Articles_ArticleId]
+            FOREIGN KEY ([ArticleId]) REFERENCES [revolv].[Articles] ([Id]) ON DELETE CASCADE
+    );
+END
 
-            migrationBuilder.CreateTable(
-                name: "AiRecommendations",
-                schema: "revolv",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ArticleId = table.Column<int>(type: "int", nullable: false),
-                    AiSummaryText = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ReturnRate = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: true),
-                    IsFullyResolved = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AiRecommendations", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AiRecommendations_Articles_ArticleId",
-                        column: x => x.ArticleId,
-                        principalSchema: "revolv",
-                        principalTable: "Articles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+IF OBJECT_ID(N'revolv.ActionRecommendations', N'U') IS NULL
+BEGIN
+    CREATE TABLE [revolv].[ActionRecommendations] (
+        [Id] int NOT NULL IDENTITY,
+        [AiRecommendationId] int NOT NULL,
+        [ActionText] nvarchar(max) NOT NULL,
+        [ImpactBadge] nvarchar(max) NOT NULL,
+        [Priority] nvarchar(max) NOT NULL,
+        [IsCompleted] bit NOT NULL,
+        CONSTRAINT [PK_ActionRecommendations] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_ActionRecommendations_AiRecommendations_AiRecommendationId]
+            FOREIGN KEY ([AiRecommendationId]) REFERENCES [revolv].[AiRecommendations] ([Id]) ON DELETE CASCADE
+    );
+END
 
-            migrationBuilder.CreateTable(
-                name: "ActionRecommendations",
-                schema: "revolv",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    AiRecommendationId = table.Column<int>(type: "int", nullable: false),
-                    ActionText = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ImpactBadge = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Priority = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IsCompleted = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ActionRecommendations", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ActionRecommendations_AiRecommendations_AiRecommendationId",
-                        column: x => x.AiRecommendationId,
-                        principalSchema: "revolv",
-                        principalTable: "AiRecommendations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+IF OBJECT_ID(N'revolv.DescriptionProposals', N'U') IS NULL
+BEGIN
+    CREATE TABLE [revolv].[DescriptionProposals] (
+        [Id] int NOT NULL IDENTITY,
+        [AiRecommendationId] int NOT NULL,
+        [CurrentText] nvarchar(max) NULL,
+        [ProposedText] nvarchar(max) NULL,
+        [Status] nvarchar(max) NOT NULL,
+        CONSTRAINT [PK_DescriptionProposals] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_DescriptionProposals_AiRecommendations_AiRecommendationId]
+            FOREIGN KEY ([AiRecommendationId]) REFERENCES [revolv].[AiRecommendations] ([Id]) ON DELETE CASCADE
+    );
+END
 
-            migrationBuilder.CreateTable(
-                name: "DescriptionProposals",
-                schema: "revolv",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    AiRecommendationId = table.Column<int>(type: "int", nullable: false),
-                    CurrentText = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ProposedText = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DescriptionProposals", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_DescriptionProposals_AiRecommendations_AiRecommendationId",
-                        column: x => x.AiRecommendationId,
-                        principalSchema: "revolv",
-                        principalTable: "AiRecommendations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+IF OBJECT_ID(N'dbo.QualityIssues', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[QualityIssues] (
+        [Id] int NOT NULL IDENTITY,
+        [AiRecommendationId] int NOT NULL,
+        [IssueText] nvarchar(max) NULL,
+        [Status] nvarchar(max) NULL,
+        CONSTRAINT [PK_QualityIssues] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_QualityIssues_AiRecommendations_AiRecommendationId]
+            FOREIGN KEY ([AiRecommendationId]) REFERENCES [revolv].[AiRecommendations] ([Id]) ON DELETE CASCADE
+    );
+END
 
-            migrationBuilder.CreateTable(
-                name: "QualityIssues",
-                schema: "dbo",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    AiRecommendationId = table.Column<int>(type: "int", nullable: false),
-                    IssueText = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_QualityIssues", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_QualityIssues_AiRecommendations_AiRecommendationId",
-                        column: x => x.AiRecommendationId,
-                        principalSchema: "revolv",
-                        principalTable: "AiRecommendations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE name = N'IX_ActionRecommendations_AiRecommendationId'
+      AND object_id = OBJECT_ID(N'revolv.ActionRecommendations')
+)
+    CREATE INDEX [IX_ActionRecommendations_AiRecommendationId]
+        ON [revolv].[ActionRecommendations] ([AiRecommendationId]);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_ActionRecommendations_AiRecommendationId",
-                schema: "revolv",
-                table: "ActionRecommendations",
-                column: "AiRecommendationId");
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE name = N'IX_AiRecommendations_ArticleId'
+      AND object_id = OBJECT_ID(N'revolv.AiRecommendations')
+)
+    CREATE INDEX [IX_AiRecommendations_ArticleId]
+        ON [revolv].[AiRecommendations] ([ArticleId]);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_AiRecommendations_ArticleId",
-                schema: "revolv",
-                table: "AiRecommendations",
-                column: "ArticleId");
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE name = N'IX_DescriptionProposals_AiRecommendationId'
+      AND object_id = OBJECT_ID(N'revolv.DescriptionProposals')
+)
+    CREATE INDEX [IX_DescriptionProposals_AiRecommendationId]
+        ON [revolv].[DescriptionProposals] ([AiRecommendationId]);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_DescriptionProposals_AiRecommendationId",
-                schema: "revolv",
-                table: "DescriptionProposals",
-                column: "AiRecommendationId");
+IF NOT EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE name = N'IX_QualityIssues_AiRecommendationId'
+      AND object_id = OBJECT_ID(N'dbo.QualityIssues')
+)
+    CREATE INDEX [IX_QualityIssues_AiRecommendationId]
+        ON [dbo].[QualityIssues] ([AiRecommendationId]);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_QualityIssues_AiRecommendationId",
-                schema: "dbo",
-                table: "QualityIssues",
-                column: "AiRecommendationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_Email",
-                schema: "revolv",
-                table: "Users",
-                column: "Email",
-                unique: true);
+-- Goal of #233: unique Email on DB level. Skip if any unique index/constraint already covers Email
+-- (RevolvSchema.sql uses Email NVARCHAR(256) NOT NULL UNIQUE).
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes AS i
+    INNER JOIN sys.index_columns AS ic
+        ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+    INNER JOIN sys.columns AS c
+        ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+    WHERE i.object_id = OBJECT_ID(N'revolv.Users')
+      AND i.is_unique = 1
+      AND c.name = N'Email'
+)
+    CREATE UNIQUE INDEX [IX_Users_Email] ON [revolv].[Users] ([Email]);
+");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "ActionRecommendations",
-                schema: "revolv");
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'revolv.ActionRecommendations', N'U') IS NOT NULL
+    DROP TABLE [revolv].[ActionRecommendations];
 
-            migrationBuilder.DropTable(
-                name: "DescriptionProposals",
-                schema: "revolv");
+IF OBJECT_ID(N'revolv.DescriptionProposals', N'U') IS NOT NULL
+    DROP TABLE [revolv].[DescriptionProposals];
 
-            migrationBuilder.DropTable(
-                name: "QualityIssues",
-                schema: "dbo");
+IF OBJECT_ID(N'dbo.QualityIssues', N'U') IS NOT NULL
+    DROP TABLE [dbo].[QualityIssues];
 
-            migrationBuilder.DropTable(
-                name: "ShopSettings",
-                schema: "revolv");
+IF OBJECT_ID(N'revolv.ShopSettings', N'U') IS NOT NULL
+    DROP TABLE [revolv].[ShopSettings];
 
-            migrationBuilder.DropTable(
-                name: "Users",
-                schema: "revolv");
+IF OBJECT_ID(N'revolv.Users', N'U') IS NOT NULL
+    DROP TABLE [revolv].[Users];
 
-            migrationBuilder.DropTable(
-                name: "AiRecommendations",
-                schema: "revolv");
+IF OBJECT_ID(N'revolv.AiRecommendations', N'U') IS NOT NULL
+    DROP TABLE [revolv].[AiRecommendations];
 
-            migrationBuilder.DropTable(
-                name: "Articles",
-                schema: "revolv");
+IF OBJECT_ID(N'revolv.Articles', N'U') IS NOT NULL
+    DROP TABLE [revolv].[Articles];
+");
         }
     }
 }
