@@ -12,6 +12,12 @@ import Sidebar from "../components/Sidebar";
 import QualityReviewModal from "../components/QualityReviewModal";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../utils/api";
+import {
+  BAND_LABELS,
+  buildReturnsApiUrl,
+  parseBand,
+  type RiskBand,
+} from "../utils/riskBand";
 
 // Values returned by GET /api/articles/returns for the "KI-Status" column (see ReturnController).
 type AIStatus = "Keine Empfehlung" | "Ausstehend" | "Angenommen" | "Abgelehnt" | "Gelöst";
@@ -34,6 +40,14 @@ interface SettingsApiDto {
   thresholdYellow: number;
   thresholdRed: number;
 }
+
+const BAND_CHIP_CLASSES: Record<RiskBand, string> = {
+  red: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900",
+  yellow:
+    "bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-300 dark:border-yellow-900",
+  green:
+    "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-900",
+};
 
 /**
  * Traffic-light colors based on the ShopSettings thresholds
@@ -109,7 +123,8 @@ function TableRowSkeleton() {
 }
 
 export default function RetourenAnalyseView() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeBand = parseBand(searchParams.get("band"));
   const [query, setQuery] = useState("");
   const [desc, setDesc] = useState(true);
   const [articles, setArticles] = useState<ReturnItem[]>([]);
@@ -162,11 +177,11 @@ export default function RetourenAnalyseView() {
 
   // Extracted so it can also be re-run after the modal saves a change (e.g. accepting a
   // description proposal), keeping the "KI-Status" column in this table in sync.
-  const loadArticles = async () => {
+  const loadArticles = async (band: RiskBand | null) => {
     setIsLoading(true);
 
     try {
-      const response = await apiFetch("/api/articles/returns");
+      const response = await apiFetch(buildReturnsApiUrl(band));
       if (!response.ok) {
         throw new Error(`API-Anfrage fehlgeschlagen: ${response.status}`);
       }
@@ -188,8 +203,8 @@ export default function RetourenAnalyseView() {
   };
 
   useEffect(() => {
-    void loadArticles();
-  }, []);
+    void loadArticles(activeBand);
+  }, [activeBand]);
 
   useEffect(() => {
     const loadThresholds = async () => {
@@ -207,6 +222,12 @@ export default function RetourenAnalyseView() {
     void loadThresholds();
   }, []);
 
+  const clearBandFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("band");
+    setSearchParams(next);
+  };
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
 
@@ -222,6 +243,10 @@ export default function RetourenAnalyseView() {
     );
   }, [articles, query, desc]);
 
+  const emptyMessage = activeBand
+    ? `Keine Artikel in der Risikoklasse „${BAND_LABELS[activeBand]}“.`
+    : "Keine zurückgesendeten Artikel gefunden.";
+
   return (
     <Box className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <TopNavigationBar />
@@ -230,8 +255,8 @@ export default function RetourenAnalyseView() {
         <Sidebar />
 
         <Box className="flex-1 p-6">
-          <div className="flex items-center justify-between mb-4 gap-4">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
               <input
                 aria-label="Suche Artikel"
                 placeholder="Filter: Name, Artikel-Nr., Kategorie..."
@@ -243,18 +268,47 @@ export default function RetourenAnalyseView() {
                 label={`Sort: ${desc ? "Absteigend" : "Aufsteigend"}`}
                 onClick={() => setDesc((s) => !s)}
               />
+              {activeBand && (
+                <div
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${BAND_CHIP_CLASSES[activeBand]}`}
+                  data-testid="active-band-filter"
+                >
+                  <span className="font-medium">{BAND_LABELS[activeBand]}</span>
+                  <button
+                    type="button"
+                    onClick={clearBandFilter}
+                    className="rounded-full px-1.5 text-xs font-semibold hover:opacity-70"
+                    aria-label="Ampelfilter entfernen"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
             </div>
+            {activeBand && <Button label="Filter löschen" onClick={clearBandFilter} />}
           </div>
 
           <Card className="dark:bg-slate-900 dark:border-slate-700">
             <CardHeader>
-              <CardTitle className="dark:text-slate-100">Artikelübersicht</CardTitle>
+              <CardTitle className="dark:text-slate-100">
+                {activeBand ? `Artikelübersicht – ${BAND_LABELS[activeBand]}` : "Artikelübersicht"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 {!isLoading && articles.length === 0 ? (
-                  <div className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                    Keine zurückgesendeten Artikel gefunden.
+                  <div
+                    className="p-8 text-center text-sm text-slate-500 dark:text-slate-400"
+                    data-testid="returns-empty-state"
+                  >
+                    {emptyMessage}
+                  </div>
+                ) : !isLoading && visible.length === 0 ? (
+                  <div
+                    className="p-8 text-center text-sm text-slate-500 dark:text-slate-400"
+                    data-testid="returns-empty-state"
+                  >
+                    Keine Artikel entsprechen der aktuellen Suche.
                   </div>
                 ) : (
                   <table className="min-w-full divide-y divide-gray-100 dark:divide-slate-700">
@@ -382,7 +436,7 @@ export default function RetourenAnalyseView() {
         articleDetail={selectedDetail}
         isLoading={detailLoading}
         error={detailError}
-        onArticleUpdated={loadArticles}
+        onArticleUpdated={() => void loadArticles(activeBand)}
         onRefetchDetail={refetchSelectedDetail}
       />
     </Box>
