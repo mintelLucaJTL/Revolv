@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Box, Text, Card, CardContent, Button, Badge, Checkbox } from "@jtl-software/platform-ui-react";
+import {
+  Box,
+  Text,
+  Card,
+  CardContent,
+  Button,
+  Badge,
+  Checkbox,
+} from "@jtl-software/platform-ui-react";
 import QualityWarningCard from "./QualityWarningCard";
 import { apiFetch } from "../utils/api";
 
@@ -40,7 +48,9 @@ const DUMMY_ACTION_RECOMMENDATIONS = [
   { id: "da-4", text: "Pflegehinweise aktualisieren", impact: "−5% Retouren", priority: "Mittel" },
 ];
 
-function getReturnRateBadgeVariant(returnRate?: string | number): "danger" | "warning" | "success" | "secondary" {
+function getReturnRateBadgeVariant(
+  returnRate?: string | number,
+): "danger" | "warning" | "success" | "secondary" {
   const level =
     typeof returnRate === "number"
       ? returnRate > 25
@@ -237,13 +247,7 @@ export default function ArticleDetailsPanel({
               </Box>
             </Box>
           </Box>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Schließen"
-            onClick={onClose}
-            label="✕"
-          />
+          <Button variant="ghost" size="icon" aria-label="Schließen" onClick={onClose} label="✕" />
         </Box>
 
         <div className="p-4 overflow-y-auto flex-1">
@@ -287,7 +291,7 @@ export default function ArticleDetailsPanel({
                     <span className="text-red-600 dark:text-red-400">{detailError}</span>
                   ) : (
                     (aiSummaryText ??
-                      "Höchste Retourenquote im Sortiment. Die Beschreibung weicht spürbar vom tatsächlichen Produkt ab, was zu vermehrten Rücksendungen führt. Sofortiger Handlungsbedarf.")
+                    "Höchste Retourenquote im Sortiment. Die Beschreibung weicht spürbar vom tatsächlichen Produkt ab, was zu vermehrten Rücksendungen führt. Sofortiger Handlungsbedarf.")
                   )}
                 </div>
               </CardContent>

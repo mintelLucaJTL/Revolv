@@ -7,7 +7,7 @@ import TopReturnsChart from "../components/TopReturnsChart";
 import Sidebar from "../components/Sidebar";
 import LatestReturnsList from "../components/LatestReturnsList";
 import { apiFetch } from "../utils/api";
-const REFRESH_INTERVAL_MS = 5*60_000; // 60 Sekunden
+const REFRESH_INTERVAL_MS = 5 * 60_000; // 60 Sekunden
 
 /** Raw data from the backend (DashboardKpiDto) */
 interface DashboardKpiDto {

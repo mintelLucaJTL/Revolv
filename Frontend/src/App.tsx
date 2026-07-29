@@ -7,101 +7,87 @@ import RetourenAnalyse from "./pages/Retouren-Analyse";
 import AIRecommendationView from "./pages/AIRecommendationview";
 import Registrieren from "./pages/register";
 import Settings from "./pages/settings";
-import { isTokenExpired } from "./utils/api";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./components/Toast";
-
-function hasValidSession(): boolean {
-  const token = localStorage.getItem("authToken");
-  if (!token || isTokenExpired(token)) {
-    localStorage.removeItem("authToken");
-    return false;
-  }
-  return true;
-}
 
 // Diese Komponente schützt eine Route vor Zugriff ohne gültiges Token.
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
 
-  if (!hasValidSession()) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return children;
 }
 
-// Verhindert, dass ein bereits gültig eingeloggter Nutzer /login oder /register aufruft.
-function PublicOnlyRoute({ children }: { children: ReactNode }) {
-  if (hasValidSession()) {
-    return <Navigate to="/dashboard" replace />;
+function AppRoutes() {
+  const { isAuthenticated, isInitializing } = useAuth();
+
+  if (isInitializing) {
+    return null;
   }
 
-  return children;
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+      />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Registrieren />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/retouren-analyse"
+        element={
+          <ProtectedRoute>
+            <RetourenAnalyse />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ki-empfehlungen"
+        element={
+          <ProtectedRoute>
+            <AIRecommendationView />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
 export default function App() {
   return (
-    <ToastProvider>
-      <Routes>
-        <Route path="/" element={<Navigate to={hasValidSession() ? "/dashboard" : "/login"} replace />} />
-        <Route
-          path="/login"
-          element={
-            <PublicOnlyRoute>
-              <Login />
-            </PublicOnlyRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicOnlyRoute>
-              <Registrieren />
-            </PublicOnlyRoute>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/retouren-analyse"
-          element={
-            <ProtectedRoute>
-              <RetourenAnalyse />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/ki-empfehlungen"
-          element={
-            <ProtectedRoute>
-              <AIRecommendationView />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </ToastProvider>
+    <AuthProvider>
+      <ToastProvider>
+        <AppRoutes />
+      </ToastProvider>
+    </AuthProvider>
   );
 }

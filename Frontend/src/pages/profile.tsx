@@ -4,6 +4,7 @@ import { Avatar, Box, Button, Card, Text } from "@jtl-software/platform-ui-react
 import Sidebar from "../components/Sidebar";
 import TopNavigationBar from "../components/TopNavigationBar";
 import DeleteAccountModal from "../components/DeleteAccountModal";
+import { useAuth } from "../context/AuthContext";
 import {
   fetchCurrentUser,
   getInitials,
@@ -14,6 +15,7 @@ import {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   // Load User
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -78,7 +80,7 @@ export default function Profile() {
   // DELETE /api/user/me - lets the user delete their own account.
   const handleDeleteAccount = async () => {
     await deleteCurrentUser();
-    localStorage.removeItem("authToken");
+    await logout();
     setIsDeleteModalOpen(false);
     navigate("/login");
   };

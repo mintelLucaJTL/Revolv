@@ -1,21 +1,14 @@
+import { API_BASE_URL } from "./apiBase";
+import { getAccessToken, logout, refreshAccessToken } from "./authStore";
+
 // Central place for talking to the backend. Every authenticated request should go through
-export const API_BASE_URL = "http://localhost:5215";
+// `apiFetch` below.
+export { API_BASE_URL };
 
-// Get the authentication headers from the local storage
+// Reads the auth header from the in-memory access token (see authStore.ts), never from localStorage.
 function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem("authToken");
+  const token = getAccessToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-// Prüft, ob ein JWT abgelaufen ist. Bei kaputtem/ungültigem Token wird "abgelaufen" angenommen.
-export function isTokenExpired(token: string): boolean {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (!payload.exp) return false;
-    return payload.exp < Date.now() / 1000;
-  } catch {
-    return true;
-  }
 }
 
 /**
@@ -23,23 +16,34 @@ export function isTokenExpired(token: string): boolean {
  * @param options Same options as `fetch`; any custom headers are merged on top of the auth header.
  */
 
-// Wrapper around `fetch` that:
-export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
+// Wrapper around `fetch` that attaches the Bearer token, sends the refresh cookie, and on 401
+// tries one silent refresh + retry before logging out and redirecting to /login.
+export async function apiFetch(
+  path: string,
+  options: RequestInit = {},
+  isRetryAfterRefresh = false,
+): Promise<Response> {
   // If the path is an absolute URL, use it as is, otherwise prepend the API base URL
   const url = path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
 
   // Fetch the data from the API
   const response = await fetch(url, {
     ...options, // Merge the custom options with the auth headers
+    credentials: "include",
     headers: {
-      ...getAuthHeaders(), // Get the authentication headers from the local storage
+      ...getAuthHeaders(), // Get the authentication headers from the in-memory token
       ...options.headers, // Merge the custom headers with the auth headers
     },
   });
 
-  // If the response is 401, remove the token from the local storage and redirect to the login page
-  if (response.status === 401) {
-    localStorage.removeItem("authToken");
+  if (response.status === 401 && !isRetryAfterRefresh) {
+    const refreshed = await refreshAccessToken();
+
+    if (refreshed) {
+      return apiFetch(path, options, true);
+    }
+
+    await logout();
     if (window.location.pathname !== "/login") {
       window.location.href = "/login";
     }

@@ -15,6 +15,7 @@ namespace RevolvAPI.Data
         public DbSet<Article> Articles { get; set; }
         public DbSet<QualityIssue> QualityIssues { get; set; }
         public DbSet<ShopSetting> ShopSettings { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -25,6 +26,19 @@ namespace RevolvAPI.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.HasIndex(rt => rt.TokenHash).IsUnique();
+                entity.HasIndex(rt => rt.UserId);
+                entity.HasIndex(rt => rt.SessionId);
+                entity.Property(rt => rt.TokenHash).HasMaxLength(128);
+
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(rt => rt.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }

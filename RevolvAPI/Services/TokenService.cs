@@ -7,25 +7,27 @@ using RevolvAPI.Models;
 
 namespace RevolvAPI.Services
 {
-    // Interface for the token service, defining a method to create a JWT token for a user
+    // Interface for the token service, defining a method to create a JWT access token for a user
     public interface ITokenService
     {
-        string CreateToken(User user);
+        string CreateAccessToken(User user);
     }
 
-    // Implementation of the token service, responsible for creating JWT tokens
+    // Creates short-lived JWT access tokens. Session length/renewal is handled by IRefreshTokenService.
     public class TokenService : ITokenService
     {
         // Configuration object to access application settings, such as the JWT secret key and issuer
         private readonly IConfiguration _config;
+
+        private const int DefaultAccessTokenMinutes = 5;
 
         public TokenService(IConfiguration config)
         {
             _config = config;
         }
 
-        // Create a JWT token for the given user
-        public string CreateToken(User user)
+        // Create a short-lived JWT access token for the given user
+        public string CreateAccessToken(User user)
         {
             // Create claims based on the user information
             var secretKey = _config["Jwt:Key"];
@@ -52,12 +54,14 @@ namespace RevolvAPI.Services
                 claims = claims.Append(new Claim(ClaimTypes.Name, user.Name)).ToArray();
             }
 
+            var accessTokenMinutes = _config.GetValue<int?>("Jwt:AccessTokenMinutes") ?? DefaultAccessTokenMinutes;
+
             // Create the JWT token with the specified issuer, audience, claims, expiration time, and signing credentials
             var token = new JwtSecurityToken(
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Issuer"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(120),
+                expires: DateTime.UtcNow.AddMinutes(accessTokenMinutes),
                 signingCredentials: creds
             );
 

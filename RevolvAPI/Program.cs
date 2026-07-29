@@ -48,10 +48,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactFrontend", policy =>
     {
+        // Explicit origin required: AllowCredentials (for the HttpOnly refresh cookie) can't be
+        // combined with AllowAnyOrigin.
         policy.WithOrigins("http://localhost:5173") // Default port for Vite dev server
-               .AllowAnyOrigin()
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
@@ -67,7 +69,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true, // Validate the signing key of the token
             ValidIssuer = builder.Configuration["Jwt:Issuer"], // The expected issuer of the token
             ValidAudience = builder.Configuration["Jwt:Issuer"], // The expected audience of the token
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])) // The signing key used to validate the token
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])), // The signing key used to validate the token
+            // No grace period: access tokens are short-lived (5 min) and clients refresh before expiry.
+            ClockSkew = TimeSpan.Zero
         };
     });
 
@@ -76,6 +80,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 // AddHttpClient<TInterface, TImplementation> registriert AiService UND injiziert einen verwalteten HttpClient hinein.
 builder.Services.AddHttpClient<IAiService, AiService>();
 
