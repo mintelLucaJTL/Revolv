@@ -103,6 +103,22 @@ Hinweis: Die Skripte nutzen standardmäßig `USE eazybusiness;`. Passe das bei B
 
 Im Ordner `Database/UsefullCodes/` liegen zusätzlich Hilfsskripte (z. B. `CheckArticles.sql`, `cleanup.sql`) zum Debuggen/Zurücksetzen der Demo-Daten.
 
+### Schema-Änderungen per EF-Core-Migration
+
+Für Änderungen am Schema, die über Code-First-Migrations abgebildet werden (z. B. Constraints wie der Unique-Index auf `revolv.Users.Email`, damit sich niemand zweimal mit derselben Mail registrieren kann), nutzt das Projekt zusätzlich EF-Core-Migrations statt manueller SQL-Skripte:
+
+```bash
+cd RevolvAPI
+dotnet ef migrations add <MigrationName>
+dotnet ef database update
+```
+
+Falls `dotnet ef` nicht gefunden wird, einmalig global installieren:
+
+```bash
+dotnet tool install --global dotnet-ef
+```
+
 ### 3. Backend konfigurieren & starten (RevolvAPI)
 
 Wechsle in den Backend-Ordner und hinterlege die sensiblen Werte lokal über **.NET User Secrets** (landen nicht im Repo):
@@ -371,6 +387,12 @@ cd RevolvAPI && dotnet user-secrets set "Schlüssel" "Wert"
 
 # Backend: alle User Secrets anzeigen (Namen + Werte, nur lokal!)
 cd RevolvAPI && dotnet user-secrets list
+
+# Backend: neue EF-Core-Migration erstellen
+cd RevolvAPI && dotnet ef migrations add <MigrationName>
+
+# Backend: Migration auf die DB anwenden
+cd RevolvAPI && dotnet ef database update
 ```
 
 ---
