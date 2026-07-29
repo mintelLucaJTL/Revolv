@@ -78,6 +78,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 // AddHttpClient<TInterface, TImplementation> registriert AiService UND injiziert einen verwalteten HttpClient hinein.
 builder.Services.AddHttpClient<IAiService, AiService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 
