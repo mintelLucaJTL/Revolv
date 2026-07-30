@@ -99,9 +99,9 @@ namespace RevolvAPI.Controllers
 
                 List<ArticleTableDTO>? filtered = band.ToLowerInvariant() switch
                 {
-                    "red" => dtos.Where(d => d.ReturnRate > redThreshold).ToList(),
-                    "yellow" => dtos.Where(d => d.ReturnRate >= yellowThreshold && d.ReturnRate <= redThreshold).ToList(),
-                    "green" => dtos.Where(d => d.ReturnRate < yellowThreshold).ToList(),
+                    "red" or "yellow" or "green" => dtos
+                        .Where(d => ReturnRateBandService.IsInBand(d.ReturnRate, band, yellowThreshold, redThreshold))
+                        .ToList(),
                     _ => null,
                 };
 
