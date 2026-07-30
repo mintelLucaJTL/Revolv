@@ -6,6 +6,7 @@ namespace RevolvAPI.Models
     [Table("RefreshTokens", Schema = "revolv")]
     public class RefreshToken
     {
+        // Guid is the primary key
         public Guid Id { get; set; }
 
         public int UserId { get; set; }

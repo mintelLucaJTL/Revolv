@@ -11,6 +11,7 @@ namespace RevolvAPI.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
+        // The name of the refresh token cookie
         private const string RefreshCookieName = "refreshToken";
 
         private readonly AppDbContext _ctx;
@@ -61,22 +62,29 @@ namespace RevolvAPI.Controllers
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh()
         {
+            // Get the refresh token from the cookie
             if (!Request.Cookies.TryGetValue(RefreshCookieName, out var rawToken) || string.IsNullOrEmpty(rawToken))
             {
                 return Unauthorized(new { message = "No refresh token." });
             }
 
+            // Rotate the refresh token
             var result = await _refreshTokenService.RotateAsync(rawToken);
 
+            // Check if the refresh token is valid and if the user is still valid
             if (!result.Success || result.User == null || result.NewToken == null)
             {
                 DeleteRefreshCookie();
                 return Unauthorized(new { message = "Refresh token invalid or expired." });
             }
 
+            // Set the new refresh token cookie
             SetRefreshCookie(result.NewToken.RawToken, result.NewToken.AbsoluteExpiresAt);
+
+            // Create a new access token
             var accessToken = _tokenService.CreateAccessToken(result.User);
 
+            // Return the new access token and the new session expires at
             return Ok(new { token = accessToken, sessionExpiresAt = result.NewToken.AbsoluteExpiresAt });
         }
 
@@ -85,32 +93,38 @@ namespace RevolvAPI.Controllers
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
+            // Get the refresh token from the cookie 
             if (Request.Cookies.TryGetValue(RefreshCookieName, out var rawToken) && !string.IsNullOrEmpty(rawToken))
             {
+                // Revoke the refresh token
                 await _refreshTokenService.RevokeAsync(rawToken);
             }
 
+            // Delete the refresh token cookie
             DeleteRefreshCookie();
             return Ok();
         }
 
+        // Set the refresh token cookie
         private void SetRefreshCookie(string rawToken, DateTime absoluteExpiresAt)
         {
             Response.Cookies.Append(RefreshCookieName, rawToken, BuildCookieOptions(absoluteExpiresAt));
         }
 
+        // Delete the refresh token cookie
         private void DeleteRefreshCookie()
         {
             Response.Cookies.Delete(RefreshCookieName, BuildCookieOptions(DateTime.UtcNow));
         }
 
-        private CookieOptions BuildCookieOptions(DateTime expires) => new()
+        // Build the cookie options
+        private CookieOptions BuildCookieOptions(DateTime expiresUtc) => new()
         {
             HttpOnly = true,
             // API runs over plain HTTP locally, so Secure is only required outside Development.
             Secure = !_env.IsDevelopment(),
             SameSite = _env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
-            Expires = expires,
+            Expires = new DateTimeOffset(DateTime.SpecifyKind(expiresUtc, DateTimeKind.Utc)),
             Path = "/api/auth",
         };
 
@@ -142,10 +156,7 @@ namespace RevolvAPI.Controllers
             }
             catch (DbUpdateException)
             {
-                // Fängt den Fall ab, dass zwischen der Any()-Prüfung oben und diesem SaveChanges
-                // ein zweiter, gleichzeitiger Request dieselbe E-Mail registriert hat - der
-                // Unique-Index in AppDbContext schlägt dann hier zu statt einen zweiten Account
-                // zuzulassen.
+                // Return a conflict error if the email already exists
                 return Conflict(new { message = "Diese E-Mail-Adresse wird bereits verwendet." });
             }
 
