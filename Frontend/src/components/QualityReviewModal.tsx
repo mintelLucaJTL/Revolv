@@ -18,37 +18,7 @@ import {
 } from "../utils/qualityReviewProgress";
 import { apiFetch } from "../utils/api";
 import { useToast } from "./Toast";
-
-interface QualityIssue {
-  id: string | number;
-  issueText?: string;
-  status?: string;
-}
-
-export interface DescriptionProposal {
-  id: string | number;
-  currentText?: string;
-  proposedText?: string;
-  status?: string;
-}
-
-export interface ActionRecommendation {
-  id: string | number;
-  actionText?: string;
-  impactBadge?: string;
-  priority?: string;
-  isCompleted?: boolean;
-}
-
-export interface AiRecommendation {
-  id: string | number;
-  returnRate?: number;
-  aiSummaryText?: string;
-  isFullyResolved?: boolean;
-  qualityIssues?: QualityIssue[];
-  descriptionProposals?: DescriptionProposal[];
-  actionRecommendations?: ActionRecommendation[];
-}
+import type { QualityIssue, ActionRecommendation, ArticleDetailDTO } from "../types/api";
 
 // Placeholder until backend exposes real return comments.
 const PLACEHOLDER_CUSTOMER_COMMENTS = [
@@ -70,16 +40,6 @@ function getPriorityBadgeClasses(priority?: string): string {
     return "bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800";
   }
   return "bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
-}
-
-export interface ArticleDetailDTO {
-  id: string;
-  articleNumber?: string;
-  name?: string;
-  category?: string;
-  size?: string;
-  color?: string;
-  aiRecommendations?: AiRecommendation[];
 }
 
 interface Props {
