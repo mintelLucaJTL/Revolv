@@ -1,4 +1,12 @@
-import { Box, Button, Card, CardContent, CardHeader, CardTitle, Text } from "@jtl-software/platform-ui-react";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Text,
+} from "@jtl-software/platform-ui-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../utils/api";
@@ -48,7 +56,11 @@ export default function ForgotPasswordPage() {
               <Text type="small">
                 Falls ein Account existiert, haben wir einen Reset-Link gesendet.
               </Text>
-              <Button label="Zurück zum Login" variant="outline" onClick={() => navigate("/login")} />
+              <Button
+                label="Zurück zum Login"
+                variant="outline"
+                onClick={() => navigate("/login")}
+              />
             </>
           ) : (
             <>
@@ -65,9 +77,7 @@ export default function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
 
-              {error ? (
-                <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
-              ) : null}
+              {error ? <div className="text-sm text-red-600 dark:text-red-400">{error}</div> : null}
 
               <Button label="Link anfordern" variant="default" onClick={handleSubmit} />
             </>

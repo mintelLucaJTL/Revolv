@@ -1,7 +1,6 @@
 namespace RevolvAPI.Models.Wawi
 {
-    // Read-only mapping auf die JTL-WAWI-View DAL.Items (Basis: dbo.tArtikel).
-    // Wird nie beschrieben - die WAWI ist die Quelle der Wahrheit für Artikel-Stammdaten.
+    // Read-only map to DAL.Items (dbo.tArtikel).
     public class WawiItem
     {
         public int Id { get; set; }

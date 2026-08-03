@@ -19,9 +19,6 @@ namespace RevolvAPI.Controllers
             _returnAnalytics = returnAnalytics;
         }
 
-        // GET api/dashboard/return-reasons
-        // Liefert die Top-5-Retourengründe direkt aus den WAWI-Retourenpositionen (dbo.tRMRetourePos)
-        // und deren Grund-Übersetzungen (dbo.tRMGrundSprache) - ohne jede KI-Abhängigkeit.
         [HttpGet("return-reasons")]
         public async Task<IActionResult> GetReturnReasons()
         {
@@ -39,9 +36,7 @@ namespace RevolvAPI.Controllers
             return Ok(dtos);
         }
 
-        // Get the dashboard KPI data
-        // wholeReturnQuote/affectedArticle kommen aus den echten Retouren- und Verkaufsdaten.
-        // openKiRecommendations/improvedProducts bleiben rein KI-spezifische Kennzahlen.
+        // wholeReturnQuote/affectedArticle from WAWI; openKiRecommendations/improvedProducts from AI tables.
         [HttpGet("kpi")]
         public async Task<IActionResult> GetDashboardKpi()
         {
@@ -65,15 +60,12 @@ namespace RevolvAPI.Controllers
             return Ok(kpiDto);
         }
 
-        // GET api/dashboard/traffic-lights
-        // Returns the pre-computed counts and average return rates for the red,
         [HttpGet("traffic-lights")]
         public async Task<IActionResult> GetTrafficLightKpis()
         {
             var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx);
             var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
 
-            // Calculate the traffic light KPIs.
             var kpis = new TrafficLightKpiDto
             {
                 YellowThreshold = yellowThreshold,
@@ -87,7 +79,6 @@ namespace RevolvAPI.Controllers
             return Ok(kpis);
         }
 
-        // Calculates the traffic light KPIs for a single band.
         private static TrafficLightGroupDto CalculateBand(IEnumerable<ArticleReturnMetric> metrics)
         {
             var list = metrics.ToList();
@@ -101,8 +92,6 @@ namespace RevolvAPI.Controllers
             };
         }
 
-        // GET api/dashboard/latest-returns
-        // Returns the most recently reported return line items (used for the dashboard live feed).
         [HttpGet("latest-returns")]
         public async Task<IActionResult> GetLatestReturns()
         {

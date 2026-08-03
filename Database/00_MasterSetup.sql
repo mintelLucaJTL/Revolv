@@ -1,37 +1,18 @@
--- =============================================================================
--- Revolv - Master-Setup-Skript
--- =============================================================================
--- Legt ALLE App-eigenen Objekte (Schema `revolv` + Tabellen) in einem Rutsch an.
--- Ersetzt das manuelle, nacheinander-Ausführen der Einzelskripte in diesem Ordner.
---
--- WICHTIG:
---   - Voraussetzung ist eine bereits bestehende, laufende JTL-WAWI-Datenbank
---     (Name z. B. `revolv`, Schemas `dbo`/`DAL`). Dieses Skript legt KEINE
---     WAWI-Struktur an und rührt die WAWI-Tabellen nicht an.
---   - `Database/wawidb.sql` wird NICHT ausgeführt - es dient nur als Referenz,
---     um die WAWI-Struktur nachzuschlagen.
---   - Das Skript ist idempotent (IF NOT EXISTS ...) und kann beliebig oft
---     erneut ausgeführt werden, ohne bestehende Daten zu verlieren.
---
--- Passe bei Bedarf den Datenbanknamen in der ersten Zeile an, falls deine
--- WAWI-Datenbank nicht `revolv` heißt.
--- =============================================================================
+-- Revolv master setup: creates schema `revolv` and all app tables in the WAWI database.
+-- Prerequisite: an existing JTL-WAWI database (default name `eazybusiness`). Does not modify WAWI tables.
+-- Idempotent — safe to re-run. Change the USE line if your DB name differs.
 
-USE revolv;
+USE eazybusiness;
 GO
 
--- -----------------------------------------------------------------------------
--- 1) Schema `revolv`
--- -----------------------------------------------------------------------------
+-- Schema
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'revolv')
 BEGIN
     EXEC('CREATE SCHEMA revolv');
 END
 GO
 
--- -----------------------------------------------------------------------------
--- 2) revolv.Users (Login/Registrierung) inkl. Name- und Passwort-Reset-Spalten
--- -----------------------------------------------------------------------------
+-- Users (auth)
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.Users') AND type IN (N'U'))
 BEGIN
     CREATE TABLE revolv.Users (
@@ -70,12 +51,7 @@ BEGIN
 END
 GO
 
--- -----------------------------------------------------------------------------
--- 3) revolv.AiRecommendations
---    ArtikelId zeigt logisch auf den echten WAWI-Artikel (dbo.tArtikel.kArtikel /
---    DAL.Items.Id). Bewusst KEINE FK-Constraint hierher, da der Artikel im
---    WAWI-Schema lebt, nicht in einer eigenen 'revolv.Articles'-Tabelle.
--- -----------------------------------------------------------------------------
+-- AiRecommendations: ArtikelId references WAWI dbo.tArtikel.kArtikel (no FK across schemas)
 IF OBJECT_ID(N'revolv.AiRecommendations', N'U') IS NULL
 BEGIN
     CREATE TABLE [revolv].[AiRecommendations] (
@@ -88,9 +64,7 @@ BEGIN
 END
 GO
 
--- -----------------------------------------------------------------------------
--- 4) dbo.QualityIssues (FK -> revolv.AiRecommendations)
--- -----------------------------------------------------------------------------
+-- QualityIssues
 IF OBJECT_ID(N'dbo.QualityIssues', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.QualityIssues (
@@ -149,9 +123,7 @@ BEGIN
 END
 GO
 
--- -----------------------------------------------------------------------------
--- 6) revolv.ActionRecommendations (FK -> revolv.AiRecommendations)
--- -----------------------------------------------------------------------------
+-- ActionRecommendations
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.ActionRecommendations') AND type IN (N'U'))
 BEGIN
     CREATE TABLE revolv.ActionRecommendations (
@@ -168,9 +140,7 @@ BEGIN
 END
 GO
 
--- -----------------------------------------------------------------------------
--- 7) revolv.ShopSettings
--- -----------------------------------------------------------------------------
+-- ShopSettings
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.ShopSettings') AND type IN (N'U'))
 BEGIN
     CREATE TABLE [revolv].[ShopSettings] (
@@ -183,10 +153,7 @@ BEGIN
 END
 GO
 
--- -----------------------------------------------------------------------------
--- 8) Migration für alte Projekt-Stände mit eigener 'revolv.Articles'-Tabelle
---    (ArticleId -> ArtikelId umbenennen, revolv.Articles entfernen)
--- -----------------------------------------------------------------------------
+-- Legacy migration: drop old revolv.Articles FK/table if present
 IF EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_AiRecommendations_Articles')
 BEGIN
     ALTER TABLE [revolv].[AiRecommendations] DROP CONSTRAINT [FK_AiRecommendations_Articles];
@@ -206,5 +173,5 @@ BEGIN
 END
 GO
 
-PRINT 'Revolv-Setup abgeschlossen: Schema revolv + alle App-Tabellen sind vorhanden.';
+PRINT 'Revolv setup complete: schema revolv and app tables are ready.';
 GO

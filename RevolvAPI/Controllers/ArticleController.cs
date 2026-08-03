@@ -21,8 +21,6 @@ namespace RevolvAPI.Controllers
             _returnAnalytics = returnAnalytics;
         }
 
-        // Artikelliste kommt jetzt direkt aus den echten WAWI-Artikeln (dbo.tArtikel) inkl.
-        // der aus den WAWI-Retouren-/Verkaufsdaten berechneten Retourenquote.
         [HttpGet]
         public async Task<IActionResult> GetArticles()
         {
@@ -53,8 +51,7 @@ namespace RevolvAPI.Controllers
                 return NotFound();
             }
 
-            // KI-Empfehlungen für diesen Artikel separat nachladen (per ArtikelId, kein
-            // Navigation-Property mehr - der Artikel selbst lebt in der WAWI, nicht in revolv).
+            // AI rows keyed by ArtikelId only — article master data lives in WAWI, not revolv.
             var recommendations = await _ctx.AiRecommendations
                 .AsNoTracking()
                 .Include(r => r.QualityIssues)

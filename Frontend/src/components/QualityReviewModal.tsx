@@ -18,51 +18,17 @@ import {
 } from "../utils/qualityReviewProgress";
 import { apiFetch } from "../utils/api";
 import { useToast } from "./Toast";
+import type { QualityIssue, ActionRecommendation, ArticleDetailDTO } from "../types/api";
 
-// DTO from the backend with the required fields (matches QualityIssueDTO)
-interface QualityIssue {
-  id: string | number;
-  issueText?: string;
-  status?: string;
-}
-
-export interface DescriptionProposal {
-  id: string | number;
-  currentText?: string;
-  proposedText?: string;
-  status?: string;
-}
-
-// Actionable recommendation, e.g. "Add size hint" with an impact/priority badge
-export interface ActionRecommendation {
-  id: string | number;
-  actionText?: string;
-  impactBadge?: string;
-  priority?: string;
-  isCompleted?: boolean;
-}
-
-export interface AiRecommendation {
-  id: string | number;
-  returnRate?: number;
-  aiSummaryText?: string;
-  isFullyResolved?: boolean;
-  qualityIssues?: QualityIssue[];
-  descriptionProposals?: DescriptionProposal[];
-  actionRecommendations?: ActionRecommendation[];
-}
-
-// Placeholder customer quotes shown until the backend exposes real return comments
+// Placeholder until backend exposes real return comments.
 const PLACEHOLDER_CUSTOMER_COMMENTS = [
   "Zurückgeschickt weil Hüftumfang nicht passt.",
   "Farbe wirkt auf dem Foto anders als in echt.",
   "Passt nicht zur angegebenen Größentabelle.",
 ];
 
-// Statuses that mark a description proposal as reviewed (kept in sync with AiRecommendationController).
 const PROPOSAL_STATUS_ACCEPTED = "Akzeptiert";
 const PROPOSAL_STATUS_REJECTED = "Abgelehnt";
-// Default status of a freshly seeded/unreviewed proposal (matches DescriptionProposal.Status default).
 const PROPOSAL_STATUS_PENDING = "Ausstehend";
 
 function getPriorityBadgeClasses(priority?: string): string {
@@ -74,16 +40,6 @@ function getPriorityBadgeClasses(priority?: string): string {
     return "bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800";
   }
   return "bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
-}
-
-export interface ArticleDetailDTO {
-  id: string;
-  articleNumber?: string;
-  name?: string;
-  category?: string;
-  size?: string;
-  color?: string;
-  aiRecommendations?: AiRecommendation[];
 }
 
 interface Props {
@@ -107,40 +63,31 @@ export default function QualityReviewModal({
 }: Props) {
   const { showToast } = useToast();
 
-  // Async status for the manual "KI-Analyse generieren" trigger.
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  // Extract AI recommendations data from prop safely
   const aiRec = articleDetail?.aiRecommendations?.[0];
   const issues = aiRec?.qualityIssues ?? [];
   const actionRecommendations = aiRec?.actionRecommendations ?? [];
   const descriptionProposal = aiRec?.descriptionProposals?.[0];
   const descriptionProposalId = descriptionProposal?.id;
 
-  // Track completed state for action recommendations locally so checkmarks toggle instantly.
   const [completedActionIds, setCompletedActionIds] = useState<Set<string | number>>(new Set());
   const [actionSaveError, setActionSaveError] = useState<string | null>(null);
 
-  // Track completed state for quality issues locally so "Überprüft" toggles instantly.
   const [completedQualityIssueIds, setCompletedQualityIssueIds] = useState<Set<string | number>>(
     new Set(),
   );
   const [qualityIssueSaveError, setQualityIssueSaveError] = useState<string | null>(null);
 
-  // Status of the description proposal ("Ausstehend", "Akzeptiert", "Abgelehnt")
   const [proposalStatus, setProposalStatus] = useState<string>("");
-  // Text displayed for the proposed description (matches backend, updated on edit)
   const [proposedTextValue, setProposedTextValue] = useState("");
-  // Inline edit state for the proposal text
   const [isEditingProposal, setIsEditingProposal] = useState(false);
   const [draftProposedText, setDraftProposedText] = useState("");
   const [isSavingProposalText, setIsSavingProposalText] = useState(false);
-  // Async status when clicking accept/reject/undo
   const [savingProposalAction, setSavingProposalAction] = useState<
     "accept" | "reject" | "undo" | null
   >(null);
   const [proposalActionError, setProposalActionError] = useState<string | null>(null);
 
-  // Sync state whenever the loaded article / AI recommendation changes
   useEffect(() => {
     const initiallyCompleted = actionRecommendations
       .filter((rec) => rec.isCompleted)
@@ -160,7 +107,6 @@ export default function QualityReviewModal({
     setProposalActionError(null);
   }, [aiRec?.id]);
 
-  // Trigger a fresh AI analysis run for this article and refresh the displayed data on success.
   const handleAnalyze = async () => {
     if (!articleDetail?.id) return;
 
@@ -188,12 +134,10 @@ export default function QualityReviewModal({
     }
   };
 
-  // Handle checking / unchecking an action recommendation.
-  // Performs optimistic UI update and rolls back if the backend PATCH fails.
+  // Optimistic UI with rollback if the PATCH fails.
   const toggleActionRecommendation = async (rec: ActionRecommendation) => {
     const nextIsCompleted = !completedActionIds.has(rec.id);
 
-    // Optimistic local state update
     setCompletedActionIds((prev) => {
       const next = new Set(prev);
       if (nextIsCompleted) {
@@ -216,12 +160,10 @@ export default function QualityReviewModal({
         throw new Error(`HTTP ${response.status}`);
       }
 
-      // Refresh parent dataset so the overview page reflects updated state
       onArticleUpdated?.();
     } catch (err) {
       console.error("Failed to save action recommendation completion:", err);
 
-      // Rollback optimistic state
       setCompletedActionIds((prev) => {
         const next = new Set(prev);
         if (nextIsCompleted) {
@@ -235,12 +177,10 @@ export default function QualityReviewModal({
     }
   };
 
-  // Handle checking / unchecking a quality issue ("Überprüft").
-  // Performs optimistic UI update and rolls back if the backend PATCH fails.
+  // Optimistic UI with rollback if the PATCH fails.
   const toggleQualityIssue = async (issue: QualityIssue) => {
     const nextIsResolved = !completedQualityIssueIds.has(issue.id);
 
-    // Optimistic local state update
     setCompletedQualityIssueIds((prev) => {
       const next = new Set(prev);
       if (nextIsResolved) {
@@ -265,12 +205,10 @@ export default function QualityReviewModal({
         throw new Error(`HTTP ${response.status}`);
       }
 
-      // Refresh parent dataset so the overview page reflects updated state
       onArticleUpdated?.();
     } catch (err) {
       console.error("Failed to save quality issue status:", err);
 
-      // Rollback optimistic state
       setCompletedQualityIssueIds((prev) => {
         const next = new Set(prev);
         if (nextIsResolved) {
@@ -284,20 +222,17 @@ export default function QualityReviewModal({
     }
   };
 
-  // Start inline editing of the proposal text
   const startEditingProposal = () => {
     setDraftProposedText(proposedTextValue);
     setIsEditingProposal(true);
     setProposalActionError(null);
   };
 
-  // Cancel inline editing of the proposal text
   const cancelEditingProposal = () => {
     setIsEditingProposal(false);
     setProposalActionError(null);
   };
 
-  // Save edited proposal text to the backend
   const saveProposedText = async () => {
     if (descriptionProposalId === undefined) return;
 
@@ -326,7 +261,6 @@ export default function QualityReviewModal({
     }
   };
 
-  // Update status of proposal (Akzeptiert / Abgelehnt / Ausstehend)
   const updateProposalStatus = async (status: string, action: "accept" | "reject" | "undo") => {
     if (descriptionProposalId === undefined) return;
 
@@ -359,7 +293,6 @@ export default function QualityReviewModal({
   const currentText = descriptionProposal?.currentText?.trim() ?? "";
   const summaryText = aiRec?.aiSummaryText ?? "";
 
-  // Main grid content: Quality Warnings on the left, Description on the right
   const mainContent = isLoading ? (
     <div className="p-6 text-center text-sm text-slate-600 dark:text-slate-400">
       Lade Artikeldetails…
@@ -372,7 +305,6 @@ export default function QualityReviewModal({
     </div>
   ) : (
     <div className="grid gap-6 lg:grid-cols-2">
-      {/* Left side: Quality Warnings */}
       <div className="space-y-4">
         <Text weight="bold">Qualitätsprüfung</Text>
 
@@ -400,7 +332,6 @@ export default function QualityReviewModal({
         ) : null}
       </div>
 
-      {/* Right side: Product Description comparison */}
       <div className="space-y-4">
         <Text weight="bold">Produktbeschreibung</Text>
 
@@ -440,7 +371,6 @@ export default function QualityReviewModal({
     completedActionIds.has(rec.id),
   ).length;
 
-  // Action Recommendations Section
   const actionRecommendationsSection =
     articleDetail && !isLoading && !error && actionRecommendations.length > 0 ? (
       <div className="mt-6">
@@ -503,7 +433,6 @@ export default function QualityReviewModal({
       </div>
     ) : null;
 
-  // Placeholder Customer Comments Section
   const customerCommentsSection =
     articleDetail && !isLoading && !error ? (
       <div className="mt-6">
@@ -526,7 +455,6 @@ export default function QualityReviewModal({
 
   const isProposalReviewed = isDescriptionProposalStatusReviewed(proposalStatus);
 
-  // Review progress computation
   const reviewProgress = useMemo(
     () =>
       calculateReviewProgress({
@@ -550,7 +478,6 @@ export default function QualityReviewModal({
 
   if (!isOpen) return null;
 
-  // Bottom action buttons for proposal review
   const proposalActionsFooter =
     articleDetail && !isLoading && !error ? (
       <div className="mt-6 flex flex-col items-end gap-2">

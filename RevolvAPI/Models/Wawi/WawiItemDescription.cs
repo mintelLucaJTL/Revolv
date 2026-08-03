@@ -1,8 +1,6 @@
 namespace RevolvAPI.Models.Wawi
 {
-    // Read-only mapping auf dbo.tArtikelBeschreibung. Enthält den Artikelnamen/die
-    // Beschreibung je Sprache/Plattform/Shop. Für den (shop-unabhängigen) Standardnamen
-    // wird die Zeile mit ShopId = 0 verwendet (siehe DAL.ItemPlatformDescriptions).
+    // Read-only map to dbo.tArtikelBeschreibung (ShopId = 0 = default name).
     public class WawiItemDescription
     {
         public int ArtikelId { get; set; }

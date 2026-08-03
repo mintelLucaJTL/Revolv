@@ -9,9 +9,8 @@ import Sidebar from "../components/Sidebar";
 import LatestReturnsList from "../components/LatestReturnsList";
 import { apiFetch } from "../utils/api";
 import { buildRetourenAnalysePath } from "../utils/riskBand";
-const REFRESH_INTERVAL_MS = 5 * 60_000; // 5 Minuten
+const REFRESH_INTERVAL_MS = 5 * 60_000;
 
-/** Raw data from the backend (DashboardKpiDto) */
 interface DashboardKpiDto {
   wholeReturnQuote: number;
   affectedArticle: number;
@@ -24,7 +23,6 @@ interface TrafficLightGroupDto {
   averagePercent: number;
 }
 
-/** Response from GET /api/dashboard/traffic-lights */
 interface TrafficLightKpiDto {
   red: TrafficLightGroupDto;
   yellow: TrafficLightGroupDto;
@@ -174,8 +172,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const loadDashboardData = async (isBackgroundRefresh: boolean) => {
-      // Beim automatischen Reload keinen vollen Loading-Zustand setzen,
-      // sonst flackern die Skeleton-Karten alle 60 Sekunden auf.
+      // Background refresh: avoid full loading state so skeletons don't flash.
       if (isBackgroundRefresh) {
         setIsRefreshing(true);
       } else {
@@ -184,8 +181,6 @@ export default function Dashboard() {
       setError(null);
 
       try {
-        // Settings + traffic-lights together: badges always use current thresholds,
-        // counts are calculated with the same thresholds on the backend.
         const [kpiResponse, trafficResponse, settingsResponse] = await Promise.all([
           apiFetch("/api/dashboard/kpi"),
           apiFetch("/api/dashboard/traffic-lights"),
@@ -216,8 +211,7 @@ export default function Dashboard() {
         setLastUpdated(new Date());
       } catch (err) {
         console.error("Error loading the dashboard data:", err);
-        // Bei einem Hintergrund-Refresh die zuletzt erfolgreich geladenen Daten stehen lassen,
-        // statt die ganze Seite mit einer Fehlermeldung zu überschreiben.
+        // Keep last good data on background refresh failures.
         if (!isBackgroundRefresh) {
           setKpiCards([]);
           setAmpelTiles([]);

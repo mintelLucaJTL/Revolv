@@ -1,7 +1,7 @@
 USE revolv;
 GO
 
--- Adds the password-reset columns to revolv.Users.
+-- Password-reset columns for revolv.Users.
 IF NOT EXISTS (
     SELECT * FROM sys.columns
     WHERE object_id = OBJECT_ID(N'revolv.Users') AND name = 'PasswordResetToken'

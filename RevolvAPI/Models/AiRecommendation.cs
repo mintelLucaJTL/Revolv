@@ -9,10 +9,7 @@ namespace RevolvAPI.Models
     {
         public int Id { get; set; }
 
-        // Zeigt logisch auf den echten WAWI-Artikel (dbo.tArtikel.kArtikel / DAL.Items.Id).
-        // Bewusst kein Navigation-Property und keine FK-Constraint: der Artikel lebt im
-        // WAWI-Schema, nicht im revolv-Schema - Artikeldaten werden bei Bedarf per Join
-        // gegen WawiItem/WawiItemDescription nachgeladen (siehe ReturnAnalyticsService).
+        // Logical ref to WAWI dbo.tArtikel.kArtikel (no FK across schemas)
         public int ArtikelId { get; set; }
         public string? AiSummaryText { get; set; }
         [Precision(5, 2)]

@@ -17,7 +17,6 @@ namespace RevolvAPI.Data
             _autoAnalysisQueue = autoAnalysisQueue;
         }
 
-        // DbSets -> Tables in the database (App-eigenes Schema "revolv")
         public DbSet<User> Users { get; set; }
         public DbSet<ActionRecommendation> ActionRecommendations { get; set; }
         public DbSet<DescriptionProposal> DescriptionProposals { get; set; }
@@ -25,9 +24,7 @@ namespace RevolvAPI.Data
         public DbSet<QualityIssue> QualityIssues { get; set; }
         public DbSet<ShopSetting> ShopSettings { get; set; }
 
-        // DbSets -> Read-only Views/Tabellen der echten JTL-WAWI-Datenbank.
-        // Diese werden NIE beschrieben (kein Add/Update/Remove) - die WAWI ist die
-        // Quelle der Wahrheit für Artikel-, Retouren- und Verkaufsdaten.
+        // Read-only WAWI views/tables — never written by this app.
         public DbSet<WawiItem> WawiItems { get; set; }
         public DbSet<WawiItemDescription> WawiItemDescriptions { get; set; }
         public DbSet<WawiProductGroup> WawiProductGroups { get; set; }
@@ -70,8 +67,7 @@ namespace RevolvAPI.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Verhindert doppelte Accounts mit derselben E-Mail auf DB-Ebene
-            // (die Prüfung in AuthController.Register allein schützt nicht vor Race Conditions).
+            // Unique email at DB level (guards race conditions AuthController alone cannot).
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
@@ -79,9 +75,7 @@ namespace RevolvAPI.Data
             ConfigureWawiViews(modelBuilder);
         }
 
-        // Mappt die WAWI-Entitäten per ToView/ToTable auf die echten JTL-WAWI-Objekte.
-        // ToView statt ToTable sorgt zusätzlich dafür, dass EF-Core-Migrationen (falls dieses
-        // Projekt sie später wieder einführt) diese Objekte NICHT anfassen/verwalten.
+        // ToView keeps EF migrations from managing WAWI objects.
         private static void ConfigureWawiViews(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<WawiItem>(e =>
@@ -93,7 +87,7 @@ namespace RevolvAPI.Data
 
             modelBuilder.Entity<WawiItemDescription>(e =>
             {
-                // Das ist eine echte Tabelle (kein View), aber ebenfalls read-only.
+                // Real table, still read-only from Revolv's perspective.
                 e.ToTable("tArtikelBeschreibung", schema: "dbo");
                 e.HasKey(x => new { x.ArtikelId, x.SpracheId, x.PlattformId, x.ShopId });
                 e.Property(x => x.ArtikelId).HasColumnName("kArtikel");

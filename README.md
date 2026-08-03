@@ -1,78 +1,34 @@
 # Revolv – JTL Return Analytics
 
-Revolv ist ein spezialisiertes Modul zur intelligenten Analyse und Optimierung von Retourenprozessen für die JTL-Wawi. Ziel ist es, die Retourenquote durch datengestützte Analysen zu senken.
-
-## Inhaltsverzeichnis
-
-1. [Kernfunktionen](#kernfunktionen)
-2. [Tech-Stack](#tech-stack)
-3. [Projektstruktur](#projektstruktur)
-4. [Voraussetzungen](#voraussetzungen)
-5. [Setup – Schritt für Schritt](#setup--schritt-für-schritt)
-6. [Backend testen (Swagger + Auth)](#backend-testen-swagger--auth)
-7. [API-Endpunkte im Überblick](#api-endpunkte-im-überblick)
-8. [KI-Antwortkontrakt (AiResponseDTO)](#ki-antwortkontrakt-airesponsedto)
-9. [Frontend-Routen](#frontend-routen)
-10. [Code-Qualität (Husky)](#code-qualität-husky)
-11. [Nützliche Befehle](#nützliche-befehle)
-12. [Troubleshooting](#troubleshooting)
-
----
-
-## Kernfunktionen
-
-- **KPI-Dashboard:** Schneller Überblick über Retourenquoten durch ein Ampelsystem (Rot/Orange/Gelb/Grün).
-- **Kosten-Analyse:** Visualisierung der durch Retouren entstehenden Kosten pro Monat.
-- **KI-Lösungs-Hub:** Intelligente Analyse von Retourengründen mit automatisierten Vorschlägen zur Überarbeitung der Artikelbeschreibungen.
-- **Deep-Dive-Analysen:** Detailansicht zur Identifikation von Produkt-Schwachstellen (z. B. passformbedingte Retouren).
+Revolv analysiert Retourenquoten aus einer laufenden JTL-WAWI-Datenbank und liefert KPIs, Ampel-Risikobänder sowie Verbesserungsvorschläge.
 
 ## Tech-Stack
 
-- **Backend:** ASP.NET Core 10 (C#), Entity Framework Core, JWT-Authentifizierung, BCrypt, Swashbuckle (Swagger)
-- **Datenbank:** Microsoft SQL Server (eigenes Schema: `revolv`)
-- **Frontend:** React 19, TypeScript, Vite, React Router
-- **UI:** JTL Platform UI (`@jtl-software/platform-ui-react`), Tailwind CSS 4, Lucide Icons
-- **Qualitätssicherung:** Husky (Pre-Commit), Oxlint/Oxfmt (Frontend), `dotnet format` (Backend)
-- **Design:** Figma-Mockups im Ordner `mockup/`
+| Schicht | Technik |
+|---------|---------|
+| Backend | ASP.NET Core 10, EF Core, JWT, Swagger |
+| Datenbank | SQL Server (JTL-WAWI `eazybusiness`) + App-Schema `revolv` |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, JTL Platform UI |
 
 ## Projektstruktur
 
 ```text
 Revolv/
-├── RevolvAPI/          # ASP.NET Core Web API (Auth, JWT, EF Core, Swagger)
-│   ├── Controllers/    # REST-Endpunkte (Auth, User, Dashboard, Article, ...)
-│   ├── Data/           # AppDbContext + DbSeeder (Demo-Daten)
-│   ├── DTOs/           # Datenübertragungsobjekte für die API
-│   ├── Models/         # EF-Core-Entitäten
-│   └── Services/       # TokenService, PasswordService, AiService, ReturnRateBandService
-├── Frontend/           # React + TypeScript (Vite)
-│   └── src/
-│       ├── pages/       # Login, Dashboard, Retouren-Analyse, KI-Empfehlungen, ...
-│       ├── components/  # Wiederverwendbare UI-Komponenten
-│       └── utils/       # apiFetch-Helper (Auth-Header, 401-Handling), user.ts
-├── Database/           # SQL-Skripte für Schema und Tabellen
-├── mockup/             # Figma-Make-Prototyp (Referenz-UI)
-└── .husky/             # Git Pre-Commit Hooks
+├── RevolvAPI/     # ASP.NET Core Web API
+├── Frontend/      # React-App
+├── Database/      # SQL-Setup (00_MasterSetup.sql ausführen)
+└── mockup/        # Figma-Prototyp als Referenz
 ```
-
-## Zielsetzung für das Praktikum
-
-Dieses Projekt wird im Rahmen eines 8-wöchigen Praktikums bei JTL-Software entwickelt. Der Fokus liegt auf der nahtlosen Integration in E-Commerce-Workflows und der Verbesserung der User Experience bei der Bearbeitung komplexer Datenmengen in der Cloud-Wawi.
-
----
 
 ## Voraussetzungen
 
-- [.NET SDK 10](https://dotnet.microsoft.com/download) (für das C#-Backend)
-- [Node.js](https://nodejs.org/) (LTS, für das React-Frontend)
-- Microsoft SQL Server und [SQL Server Management Studio (SSMS)](https://learn.microsoft.com/sql/ssms/download-sql-server-management-studio-ssms) für die Datenbank
-- Ein SQL-Login mit Zugriff auf die (lokale) `eazybusiness`-Datenbank
+- [.NET SDK 10](https://dotnet.microsoft.com/download)
+- [Node.js](https://nodejs.org/) LTS
+- SQL Server + laufende JTL-WAWI-Datenbank (Standardname: `eazybusiness`)
 
----
+## Setup
 
-## Setup – Schritt für Schritt
-
-### 1. Repository klonen & initialisieren
+### 1. Klonen & Hooks
 
 ```bash
 git clone https://github.com/mintelLucaJTL/Revolv.git
@@ -80,48 +36,21 @@ cd Revolv
 npm install
 ```
 
-Der `npm install` im Hauptverzeichnis installiert **Husky** und richtet die Git-Pre-Commit-Hooks ein (siehe [Code-Qualität](#code-qualität-husky)).
+### 2. Datenbank
 
-### 2. Datenbank einrichten
+`Database/00_MasterSetup.sql` einmal in SSMS gegen die WAWI-Datenbank ausführen. Legt Schema `revolv` und die App-Tabellen an – WAWI-Tabellen bleiben unberührt.
 
-Das Backend erwartet eine SQL-Server-Datenbank mit dem Schema `revolv` (Standard-DB: `eazybusiness`). Führe im Ordner `Database/` **alle** SQL-Skripte einmalig in SSMS aus, am besten in dieser Reihenfolge (wegen Fremdschlüssel-Abhängigkeiten):
+Artikel-, Retouren- und Verkaufsdaten kommen live aus der WAWI (`dbo` / `DAL`). Die `USE`-Zeile anpassen, falls die DB nicht `eazybusiness` heißt.
 
-| Reihenfolge | Skript | Erstellt |
-|---|---|---|
-| 1 | `RevolvSchema.sql` | Schema `revolv` + Tabelle `revolv.Users` (Login/Registrierung) |
-| 2 | `revolv.Users_AddName.sql` | Spalte `Name` auf `revolv.Users` |
-| 3 | `revolv.Articles.sql` | Tabelle `revolv.Articles` |
-| 4 | `revolv.AiRecommendations.sql` | Tabelle `revolv.AiRecommendations` (FK → Articles) |
-| 5 | `dbo.QualityIssues.sql` | Tabelle `dbo.QualityIssues` (FK → AiRecommendations) |
-| 6 | `revolv.DescriptionProposals.sql` | Tabelle `revolv.DescriptionProposals` (FK → AiRecommendations) |
-| 7 | `revolv.ActionRecommendations.sql` | Tabelle `revolv.ActionRecommendations` (FK → AiRecommendations) |
-| 8 | `revolv.ShopSettings.sql` | Tabelle `revolv.ShopSettings` (Schwellenwerte, Tonfall) |
-
-Alle Skripte sind idempotent (`IF NOT EXISTS ...`) – ein mehrfaches Ausführen ist unproblematisch.
-
-Hinweis: Die Skripte nutzen standardmäßig `USE eazybusiness;`. Passe das bei Bedarf an deine lokale Datenbank an.
-
-Im Ordner `Database/UsefullCodes/` liegen zusätzlich Hilfsskripte (z. B. `CheckArticles.sql`, `cleanup.sql`) zum Debuggen/Zurücksetzen der Demo-Daten.
-
-### Schema-Änderungen per EF-Core-Migration
-
-Für Änderungen am Schema, die über Code-First-Migrations abgebildet werden (z. B. Constraints wie der Unique-Index auf `revolv.Users.Email`, damit sich niemand zweimal mit derselben Mail registrieren kann), nutzt das Projekt zusätzlich EF-Core-Migrations statt manueller SQL-Skripte:
+Optionale EF-Migrationen für App-Schema-Änderungen:
 
 ```bash
 cd RevolvAPI
-dotnet ef migrations add <MigrationName>
+dotnet ef migrations add <Name>
 dotnet ef database update
 ```
 
-Falls `dotnet ef` nicht gefunden wird, einmalig global installieren:
-
-```bash
-dotnet tool install --global dotnet-ef
-```
-
-### 3. Backend konfigurieren & starten (RevolvAPI)
-
-Wechsle in den Backend-Ordner und hinterlege die sensiblen Werte lokal über **.NET User Secrets** (landen nicht im Repo):
+### 3. Backend
 
 ```bash
 cd RevolvAPI
@@ -129,30 +58,18 @@ dotnet user-secrets init
 dotnet user-secrets set "ConnectionStrings:WawiConnection" "Server=localhost;Database=eazybusiness;Trusted_Connection=True;TrustServerCertificate=True;"
 dotnet user-secrets set "Jwt:Key" "MeinSuperGeheimerJtlRevolvKeyDerSehrLangIst123!"
 dotnet user-secrets set "Jwt:Issuer" "RevolvAPI"
-```
-
-- `Jwt:Key` muss ein hinreichend langer, zufälliger String sein (HMAC-SHA256 benötigt mindestens 32 Zeichen).
-
-Starte die API anschließend über Visual Studio (**RevolvAPI**) oder per Konsole:
-
-```bash
 dotnet run
 ```
 
-**Erreichbare URLs (Development):**
-
 | Dienst | URL |
 |--------|-----|
-| API (HTTP) | http://localhost:5215 |
-| API (HTTPS) | https://localhost:7272 |
-| Swagger UI | http://localhost:5215/swagger |
-| DB-Test | http://localhost:5215/test-db |
+| API | http://localhost:5215 |
+| Swagger | http://localhost:5215/swagger |
+| DB-Check | http://localhost:5215/test-db |
 
-Rufe `http://localhost:5215/test-db` im Browser auf, um zu prüfen, ob die Datenbankverbindung funktioniert ("Successfully connected to DB!"). Beim ersten Start füllt der `DbSeeder` außerdem automatisch ein paar Demo-Artikel mit KI-Empfehlungen in die Datenbank ein (nur wenn `revolv.Articles` noch leer ist).
+`Jwt:Key` muss mindestens 32 Zeichen lang sein. Es gibt kein Demo-Seeding – es werden echte WAWI-Artikel genutzt.
 
-### 4. Frontend starten (React)
-
-In einem **zweiten Terminal**:
+### 4. Frontend
 
 ```bash
 cd Frontend
@@ -160,256 +77,52 @@ npm install
 npm run dev
 ```
 
-Das Frontend läuft standardmäßig unter http://localhost:5173 und ruft die API unter `http://localhost:5215` auf (siehe `Frontend/src/utils/api.ts`, `API_BASE_URL`). Falls dein Backend auf einem anderen Port läuft, diese Konstante entsprechend anpassen.
+App: http://localhost:5173 (API-Basis in `Frontend/src/utils/api.ts`).
 
-### 5. Testbenutzer anlegen & einloggen
+### 5. Erster Login
 
-Ein Benutzer kann entweder direkt im Frontend über `/register` angelegt werden, oder über den `/api/auth/register`-Endpunkt in Swagger (siehe unten). Danach unter `/login` im Frontend (oder `/api/auth/login`) einloggen – das Frontend speichert das erhaltene JWT automatisch in `localStorage` (`authToken`) und hängt es bei jedem Request über den zentralen `apiFetch`-Helper (`Frontend/src/utils/api.ts`) als `Authorization: Bearer <token>`-Header an.
+Über `/register` oder Swagger `POST /api/auth/register` registrieren, danach einloggen. Das JWT liegt in `localStorage` und wird von `apiFetch` mitgeschickt.
 
-Damit bist du vom Start (leere DB) bis zum fertigen, eingeloggten Frontend durch.
+## API & Auth (Swagger)
 
----
+Die meisten Endpunkte brauchen ein JWT. In Swagger:
 
-## Backend testen (Swagger + Auth)
+1. `POST /api/auth/register` → `POST /api/auth/login`
+2. Token kopieren → **Authorize** → `Bearer <token>` eintragen
+3. Geschützte Endpunkte testen (z. B. `GET /api/dashboard/kpi`)
 
-Fast alle Endpunkte sind mit `[Authorize]` geschützt und erwarten ein gültiges JWT. So testest du sie in Swagger UI (http://localhost:5215/swagger):
-
-1. **Benutzer registrieren:** Endpunkt `POST /api/auth/register` aufklappen → "Try it out" → Body ausfüllen (`name`, `email`, `password`) → "Execute".
-2. **Einloggen:** Endpunkt `POST /api/auth/login` mit denselben Zugangsdaten aufrufen. Die Antwort enthält `{ "token": "eyJ..." }`. Token kopieren.
-3. **Autorisieren:** Oben rechts in Swagger UI auf den Button **Authorize** (🔒) klicken. Im Feld **exakt** Folgendes eintragen (das Wort `Bearer` gefolgt von einem Leerzeichen und dem Token):
-
-   ```text
-   Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   ```
-
-4. Mit **Authorize** bestätigen und den Dialog schließen. Ab jetzt zeigen alle geschützten Endpunkte ein geschlossenes Schloss-Symbol und der Header wird automatisch mitgesendet.
-5. Jetzt kannst du z. B. `GET /api/dashboard/kpi` oder `GET /api/articles` per "Try it out" → "Execute" testen und solltest `200 OK` mit echten Daten erhalten statt `401 Unauthorized`.
-
-Falls der Token nicht funktioniert, siehe [Troubleshooting](#troubleshooting).
-
----
-
-## API-Endpunkte im Überblick
-
-Alle Endpunkte außer den `Auth`-Endpunkten benötigen den `Authorization: Bearer <token>`-Header.
-
-### Auth (`api/auth`) – öffentlich
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|---------------|
-| `POST` | `/api/auth/register` | Neuen Benutzer anlegen |
-| `POST` | `/api/auth/login` | Login, liefert JWT-Token |
-| `POST` | `/api/auth/migrate-passwords` | Einmalig: legacy Klartext-Passwörter nachträglich hashen |
-
-### User (`api/user`) 🔒
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|---------------|
-| `GET` | `/api/user/me` | Profil des eingeloggten Benutzers |
-| `PATCH` | `/api/user/me` | Anzeigename aktualisieren |
-
-### Dashboard (`api/dashboard`) 🔒
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|---------------|
-| `GET` | `/api/dashboard/kpi` | Gesamt-KPIs (Retourenquote, betroffene Artikel, offene Empfehlungen) |
-| `GET` | `/api/dashboard/traffic-lights` | Ampel-Auswertung (Rot/Gelb/Grün) inkl. Schwellenwerten |
-| `GET` | `/api/dashboard/return-reasons` | Top-5-Retourengründe |
-
-### Artikel & Retouren (`api/articles`) 🔒
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|---------------|
-| `GET` | `/api/articles` | Liste aller Artikel mit Retourenquote |
-| `GET` | `/api/articles/{id}` | Detailansicht eines Artikels inkl. KI-Empfehlungen |
-| `GET` | `/api/articles/returns` | Tabellendaten für die Retouren-Analyse-Seite |
-
-### KI-Empfehlungen (`api/ai`) 🔒
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|---------------|
-| `GET` | `/api/ai/overview` | Übersicht aller KI-Empfehlungen mit Badges/Zähler |
-| `GET` | `/api/ai/recommendations/{articleId}` | Detail-Empfehlung für einen Artikel |
-| `PATCH` | `/api/ai/description/{id}/status` | Status eines Beschreibungsvorschlags ändern |
-| `PATCH` | `/api/ai/description/{id}/text` | Vorgeschlagenen Text bearbeiten |
-| `PATCH` | `/api/ai/quality/{id}/status` | Status eines Qualitätsproblems ändern |
-| `PATCH` | `/api/ai/action/{id}/complete` | Handlungsempfehlung als erledigt markieren |
-
-### Qualität (`api/quality`) 🔒
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|---------------|
-| `GET` | `/api/quality/open` | Alle offenen Qualitätsprobleme inkl. Artikelbezug |
-
-### Einstellungen (`api/settings`) 🔒
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|---------------|
-| `GET` | `/api/settings` | Aktuelle Shop-Einstellungen (Tonfall, Schwellenwerte) |
-| `PUT` | `/api/settings` | Shop-Einstellungen aktualisieren |
-
-### Sonstiges
-
-| Methode | Endpunkt | Beschreibung |
-|---------|----------|---------------|
-| `GET` | `/test-db` | Prüft die Datenbankverbindung (kein Auth nötig) |
-
----
-
-## KI-Antwortkontrakt (AiResponseDTO)
-
-Damit Entity Framework die KI-Ergebnisse zuverlässig in SQL speichern kann, muss die KI **immer dieselbe JSON-Struktur** liefern. Dafür gibt es:
-
-| Datei | Rolle |
-|-------|--------|
-| `RevolvAPI/DTOs/AiResponseDTO.cs` | Fester C#-Vertrag (`Summary`, `DescriptionProposals`, `ActionRecommendations`) |
-| `RevolvAPI/Services/AiService.cs` | Master-Prompt + `ParseAiResponse(...)` via `JsonSerializer.Deserialize<AiResponseDTO>` |
-| `RevolvAPI/Services/IAiService.cs` | Interface (DI: `AddScoped<IAiService, AiService>`) |
-
-### Erwartetes JSON
-
-```json
-{
-  "summary": "Kurze Analyse der Retourenursachen",
-  "descriptionProposals": [
-    {
-      "currentText": "Aktuelle Produktbeschreibung",
-      "proposedText": "Verbesserte Produktbeschreibung"
-    }
-  ],
-  "actionRecommendations": [
-    {
-      "actionText": "Konkrete Handlungsempfehlung",
-      "impactBadge": "-10% Retouren",
-      "priority": "High"
-    }
-  ]
-}
-```
-
-`descriptionProposals` und `actionRecommendations` dürfen leere Arrays sein. `priority` nur `High`, `Medium` oder `Low`.
-
-### Mapping auf die Datenbank
-
-| JSON-Feld | EF-Model / Spalte |
-|-----------|-------------------|
-| `summary` | `AiRecommendation.AiSummaryText` |
-| `descriptionProposals[].currentText` | `DescriptionProposal.CurrentText` |
-| `descriptionProposals[].proposedText` | `DescriptionProposal.ProposedText` |
-| `actionRecommendations[].actionText` | `ActionRecommendation.ActionText` |
-| `actionRecommendations[].impactBadge` | `ActionRecommendation.ImpactBadge` |
-| `actionRecommendations[].priority` | `ActionRecommendation.Priority` |
-
-App-eigene Felder wie `Status`, `IsCompleted` und IDs setzt die API selbst (Defaults in den Models) – die KI liefert sie nicht.
-
-### Parsing
-
-`AiService.ParseAiResponse(rawText)`:
-
-1. Entfernt optionale Markdown-Fences (` ```json ... ``` `).
-2. Deserialisiert mit `JsonSerializer.Deserialize<AiResponseDTO>(...)`.
-3. Bei ungültigem/leerem JSON: `null` (kein Absturz).
-
-Der Master-Prompt (`AiService.MasterPrompt`) weist die KI an, **ausschließlich** dieses JSON zurückzugeben.
-
----
-
-## Frontend-Routen
-
-| Route | Seite | Geschützt? |
-|-------|-------|------------|
-| `/` | Redirect auf `/dashboard` bzw. `/login` | – |
-| `/login` | Login | ❌ |
-| `/register` | Registrierung | ❌ |
-| `/dashboard` | KPI-Dashboard | ✅ |
-| `/retouren-analyse` | Retouren-Analyse (Artikeltabelle) | ✅ |
-| `/ki-empfehlungen` | KI-Lösungs-Hub | ✅ |
-| `/settings` | Einstellungen (Schwellenwerte, Tonfall) | ✅ |
-| `/profile` | Benutzerprofil | ✅ |
-
-Geschützte Routen leiten ohne gültiges Token in `localStorage` automatisch auf `/login` um (siehe `Frontend/src/App.tsx`).
-
----
+Alle Routen: Swagger UI. Frontend-Routen: `/login`, `/register`, `/dashboard`, `/retouren-analyse`, `/ki-empfehlungen`, `/settings`, `/profile`.
 
 ## Code-Qualität (Husky)
 
-Bei Commits mit Änderungen in `Frontend/` oder `RevolvAPI/` laufen automatisch Pre-Commit-Checks:
-
-| Bereich | Prüfung |
-|---------|---------|
-| Frontend | Oxlint + Oxfmt (`format:check`) |
-| Backend | `dotnet format --verify-no-changes` + `dotnet build` |
-
-Falls ein Commit blockiert wird, meist so beheben:
+Pre-Commit prüft `Frontend/` (Oxlint/Oxfmt) und `RevolvAPI/` (`dotnet format` + Build).
 
 ```bash
 # Frontend
-cd Frontend
-npm run format
-npm run lint
+cd Frontend && npm run format && npm run lint
 
 # Backend
-cd RevolvAPI
-dotnet format RevolvAPI.csproj
-dotnet build RevolvAPI.csproj
+cd RevolvAPI && dotnet format RevolvAPI.csproj && dotnet build
 ```
 
-Danach die geänderten Dateien erneut stagen (`git add ...`) und committen.
-
-Husky bei Bedarf einmalig überspringen:
-
-```bash
-HUSKY=0 git commit -m "deine message"
-```
-
----
+Hooks einmal überspringen: `HUSKY=0 git commit -m "..."`.
 
 ## Nützliche Befehle
 
 ```bash
-# Frontend: Dev-Server
-cd Frontend && npm run dev
-
-# Frontend: Production-Build
-cd Frontend && npm run build
-
-# Backend: starten
-cd RevolvAPI && dotnet run
-
-# Backend: Formatierung prüfen (ohne Änderungen)
-cd RevolvAPI && dotnet format RevolvAPI.csproj --verify-no-changes
-
-# Backend: Build
-cd RevolvAPI && dotnet build RevolvAPI.csproj
-
-# Backend: neuen User-Secret setzen/ändern
-cd RevolvAPI && dotnet user-secrets set "Schlüssel" "Wert"
-
-# Backend: alle User Secrets anzeigen (Namen + Werte, nur lokal!)
+cd Frontend && npm run dev          # Frontend starten
+cd Frontend && npm run build        # Production-Build
+cd RevolvAPI && dotnet run          # API starten
 cd RevolvAPI && dotnet user-secrets list
-
-# Backend: neue EF-Core-Migration erstellen
-cd RevolvAPI && dotnet ef migrations add <MigrationName>
-
-# Backend: Migration auf die DB anwenden
 cd RevolvAPI && dotnet ef database update
 ```
 
----
-
 ## Troubleshooting
 
-**"401 Unauthorized" trotz eingegebenem Token in Swagger**
-Prüfe, ob im Feld wirklich `Bearer <token>` (mit Leerzeichen, ohne Anführungszeichen) steht. Prüfe außerdem, ob der Token noch gültig ist (läuft nach 120 Minuten ab, siehe `TokenService.cs`) und ob `Jwt:Key`/`Jwt:Issuer` in den User Secrets gesetzt sind.
-
-**Build-Fehler rund um `Microsoft.OpenApi` / `OpenApiSecurityScheme` in `Program.cs`**
-Das Projekt nutzt `Swashbuckle.AspNetCore` (Swagger), das seine eigene, kompatible Version von `Microsoft.OpenApi` mitbringt. **Füge `Microsoft.OpenApi` nicht manuell als eigenes NuGet-Paket hinzu** (z. B. per `dotnet add package Microsoft.OpenApi`) – das zieht eine neuere, inkompatible Major-Version und führt zu Compile-Fehlern (`OpenApiReference`/`.Models`-Namespace nicht gefunden etc.).
-
-**Datenbankverbindung schlägt fehl**
-`http://localhost:5215/test-db` aufrufen, um die Fehlermeldung zu sehen. Meistens liegt es an einer falschen `ConnectionStrings:WawiConnection` in den User Secrets (Server-Name, Datenbankname `eazybusiness`, Trusted Connection vs. SQL-Login).
-
-**Frontend bekommt CORS-Fehler**
-Stelle sicher, dass das Backend läuft und die Frontend-URL (`http://localhost:5173`) mit der in `Program.cs` konfigurierten CORS-Policy `AllowReactFrontend` übereinstimmt.
-
-**Commit wird von Husky blockiert**
-Siehe [Code-Qualität (Husky)](#code-qualität-husky).
+| Problem | Lösung |
+|---------|--------|
+| 401 in Swagger | `Bearer <token>` (Leerzeichen, ohne Anführungszeichen). Token gilt 120 Min. |
+| OpenApi / Swashbuckle Build-Fehler | `Microsoft.OpenApi` nicht extra als NuGet-Paket hinzufügen. |
+| DB-Verbindung fehlgeschlagen | `/test-db` aufrufen; `ConnectionStrings:WawiConnection` in User Secrets prüfen. |
+| CORS-Fehler | Backend muss laufen; Origin `http://localhost:5173` passt zur Policy `AllowReactFrontend`. |
+| Husky blockiert Commit | Format/Lint/Build oben ausführen, dann erneut stagen. |

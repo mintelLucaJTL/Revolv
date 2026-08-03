@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Box, Text, Card, CardContent, Button, Badge, Checkbox } from "@jtl-software/platform-ui-react";
+import {
+  Box,
+  Text,
+  Card,
+  CardContent,
+  Button,
+  Badge,
+  Checkbox,
+} from "@jtl-software/platform-ui-react";
 import QualityWarningCard from "./QualityWarningCard";
 import { apiFetch } from "../utils/api";
 
@@ -20,8 +28,7 @@ type ArticleDetailApiDto = {
   }>;
 };
 
-// Dummy-Daten, solange die KI-Endpunkte für Qualitätsprüfung/Beschreibung/Empfehlungen
-// noch nicht existieren. Rein zu Demo-/Design-Zwecken, nicht persistiert.
+// Demo UI placeholders (not persisted) until live AI detail sections are wired here.
 const DUMMY_QUALITY_ISSUES = [
   { id: "dq-1", text: "Starkes Einlaufen nach dem Waschen bei 22% der Fälle" },
   { id: "dq-2", text: "Größentabelle stimmt nicht mit realem Schnitt überein" },
@@ -40,7 +47,9 @@ const DUMMY_ACTION_RECOMMENDATIONS = [
   { id: "da-4", text: "Pflegehinweise aktualisieren", impact: "−5% Retouren", priority: "Mittel" },
 ];
 
-function getReturnRateBadgeVariant(returnRate?: string | number): "danger" | "warning" | "success" | "secondary" {
+function getReturnRateBadgeVariant(
+  returnRate?: string | number,
+): "danger" | "warning" | "success" | "secondary" {
   const level =
     typeof returnRate === "number"
       ? returnRate > 25
@@ -96,7 +105,6 @@ export default function ArticleDetailsPanel({
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
-  // Lokaler (nicht persistierter) UI-Zustand für die Dummy-Sektionen.
   const [checkedIssueIds, setCheckedIssueIds] = useState<Set<string>>(new Set());
   const [checkedActionIds, setCheckedActionIds] = useState<Set<string>>(new Set());
   const [proposalDecision, setProposalDecision] = useState<"accepted" | "rejected" | null>(null);
@@ -123,7 +131,6 @@ export default function ArticleDetailsPanel({
       return;
     }
 
-    // Dummy-Zustand pro Artikel zurücksetzen, wenn ein neuer Artikel geöffnet wird.
     setCheckedIssueIds(new Set());
     setCheckedActionIds(new Set());
     setProposalDecision(null);
@@ -237,13 +244,7 @@ export default function ArticleDetailsPanel({
               </Box>
             </Box>
           </Box>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Schließen"
-            onClick={onClose}
-            label="✕"
-          />
+          <Button variant="ghost" size="icon" aria-label="Schließen" onClick={onClose} label="✕" />
         </Box>
 
         <div className="p-4 overflow-y-auto flex-1">
@@ -287,7 +288,7 @@ export default function ArticleDetailsPanel({
                     <span className="text-red-600 dark:text-red-400">{detailError}</span>
                   ) : (
                     (aiSummaryText ??
-                      "Höchste Retourenquote im Sortiment. Die Beschreibung weicht spürbar vom tatsächlichen Produkt ab, was zu vermehrten Rücksendungen führt. Sofortiger Handlungsbedarf.")
+                    "Höchste Retourenquote im Sortiment. Die Beschreibung weicht spürbar vom tatsächlichen Produkt ab, was zu vermehrten Rücksendungen führt. Sofortiger Handlungsbedarf.")
                   )}
                 </div>
               </CardContent>
