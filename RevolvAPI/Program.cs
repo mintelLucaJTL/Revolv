@@ -70,6 +70,13 @@ builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IReturnAnalyticsService, ReturnAnalyticsService>();
 builder.Services.AddHttpClient<IAiService, AiService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IArticleAnalysisService, ArticleAnalysisService>();
+
+// Ticket #252: automatische KI-Analyse bei neuen QualityIssues (ShopSetting.AutoAnalyzeNewIssues).
+// Singleton, da AppDbContext (scoped, pro Request) und der Background-Service denselben
+// In-Memory-Channel teilen müssen.
+builder.Services.AddSingleton<IAutoAnalysisQueue, AutoAnalysisQueue>();
+builder.Services.AddHostedService<AutoAnalysisBackgroundService>();
 
 var app = builder.Build();
 

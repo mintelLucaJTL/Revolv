@@ -72,6 +72,7 @@ BEGIN
         AiRecommendationId INT NOT NULL,
         IssueText NVARCHAR(MAX) NOT NULL,
         Status NVARCHAR(50) NOT NULL DEFAULT 'Offen',
+        AutoAnalyzedAt DATETIME2 NULL,
         CONSTRAINT FK_QualityIssues_AiRecommendations
             FOREIGN KEY (AiRecommendationId)
             REFERENCES revolv.AiRecommendations(Id)
@@ -79,7 +80,27 @@ BEGIN
 END
 GO
 
--- DescriptionProposals
+-- Ticket #252: automatische KI-Analyse bei neuen QualityIssues (ShopSetting.AutoAnalyzeNewIssues).
+-- AutoAnalyzedAt = wann der Background-Job dieses Issue geclaimt/bearbeitet hat (NULL = noch
+-- nicht). Siehe auch Database/dbo.QualityIssues_AddAutoAnalyzedAt.sql.
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.QualityIssues') AND name = 'AutoAnalyzedAt'
+)
+BEGIN
+    ALTER TABLE dbo.QualityIssues ADD AutoAnalyzedAt DATETIME2 NULL;
+
+    -- Bereits vor diesem Feature vorhandene Issues gelten nicht als "neu" - sie sollen vom
+    -- Restart-Recovery-Scan des Background-Jobs nicht rückwirkend automatisch analysiert werden.
+    UPDATE dbo.QualityIssues
+    SET AutoAnalyzedAt = SYSUTCDATETIME()
+    WHERE AutoAnalyzedAt IS NULL;
+END
+GO
+
+-- -----------------------------------------------------------------------------
+-- 5) revolv.DescriptionProposals (FK -> revolv.AiRecommendations)
+-- -----------------------------------------------------------------------------
 IF OBJECT_ID(N'revolv.DescriptionProposals', N'U') IS NULL
 BEGIN
     CREATE TABLE [revolv].[DescriptionProposals] (

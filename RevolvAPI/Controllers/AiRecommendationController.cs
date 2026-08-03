@@ -15,13 +15,13 @@ namespace RevolvAPI.Controllers
     public class AiRecommendationController : ControllerBase
     {
         private readonly AppDbContext _ctx;
-        private readonly IAiService _aiService;
+        private readonly IArticleAnalysisService _articleAnalysisService;
         private readonly IReturnAnalyticsService _returnAnalytics;
 
-        public AiRecommendationController(AppDbContext ctx, IAiService aiService, IReturnAnalyticsService returnAnalytics)
+        public AiRecommendationController(AppDbContext ctx, IArticleAnalysisService articleAnalysisService, IReturnAnalyticsService returnAnalytics)
         {
             _ctx = ctx;
-            _aiService = aiService;
+            _articleAnalysisService = articleAnalysisService;
             _returnAnalytics = returnAnalytics;
         }
 
@@ -206,73 +206,22 @@ namespace RevolvAPI.Controllers
             return Ok(dto);
         }
 
+        // POST api/ai/analyze/{articleId}
+        // Startet die KI-Analyse für einen Artikel manuell. Die eigentliche Logik lebt in
+        // ArticleAnalysisService (Ticket #252) und wird von dort auch vom automatischen
+        // Background-Job (AutoAnalysisBackgroundService) für ShopSetting.AutoAnalyzeNewIssues
+        // wiederverwendet.
         [HttpPost("analyze/{articleId}")]
         public async Task<IActionResult> AnalyzeArticle(int articleId)
         {
-            var articleInfo = (await _returnAnalytics.GetArticleDisplayInfoAsync(new[] { articleId }))
-                .GetValueOrDefault(articleId);
+            var recommendationId = await _articleAnalysisService.AnalyzeArticleAsync(articleId);
 
-            if (articleInfo == null)
+            if (recommendationId == null)
             {
                 return NotFound(new { message = "Artikel nicht gefunden." });
             }
 
-            var existingRecommendations = await _ctx.AiRecommendations
-                .Include(r => r.QualityIssues)
-                .Include(r => r.DescriptionProposals)
-                .Where(r => r.ArtikelId == articleId)
-                .ToListAsync();
-
-            var returnReasons = existingRecommendations
-                .SelectMany(r => r.QualityIssues)
-                .Select(q => q.IssueText)
-                .Where(t => !string.IsNullOrWhiteSpace(t))
-                .Select(t => t!)
-                .Distinct()
-                .ToList();
-
-            var currentDescription = existingRecommendations
-                .SelectMany(r => r.DescriptionProposals)
-                .Select(d => d.CurrentText)
-                .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
-
-            var aiResult = await _aiService.AnalyzeArticleAsync(
-                articleInfo.Name ?? "Unbekannter Artikel",
-                currentDescription,
-                returnReasons);
-
-            var recommendation = new AiRecommendation
-            {
-                ArtikelId = articleId,
-                AiSummaryText = aiResult.Summary,
-                IsFullyResolved = false,
-            };
-
-            foreach (var proposal in aiResult.DescriptionProposals)
-            {
-                recommendation.DescriptionProposals.Add(new DescriptionProposal
-                {
-                    CurrentText = proposal.CurrentText ?? currentDescription,
-                    ProposedText = proposal.ProposedText,
-                    Status = "Ausstehend",
-                });
-            }
-
-            foreach (var action in aiResult.ActionRecommendations)
-            {
-                recommendation.ActionRecommendations.Add(new ActionRecommendation
-                {
-                    ActionText = action.ActionText,
-                    ImpactBadge = action.ImpactBadge,
-                    Priority = action.Priority,
-                    IsCompleted = false,
-                });
-            }
-
-            _ctx.AiRecommendations.Add(recommendation);
-            await _ctx.SaveChangesAsync();
-
-            return Ok(new { recommendationId = recommendation.Id });
+            return Ok(new { recommendationId });
         }
     }
 }
