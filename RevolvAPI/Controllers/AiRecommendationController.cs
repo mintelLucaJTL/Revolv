@@ -16,11 +16,13 @@ namespace RevolvAPI.Controllers
     {
         private readonly AppDbContext _ctx;
         private readonly IAiService _aiService;
+        private readonly IReturnAnalyticsService _returnAnalytics;
 
-        public AiRecommendationController(AppDbContext ctx, IAiService aiService)
+        public AiRecommendationController(AppDbContext ctx, IAiService aiService, IReturnAnalyticsService returnAnalytics)
         {
             _ctx = ctx;
             _aiService = aiService;
+            _returnAnalytics = returnAnalytics;
         }
 
         // Status values that mark an AI task as resolved. Any other value
@@ -114,17 +116,14 @@ namespace RevolvAPI.Controllers
             var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx);
 
             var rows = await _ctx.AiRecommendations
-                .Include(r => r.Article)
+                .AsNoTracking()
                 .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
                 .Include(r => r.ActionRecommendations)
                 .Select(r => new
                 {
                     r.Id,
-                    ArticleNumber = r.Article.ArticleNumber,
-                    Name = r.Article.Name,
-                    Category = r.Article.Category,
-                    Size = r.Article.Size,
+                    r.ArtikelId,
                     r.ReturnRate,
                     HasQualityBadge = r.QualityIssues.Any(),
                     HasDescriptionBadge = r.DescriptionProposals.Any(),
@@ -138,19 +137,24 @@ namespace RevolvAPI.Controllers
                 })
                 .ToListAsync();
 
-            var overview = rows.Select(r => new AiRecommendationOverviewDto
+            var articleInfo = await _returnAnalytics.GetArticleDisplayInfoAsync(rows.Select(r => r.ArtikelId));
+
+            var overview = rows.Select(r =>
             {
-                Id = r.Id,
-                ArticleNumber = r.ArticleNumber,
-                Name = r.Name,
-                Category = r.Category,
-                Size = r.Size,
-                ReturnRate = ReturnRateBandService.Classify(r.ReturnRate, yellowThreshold, redThreshold),
-                HasQualityBadge = r.HasQualityBadge,
-                HasDescriptionBadge = r.HasDescriptionBadge,
-                HasRecommendationBadge = r.HasRecommendationBadge,
-                OpenCount = r.OpenCount,
-                ResolvedCount = r.ResolvedCount,
+                var info = articleInfo.GetValueOrDefault(r.ArtikelId);
+                return new AiRecommendationOverviewDto
+                {
+                    Id = r.Id,
+                    ArticleNumber = info?.Sku ?? string.Empty,
+                    Name = info?.Name ?? string.Empty,
+                    Category = info?.Category ?? string.Empty,
+                    ReturnRate = ReturnRateBandService.Classify(r.ReturnRate, yellowThreshold, redThreshold),
+                    HasQualityBadge = r.HasQualityBadge,
+                    HasDescriptionBadge = r.HasDescriptionBadge,
+                    HasRecommendationBadge = r.HasRecommendationBadge,
+                    OpenCount = r.OpenCount,
+                    ResolvedCount = r.ResolvedCount,
+                };
             }).ToList();
 
             return Ok(overview);
@@ -161,23 +165,25 @@ namespace RevolvAPI.Controllers
         public async Task<IActionResult> GetRecommendation(int articleId)
         {
             var recommendation = await _ctx.AiRecommendations
-                .Include(r => r.Article)
+                .AsNoTracking()
                 .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
                 .Include(r => r.ActionRecommendations)
-                .FirstOrDefaultAsync(r => r.ArticleId == articleId);
+                .FirstOrDefaultAsync(r => r.ArtikelId == articleId);
 
             if (recommendation == null)
                 return NotFound(new { message = "Keine KI-Empfehlungen für diesen Artikel gefunden." });
 
+            var articleInfo = (await _returnAnalytics.GetArticleDisplayInfoAsync(new[] { articleId }))
+                .GetValueOrDefault(articleId);
+
             // In DTO umwandeln ohne Circular References
             var dto = new AiRecommendationDetailDto
             {
-                ArticleId = recommendation.Article!.Id,
-                ArticleNumber = recommendation.Article.ArticleNumber,
-                ArticleName = recommendation.Article.Name,
-                Category = recommendation.Article.Category,
-                Size = recommendation.Article.Size,
+                ArticleId = articleId,
+                ArticleNumber = articleInfo?.Sku,
+                ArticleName = articleInfo?.Name,
+                Category = articleInfo?.Category,
                 AiSummaryText = recommendation.AiSummaryText,
                 ReturnRate = recommendation.ReturnRate,
                 IsFullyResolved = recommendation.IsFullyResolved,
@@ -219,18 +225,22 @@ namespace RevolvAPI.Controllers
         [HttpPost("analyze/{articleId}")]
         public async Task<IActionResult> AnalyzeArticle(int articleId)
         {
-            var article = await _ctx.Articles
-                .Include(a => a.AiRecommendations)
-                    .ThenInclude(r => r.QualityIssues)
-                .FirstOrDefaultAsync(a => a.Id == articleId);
+            var articleInfo = (await _returnAnalytics.GetArticleDisplayInfoAsync(new[] { articleId }))
+                .GetValueOrDefault(articleId);
 
-            if (article == null)
+            if (articleInfo == null)
             {
                 return NotFound(new { message = "Artikel nicht gefunden." });
             }
 
+            var existingRecommendations = await _ctx.AiRecommendations
+                .Include(r => r.QualityIssues)
+                .Include(r => r.DescriptionProposals)
+                .Where(r => r.ArtikelId == articleId)
+                .ToListAsync();
+
             // Retourengründe aus allen bisherigen QualityIssues des Artikels sammeln.
-            var returnReasons = article.AiRecommendations
+            var returnReasons = existingRecommendations
                 .SelectMany(r => r.QualityIssues)
                 .Select(q => q.IssueText)
                 .Where(t => !string.IsNullOrWhiteSpace(t))
@@ -238,20 +248,20 @@ namespace RevolvAPI.Controllers
                 .Distinct()
                 .ToList();
 
-            var currentDescription = article.AiRecommendations
+            var currentDescription = existingRecommendations
                 .SelectMany(r => r.DescriptionProposals)
                 .Select(d => d.CurrentText)
                 .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
 
             var aiResult = await _aiService.AnalyzeArticleAsync(
-                article.Name ?? "Unbekannter Artikel",
+                articleInfo.Name ?? "Unbekannter Artikel",
                 currentDescription,
                 returnReasons);
 
             // Antwort der KI in echte DB-Modelle umwandeln.
             var recommendation = new AiRecommendation
             {
-                ArticleId = article.Id,
+                ArtikelId = articleId,
                 AiSummaryText = aiResult.Summary,
                 IsFullyResolved = false,
             };

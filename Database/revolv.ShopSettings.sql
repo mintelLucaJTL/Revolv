@@ -1,4 +1,4 @@
-USE eazybusiness;
+USE revolv;
 GO
 
 -- Create the 'ShopSettings' table in the 'revolv' schema

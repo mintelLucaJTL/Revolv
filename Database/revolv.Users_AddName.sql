@@ -1,4 +1,4 @@
-USE eazybusiness;
+USE revolv;
 GO
 
 -- Adds the "Name" column to revolv.Users so users can have a display name

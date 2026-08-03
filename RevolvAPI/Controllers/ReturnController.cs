@@ -14,33 +14,46 @@ namespace RevolvAPI.Controllers
     public class ReturnController : ControllerBase
     {
         private readonly AppDbContext _ctx;
+        private readonly IReturnAnalyticsService _returnAnalytics;
 
-
-        public ReturnController(AppDbContext ctx) => _ctx = ctx;
+        public ReturnController(AppDbContext ctx, IReturnAnalyticsService returnAnalytics)
+        {
+            _ctx = ctx;
+            _returnAnalytics = returnAnalytics;
+        }
 
         // band (optional): "red" | "yellow" | "green" - filtert auf die Ampel-Risikoklasse (siehe DashboardController.GetTrafficLightKpis).
+        //
+        // Die Retourenquote, der häufigste Retourengrund und die Liste selbst kommen komplett
+        // aus den echten JTL-WAWI-Daten (ReturnAnalyticsService) - das funktioniert auch ohne
+        // jede KI-Analyse. Der KI-Status ("AiStatus") ist eine optionale Zusatzinfo, die nur
+        // angezeigt wird, wenn für den Artikel bereits eine AiRecommendation existiert.
         [HttpGet("returns")]
         public async Task<IActionResult> GetArticleReturns([FromQuery] string? band = null)
         {
-            // Lade Artikel inkl. AiRecommendations, deren QualityIssues (nötig für MostFrequentReason)
-            // und DescriptionProposals (nötig für den granularen KI-Status).
-            var articles = await _ctx.Articles
-                                     .Include(a => a.AiRecommendations)
-                                         .ThenInclude(ar => ar.QualityIssues)
-                                     .Include(a => a.AiRecommendations)
-                                         .ThenInclude(ar => ar.DescriptionProposals)
-                                     .ToListAsync();
+            // GetArticleReturnMetricsAsync liefert bereits nur die "relevanten" Artikel (mind.
+            // einmal verkauft oder retourniert) - nicht den kompletten Katalog inkl. nie
+            // verkaufter Varianten. Damit die Ampel-Kacheln auf dem Dashboard (die dieselbe
+            // Datenbasis nutzen) und diese Tabelle konsistent bleiben, wird hier NICHT
+            // zusätzlich auf "hat Retoure" gefiltert - sonst würde z. B. ein Klick auf die
+            // "Grün"-Kachel (Artikel mit 0% Retourenquote) auf eine leere Liste führen.
+            var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
 
-            //  In-memory Mapping: ReturnRate, AiStatus, Color und MostFrequentReason berechnen
-            var dtos = articles
-                .Select(a =>
+            // KI-Status optional nachladen (nur für Artikel, die überhaupt eine KI-Empfehlung haben).
+            var artikelIds = metrics.Select(m => m.ArtikelId).ToList();
+            var aiRecommendations = await _ctx.AiRecommendations
+                .AsNoTracking()
+                .Include(r => r.DescriptionProposals)
+                .Where(r => artikelIds.Contains(r.ArtikelId))
+                .ToListAsync();
+            var aiRecsByArticle = aiRecommendations
+                .GroupBy(r => r.ArtikelId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var dtos = metrics
+                .Select(m =>
                 {
-                    var recs = a.AiRecommendations;
-
-                    // höchste ReturnRate aus den KI-Empfehlungen (oder 0)
-                    var maxReturn = (recs != null && recs.Any())
-                        ? recs.Max(r => r.ReturnRate ?? 0m)
-                        : 0m;
+                    var recs = aiRecsByArticle.GetValueOrDefault(m.ArtikelId);
 
                     // Granularer KI-Status, abgeleitet vom Review-Status der KI-Textvorschläge:
                     // Keine Empfehlung / Angenommen / Abgelehnt / Ausstehend (gemischt oder ungeprüft) / Gelöst (kein Vorschlag zu prüfen).
@@ -67,27 +80,15 @@ namespace RevolvAPI.Controllers
                         status = recs.All(r => r.IsFullyResolved) ? "Gelöst" : "Ausstehend";
                     }
 
-                    // Häufigster IssueText aus allen QualityIssues der Empfehlungen
-                    var mostFrequentReason = recs?
-                        .SelectMany(r => r.QualityIssues ?? new List<QualityIssue>()) // alle QualityIssues sammeln
-                        .Select(q => (q.IssueText ?? "Unbekannt").Trim())
-                        .Where(t => !string.IsNullOrEmpty(t))
-                        .GroupBy(t => t)
-                        .OrderByDescending(g => g.Count())
-                        .Select(g => g.Key)
-                        .FirstOrDefault();
-
                     return new ArticleTableDTO
                     {
-                        id = a.Id,
-                        ArticleNumber = a.ArticleNumber,
-                        Name = a.Name,
-                        Category = a.Category,
-                        Size = a.Size,
-                        ReturnRate = maxReturn,
+                        id = m.ArtikelId,
+                        ArticleNumber = m.Sku,
+                        Name = m.Name,
+                        Category = m.Category,
+                        ReturnRate = m.ReturnRatePercent,
                         AiStatus = status,
-                        color = a.Color, // DTO-Eigenschaft heißt aktuell 'color'
-                        MostFrequentReason = mostFrequentReason
+                        MostFrequentReason = m.MostFrequentReason
                     };
                 })
                 .OrderByDescending(d => d.ReturnRate)

@@ -76,6 +76,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<IReturnAnalyticsService, ReturnAnalyticsService>();
 // AddHttpClient<TInterface, TImplementation> registriert AiService UND injiziert einen verwalteten HttpClient hinein.
 builder.Services.AddHttpClient<IAiService, AiService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
