@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using RevolvAPI.Models;
+using RevolvAPI.Services;
 
 namespace RevolvAPI.Controllers
 {
@@ -13,7 +14,13 @@ namespace RevolvAPI.Controllers
     public class AiController : ControllerBase
     {
         private readonly AppDbContext _ctx;
-        public AiController(AppDbContext ctx) => _ctx = ctx;
+        private readonly IReturnAnalyticsService _returnAnalytics;
+
+        public AiController(AppDbContext ctx, IReturnAnalyticsService returnAnalytics)
+        {
+            _ctx = ctx;
+            _returnAnalytics = returnAnalytics;
+        }
 
         // GET api/ai/recommendations?filter=quality|description
         // Kompakte Liste aller Artikel mit offenen KI-Maßnahmen für die Übersichtskacheln
@@ -40,10 +47,7 @@ namespace RevolvAPI.Controllers
                 .Select(r => new
                 {
                     r.Id,
-                    r.Article.ArticleNumber,
-                    r.Article.Name,
-                    r.Article.Category,
-                    r.Article.Size,
+                    r.ArtikelId,
                     r.ReturnRate,
                     HasQuality = r.QualityIssues.Any(),
                     HasDescription = r.DescriptionProposals.Any(),
@@ -52,17 +56,23 @@ namespace RevolvAPI.Controllers
                 })
                 .ToListAsync();
 
-            var dtos = rows.Select(r => new AiRecommendationListDto
+            // Artikel-Anzeigedaten (Sku/Name/Kategorie) für die betroffenen Artikel aus der WAWI nachladen.
+            var articleInfo = await _returnAnalytics.GetArticleDisplayInfoAsync(rows.Select(r => r.ArtikelId));
+
+            var dtos = rows.Select(r =>
             {
-                Id = r.Id,
-                ArticleNumber = r.ArticleNumber,
-                Name = r.Name,
-                Category = r.Category,
-                Size = r.Size,
-                ReturnRate = r.ReturnRate,
-                OpenActionsCount = r.OpenActionsCount,
-                TotalActionsCount = r.TotalActionsCount,
-                Tags = BuildTags(r.HasQuality, r.HasDescription, r.OpenActionsCount > 0),
+                var info = articleInfo.GetValueOrDefault(r.ArtikelId);
+                return new AiRecommendationListDto
+                {
+                    Id = r.Id,
+                    ArticleNumber = info?.Sku,
+                    Name = info?.Name,
+                    Category = info?.Category,
+                    ReturnRate = r.ReturnRate,
+                    OpenActionsCount = r.OpenActionsCount,
+                    TotalActionsCount = r.TotalActionsCount,
+                    Tags = BuildTags(r.HasQuality, r.HasDescription, r.OpenActionsCount > 0),
+                };
             }).ToList();
 
             return Ok(dtos);

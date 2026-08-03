@@ -1,4 +1,4 @@
-USE eazybusiness;
+USE revolv;
 GO
 
 -- Check if the table in the revolv schema already exists

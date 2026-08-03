@@ -1,4 +1,4 @@
-USE eazybusiness;
+USE revolv;
 GO
 
 -- Create the Revolv schema if it doesn't exist

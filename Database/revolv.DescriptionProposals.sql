@@ -1,4 +1,4 @@
-USE eazybusiness;
+USE revolv;
 GO
 
 -- Tabelle im Schema 'revolv' erstellen

@@ -10,7 +10,6 @@
         public string? ArticleNumber { get; set; }
         public string? ArticleName { get; set; }
         public string? Category { get; set; }
-        public string? Size { get; set; }
 
         // SEKTION 2: KI-Zusammenfassung
         public string? AiSummaryText { get; set; }

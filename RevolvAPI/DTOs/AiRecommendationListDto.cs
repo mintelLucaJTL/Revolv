@@ -8,7 +8,6 @@
         public string? ArticleNumber { get; set; }
         public string? Name { get; set; }
         public string? Category { get; set; }
-        public string? Size { get; set; }
         public decimal? ReturnRate { get; set; }
         public int OpenActionsCount { get; set; }
         public int TotalActionsCount { get; set; }
