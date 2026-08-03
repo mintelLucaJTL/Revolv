@@ -13,26 +13,20 @@ import QualityReviewModal from "../components/QualityReviewModal";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../utils/api";
 import { BAND_LABELS, buildReturnsApiUrl, parseBand, type RiskBand } from "../utils/riskBand";
+import type { ReturnItem, SettingsApiDto, ArticleDetailDTO } from "../types/api";
 
-type AIStatus = "Keine Empfehlung" | "Ausstehend" | "Angenommen" | "Abgelehnt" | "Gelöst";
+const DEFAULT_YELLOW_THRESHOLD = 10;
+const DEFAULT_RED_THRESHOLD = 25;
 
-interface ReturnItem {
-  id?: number;
-  articleNumber: string;
-  articleNo?: string;
-  name: string;
-  category: string;
-  size: string;
-  color: string | null;
-  returnRate: number;
-  mostFrequentReason: string | null;
-  reason?: string;
-  aiStatus: AIStatus;
-}
+type ArticlesState =
+  | { status: "loading" }
+  | { status: "ready"; data: ReturnItem[] }
+  | { status: "error"; message: string; staleData: ReturnItem[] };
 
-interface SettingsApiDto {
-  thresholdYellow: number;
-  thresholdRed: number;
+interface ThresholdsState {
+  yellow: number;
+  red: number;
+  isFallback: boolean;
 }
 
 const BAND_CHIP_CLASSES: Record<RiskBand, string> = {
@@ -65,7 +59,7 @@ function rateClasses(rate: number, yellowThreshold: number, redThreshold: number
   };
 }
 
-function aiStatusClasses(status: AIStatus): string {
+function aiStatusClasses(status: ReturnItem["aiStatus"]): string {
   switch (status) {
     case "Angenommen":
     case "Gelöst":
@@ -115,14 +109,19 @@ export default function RetourenAnalyseView() {
   const activeBand = parseBand(searchParams.get("band"));
   const [query, setQuery] = useState("");
   const [desc, setDesc] = useState(true);
-  const [articles, setArticles] = useState<ReturnItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [yellowThreshold, setYellowThreshold] = useState(10);
-  const [redThreshold, setRedThreshold] = useState(25);
+
+  const [articlesState, setArticlesState] = useState<ArticlesState>({ status: "loading" });
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const [thresholds, setThresholds] = useState<ThresholdsState>({
+    yellow: DEFAULT_YELLOW_THRESHOLD,
+    red: DEFAULT_RED_THRESHOLD,
+    isFallback: false,
+  });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<ArticleDetailDTO | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
@@ -135,7 +134,7 @@ export default function RetourenAnalyseView() {
         const text = await res.text();
         throw new Error(`HTTP ${res.status}: ${text}`);
       }
-      const dto = await res.json();
+      const dto = (await res.json()) as ArticleDetailDTO;
       setSelectedDetail(dto);
     } catch (e) {
       console.error("Fehler beim Laden der Artikeldetails:", e);
@@ -162,7 +161,15 @@ export default function RetourenAnalyseView() {
 
   // Also re-run after modal saves so KI-Status stays in sync.
   const loadArticles = async (band: RiskBand | null) => {
-    setIsLoading(true);
+    const hasVisibleData =
+      articlesState.status === "ready" ||
+      (articlesState.status === "error" && articlesState.staleData.length > 0);
+
+    if (hasVisibleData) {
+      setIsRefreshing(true);
+    } else {
+      setArticlesState({ status: "loading" });
+    }
 
     try {
       const response = await apiFetch(buildReturnsApiUrl(band));
@@ -177,29 +184,49 @@ export default function RetourenAnalyseView() {
           data,
         );
       }
-      setArticles(data);
+      setArticlesState({ status: "ready", data });
     } catch (error) {
       console.error("Fehler beim Laden der Retourendaten:", error);
-      setArticles([]);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Die Retourendaten konnten nicht geladen werden.";
+      setArticlesState((prev) => ({
+        status: "error",
+        message,
+        staleData:
+          prev.status === "ready" ? prev.data : prev.status === "error" ? prev.staleData : [],
+      }));
     } finally {
-      setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     void loadArticles(activeBand);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBand]);
 
   useEffect(() => {
     const loadThresholds = async () => {
       try {
         const response = await apiFetch("/api/settings");
-        if (!response.ok) return;
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
         const data = (await response.json()) as SettingsApiDto;
-        setYellowThreshold(Number(data.thresholdYellow));
-        setRedThreshold(Number(data.thresholdRed));
+        setThresholds({
+          yellow: Number(data.thresholdYellow),
+          red: Number(data.thresholdRed),
+          isFallback: false,
+        });
       } catch (error) {
         console.error("Fehler beim Laden der Schwellenwerte:", error);
+        setThresholds({
+          yellow: DEFAULT_YELLOW_THRESHOLD,
+          red: DEFAULT_RED_THRESHOLD,
+          isFallback: true,
+        });
       }
     };
 
@@ -211,6 +238,16 @@ export default function RetourenAnalyseView() {
     next.delete("band");
     setSearchParams(next);
   };
+
+  const articles =
+    articlesState.status === "ready"
+      ? articlesState.data
+      : articlesState.status === "error"
+        ? articlesState.staleData
+        : [];
+
+  const hasError = articlesState.status === "error";
+  const isInitialLoading = articlesState.status === "loading";
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -268,6 +305,15 @@ export default function RetourenAnalyseView() {
                   </button>
                 </div>
               )}
+              {thresholds.isFallback && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+                  title={`Schwellenwerte konnten nicht geladen werden – Standardwerte (${DEFAULT_YELLOW_THRESHOLD}% / ${DEFAULT_RED_THRESHOLD}%) werden verwendet.`}
+                  data-testid="thresholds-fallback-badge"
+                >
+                  Standard-Schwellenwerte aktiv
+                </span>
+              )}
             </div>
             {activeBand && <Button label="Filter löschen" onClick={clearBandFilter} />}
           </div>
@@ -279,20 +325,60 @@ export default function RetourenAnalyseView() {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {hasError && articles.length > 0 && (
+                <div
+                  className="mb-4 flex items-center justify-between gap-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                  role="alert"
+                  data-testid="returns-error-banner"
+                >
+                  <span>
+                    {articlesState.status === "error" ? articlesState.message : ""} — zuletzt
+                    geladene Daten werden weiter angezeigt.
+                  </span>
+                  <Button
+                    label={isRefreshing ? "Lädt…" : "Erneut versuchen"}
+                    onClick={() => void loadArticles(activeBand)}
+                    disabled={isRefreshing}
+                  />
+                </div>
+              )}
+
               <div className="overflow-x-auto">
-                {!isLoading && articles.length === 0 ? (
+                {isInitialLoading ? (
+                  <table className="min-w-full divide-y divide-gray-100 dark:divide-slate-700">
+                    <tbody className="bg-white divide-y divide-gray-100 dark:bg-slate-900 dark:divide-slate-700">
+                      {Array.from({ length: 6 }, (_, index) => (
+                        <TableRowSkeleton key={`table-skeleton-${index}`} />
+                      ))}
+                    </tbody>
+                  </table>
+                ) : hasError && articles.length === 0 ? (
+                  <div className="p-8 text-center text-sm" data-testid="returns-error-state">
+                    <p className="mb-3 text-red-600 dark:text-red-400">
+                      {articlesState.status === "error"
+                        ? articlesState.message
+                        : "Unbekannter Fehler."}
+                    </p>
+                    <Button
+                      label={isRefreshing ? "Lädt…" : "Erneut versuchen"}
+                      onClick={() => void loadArticles(activeBand)}
+                      disabled={isRefreshing}
+                    />
+                  </div>
+                ) : articles.length === 0 ? (
                   <div
                     className="p-8 text-center text-sm text-slate-500 dark:text-slate-400"
                     data-testid="returns-empty-state"
                   >
                     {emptyMessage}
                   </div>
-                ) : !isLoading && visible.length === 0 ? (
+                ) : visible.length === 0 ? (
                   <div
                     className="p-8 text-center text-sm text-slate-500 dark:text-slate-400"
-                    data-testid="returns-empty-state"
+                    data-testid="returns-empty-search-state"
                   >
-                    Keine Artikel entsprechen der aktuellen Suche.
+                    <p className="mb-3">Keine Treffer für den Suchbegriff „{query}“.</p>
+                    <Button label="Suche zurücksetzen" onClick={() => setQuery("")} />
                   </div>
                 ) : (
                   <table className="min-w-full divide-y divide-gray-100 dark:divide-slate-700">
@@ -325,80 +411,76 @@ export default function RetourenAnalyseView() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100 dark:bg-slate-900 dark:divide-slate-700">
-                      {isLoading
-                        ? Array.from({ length: 6 }, (_, index) => (
-                            <TableRowSkeleton key={`table-skeleton-${index}`} />
-                          ))
-                        : visible.map((row) => {
-                            const rc = rateClasses(row.returnRate, yellowThreshold, redThreshold);
-                            return (
-                              <tr
-                                key={row.id ?? row.articleNumber}
-                                className="hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-                                onClick={async () => {
-                                  const id = row.id ?? row.articleNumber;
+                      {visible.map((row) => {
+                        const rc = rateClasses(row.returnRate, thresholds.yellow, thresholds.red);
+                        return (
+                          <tr
+                            key={row.id ?? row.articleNumber}
+                            className="hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                            onClick={async () => {
+                              const id = row.id ?? row.articleNumber;
 
-                                  if (id === undefined || id === null) {
-                                    console.error(
-                                      "Retouren-Analyse: Artikel-ID und articleNumber fehlen für row",
-                                      row,
-                                    );
-                                    setSelectedId(null);
-                                    setSelectedDetail(null);
-                                    setDetailError(
-                                      "Keine gültige Artikelkennung verfügbar. Bitte Backend /api/articles/returns prüfen.",
-                                    );
-                                    setDetailLoading(false);
-                                    setIsModalOpen(true);
-                                    return;
-                                  }
+                              if (id === undefined || id === null) {
+                                console.error(
+                                  "Retouren-Analyse: Artikel-ID und articleNumber fehlen für row",
+                                  row,
+                                );
+                                setSelectedId(null);
+                                setSelectedDetail(null);
+                                setDetailError(
+                                  "Keine gültige Artikelkennung verfügbar. Bitte Backend /api/articles/returns prüfen.",
+                                );
+                                setDetailLoading(false);
+                                setIsModalOpen(true);
+                                return;
+                              }
 
-                                  setSelectedId(id);
-                                  setSelectedDetail(null);
-                                  setIsModalOpen(true);
-                                  await fetchArticleDetail(id);
-                                }}
+                              setSelectedId(id);
+                              setSelectedDetail(null);
+                              setIsModalOpen(true);
+                              await fetchArticleDetail(id);
+                            }}
+                          >
+                            <td className="px-4 py-4 text-sm text-gray-400 dark:text-slate-500">
+                              {row.articleNumber}
+                            </td>
+                            <td className="px-4 py-4 font-semibold text-slate-900 dark:text-slate-100">
+                              {row.name}
+                            </td>
+                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
+                              {row.category}
+                            </td>
+                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
+                              {row.size}
+                            </td>
+                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
+                              {row.color ?? "—"}
+                            </td>
+                            <td className="px-4 py-4">
+                              <span
+                                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border border-transparent ${rc.bg}`}
                               >
-                                <td className="px-4 py-4 text-sm text-gray-400 dark:text-slate-500">
-                                  {row.articleNumber}
-                                </td>
-                                <td className="px-4 py-4 font-semibold text-slate-900 dark:text-slate-100">
-                                  {row.name}
-                                </td>
-                                <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                                  {row.category}
-                                </td>
-                                <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                                  {row.size}
-                                </td>
-                                <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                                  {row.color ?? "—"}
-                                </td>
-                                <td className="px-4 py-4">
-                                  <span
-                                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border border-transparent ${rc.bg}`}
-                                  >
-                                    <span className={`w-2 h-2 rounded-full ${rc.dot}`} />
-                                    <span className={`font-semibold ${rc.text}`}>
-                                      {row.returnRate.toFixed(1)}%
-                                    </span>
-                                  </span>
-                                </td>
-                                <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                                  {row.mostFrequentReason ?? "—"}
-                                </td>
-                                <td className="px-4 py-4 text-sm">
-                                  <span
-                                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${aiStatusClasses(
-                                      row.aiStatus,
-                                    )}`}
-                                  >
-                                    {row.aiStatus}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
+                                <span className={`w-2 h-2 rounded-full ${rc.dot}`} />
+                                <span className={`font-semibold ${rc.text}`}>
+                                  {row.returnRate.toFixed(1)}%
+                                </span>
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
+                              {row.mostFrequentReason ?? "—"}
+                            </td>
+                            <td className="px-4 py-4 text-sm">
+                              <span
+                                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${aiStatusClasses(
+                                  row.aiStatus,
+                                )}`}
+                              >
+                                {row.aiStatus}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}
