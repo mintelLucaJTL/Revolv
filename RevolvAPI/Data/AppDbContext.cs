@@ -1,12 +1,21 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Models;
 using RevolvAPI.Models.Wawi;
+using RevolvAPI.Services;
 
 namespace RevolvAPI.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+        // Optional (default null) so tests/tools that construct AppDbContext directly with just
+        // DbContextOptions keep working without wiring up the auto-analysis queue.
+        private readonly IAutoAnalysisQueue? _autoAnalysisQueue;
+
+        public AppDbContext(DbContextOptions<AppDbContext> options, IAutoAnalysisQueue? autoAnalysisQueue = null)
+            : base(options)
+        {
+            _autoAnalysisQueue = autoAnalysisQueue;
+        }
 
         // DbSets -> Tables in the database (App-eigenes Schema "revolv")
         public DbSet<User> Users { get; set; }
@@ -28,6 +37,34 @@ namespace RevolvAPI.Data
         public DbSet<WawiReturnReasonTranslation> WawiReturnReasonTranslations { get; set; }
         public DbSet<WawiReturnStatus> WawiReturnStatuses { get; set; }
         public DbSet<WawiSalesInvoiceLineItem> WawiSalesInvoiceLineItems { get; set; }
+
+        // Ticket #252: sobald neue QualityIssues erfolgreich gespeichert wurden, für jedes davon
+        // IAutoAnalysisQueue.QueueQualityIssue aufrufen - unabhängig davon, welcher Code-Pfad
+        // (Controller, künftiger Import-Job, ...) sie über EF angelegt hat. Das Einreihen selbst
+        // ist eine reine In-Memory-Übergabe (kein Provider-Call), blockiert also den
+        // Request-Thread nicht. Ob wirklich automatisch analysiert wird, entscheidet erst
+        // AutoAnalysisBackgroundService anhand von ShopSetting.AutoAnalyzeNewIssues.
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var newIssues = _autoAnalysisQueue == null
+                ? null
+                : ChangeTracker.Entries<QualityIssue>()
+                    .Where(e => e.State == EntityState.Added)
+                    .Select(e => e.Entity)
+                    .ToList();
+
+            var result = await base.SaveChangesAsync(cancellationToken);
+
+            if (newIssues is { Count: > 0 })
+            {
+                foreach (var issue in newIssues)
+                {
+                    _autoAnalysisQueue!.QueueQualityIssue(issue.Id);
+                }
+            }
+
+            return result;
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
