@@ -6,14 +6,8 @@ import TopNavigationBar from "../components/TopNavigationBar";
 import ArticleDetailsPanel from "../components/ArticleDetailsPanel";
 import { apiFetch } from "../utils/api";
 
-/**
- * Filter-Labels für die obere Filterleiste.
- */
 const filters = ["Alle Artikel", "Qualität", "Beschreibung", "Empfehlungen"];
 
-/**
- * Typdefinition für die Artikelübersicht im Frontend.
- */
 interface ArticleOverview {
   id: number;
   name: string;
@@ -29,9 +23,6 @@ interface ArticleOverview {
   imageUrl?: string;
 }
 
-/**
- * API-Datentyp, wie er vom Backend zurückkommen kann.
- */
 interface ArticleOverviewApiDto {
   id: number;
   name: string;
@@ -47,9 +38,6 @@ interface ArticleOverviewApiDto {
   imageUrl?: string;
 }
 
-/**
- * Beispiel-Daten für den Fallback, wenn das Backend keine Artikel liefert.
- */
 const sampleArticles: ArticleOverview[] = [
   {
     id: 1001,
@@ -113,9 +101,6 @@ function ArticleCardSkeleton() {
   );
 }
 
-/**
- * Header-Komponente für die KI-Empfehlungsseite.
- */
 interface AIRecommendationHeaderProps {
   title?: string;
   openCount?: number;
@@ -174,9 +159,6 @@ function AIRecommendationHeader({
   );
 }
 
-/**
- * Hauptseite für die KI-Empfehlungs-Ansicht.
- */
 export default function AIRecommendationView() {
   const [articles, setArticles] = useState<ArticleOverview[]>([]);
   const [loading, setLoading] = useState(true);

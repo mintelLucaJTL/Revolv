@@ -48,9 +48,7 @@ export default function KpiCard({
       role={isInteractive ? "button" : undefined}
       tabIndex={isInteractive ? 0 : undefined}
       aria-label={
-        smallLabel
-          ? `${smallLabel} – zur Retourenanalyse filtern`
-          : "Zur Retourenanalyse filtern"
+        smallLabel ? `${smallLabel} – zur Retourenanalyse filtern` : "Zur Retourenanalyse filtern"
       }
       onKeyDown={
         isInteractive

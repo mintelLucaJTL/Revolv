@@ -1,6 +1,4 @@
--- Artikel-Stammdaten kommen jetzt aus der echten JTL-WAWI (dbo.tArtikel/dbo.tArtikelBeschreibung)
--- statt aus einer eigenen 'revolv.Articles'-Tabelle. AiRecommendations.ArtikelId zeigt direkt
--- auf dbo.tArtikel.kArtikel.
+-- Joins WAWI articles to AiRecommendations / QualityIssues (ArtikelId = kArtikel).
 SELECT
     art.kArtikel AS ArtikelId,
     art.cArtNr AS ArticleNumber,

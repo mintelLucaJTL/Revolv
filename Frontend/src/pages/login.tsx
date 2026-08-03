@@ -73,11 +73,7 @@ export default function LoginPage() {
       <Box className="flex flex-col items-center justify-center flex-1 p-12">
         <Card className="max-w-[450px] w-full dark:bg-slate-900 dark:border-slate-700">
           <CardHeader className="items-center">
-            <LogIn
-              size={40}
-              className="text-slate-900 dark:text-slate-100"
-              strokeWidth={1.5}
-            />
+            <LogIn size={40} className="text-slate-900 dark:text-slate-100" strokeWidth={1.5} />
             <CardTitle className="dark:text-slate-100">Welcome Back</CardTitle>
             <Badge label="login" variant="default"></Badge>
           </CardHeader>
@@ -117,9 +113,7 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {error ? (
-              <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
-            ) : null}
+            {error ? <div className="text-sm text-red-600 dark:text-red-400">{error}</div> : null}
 
             <Button label="Sign In" variant="default" onClick={handleLogin} />
             <div className="text-center text-sm text-muted-foreground dark:text-slate-400">

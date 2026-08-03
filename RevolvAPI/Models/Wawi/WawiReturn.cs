@@ -1,6 +1,6 @@
 namespace RevolvAPI.Models.Wawi
 {
-    // Read-only mapping auf die JTL-WAWI-View DAL.Returns (Basis: dbo.tRMRetoure) - der Kopf einer Retoure.
+    // Read-only map to DAL.Returns (dbo.tRMRetoure).
     public class WawiReturn
     {
         public int Id { get; set; }

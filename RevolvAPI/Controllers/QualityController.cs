@@ -21,13 +21,9 @@ namespace RevolvAPI.Controllers
             _returnAnalytics = returnAnalytics;
         }
 
-        // GET api/quality/open
-        // Liefert eine Liste aller offenen/ausstehenden QualityIssues,
-        // inkl. Artikelnummer und -name (aus der WAWI) zur Anzeige in der Übersichtstabelle.
         [HttpGet("open")]
         public async Task<IActionResult> GetOpenQualityIssues()
         {
-            // Definiere, welche Status als "offen" gelten
             var openStatuses = new[] { "Ausstehend", "Offen" };
 
             var issues = await _ctx.QualityIssues

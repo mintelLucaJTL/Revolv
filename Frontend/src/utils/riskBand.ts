@@ -17,7 +17,5 @@ export function buildRetourenAnalysePath(band: RiskBand): string {
 }
 
 export function buildReturnsApiUrl(band: RiskBand | null): string {
-  return band
-    ? `/api/articles/returns?band=${encodeURIComponent(band)}`
-    : "/api/articles/returns";
+  return band ? `/api/articles/returns?band=${encodeURIComponent(band)}` : "/api/articles/returns";
 }

@@ -3,10 +3,6 @@ using RevolvAPI.Data;
 
 namespace RevolvAPI.Services
 {
-    // Berechnet alle Retouren-Kennzahlen direkt aus den echten JTL-WAWI-Tabellen/Views
-    // (dbo.tRMRetourePos, dbo.tRMRetoure, dbo.tRMGrund, Rechnung.tRechnungPosition, dbo.tArtikel, ...).
-    // Bewusst KI-unabhängig: liefert auch dann sinnvolle Daten, wenn nie eine KI-Analyse
-    // gelaufen ist (siehe AiRecommendation/QualityIssue, die separat als "Overlay" existieren).
     public class ReturnAnalyticsService : IReturnAnalyticsService
     {
         private readonly AppDbContext _ctx;
@@ -18,8 +14,6 @@ namespace RevolvAPI.Services
 
         public async Task<List<ArticleReturnMetric>> GetArticleReturnMetricsAsync()
         {
-            // Retournierte Menge + häufigster Retourengrund je Artikel, in einer Query
-            // vorab nach (Artikel, Grund) aggregiert.
             var lineItemAgg = await _ctx.WawiReturnLineItems
                 .AsNoTracking()
                 .Where(li => li.ItemId != null)
@@ -42,7 +36,6 @@ namespace RevolvAPI.Services
                 .GroupBy(x => x.ArtikelId)
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Count).First().ReturnReasonId!.Value);
 
-            // Verkaufte Menge je Artikel (Nenner der Retourenquote) aus Rechnungspositionen.
             var soldAgg = await _ctx.WawiSalesInvoiceLineItems
                 .AsNoTracking()
                 .Where(si => si.ItemId != null)
@@ -51,11 +44,7 @@ namespace RevolvAPI.Services
                 .ToListAsync();
             var soldByArticle = soldAgg.ToDictionary(x => x.ArtikelId, x => x.Quantity);
 
-            // Artikel-Stammdaten (nur aktive Artikel). Der WAWI-Katalog enthält pro Produkt
-            // neben dem Eltern-Artikel auch alle Varianten (Kind-Artikel, z. B. je Größe/Farbe) -
-            // die allermeisten davon wurden nie verkauft und würden die Analyse nur mit
-            // bedeutungslosen 0%-Zeilen aufblähen. Wir beschränken uns daher auf Artikel, die
-            // mindestens einmal verkauft oder retourniert wurden (echte, relevante Artikel).
+            // Skip never-sold variant SKUs; WAWI catalogs include every size/color child.
             var relevantArticleIds = new HashSet<int>(soldByArticle.Keys);
             relevantArticleIds.UnionWith(returnedByArticle.Keys);
 
@@ -64,10 +53,7 @@ namespace RevolvAPI.Services
                 .Where(i => i.IsActive && relevantArticleIds.Contains(i.Id))
                 .ToListAsync();
 
-            // Artikelname: Master-Beschreibung (ShopId = 0). Ein Artikel kann dort mehrere
-            // Zeilen (je Plattform/Sprache) haben - wir nehmen deterministisch die erste
-            // (kleinste PlattformId/SpracheId). Für Mandanten mit mehreren Sprachen kann das
-            // später um eine "Standardsprache"-Auflösung erweitert werden.
+            // ShopId=0 = master description; pick first platform/language deterministically.
             var descriptions = await _ctx.WawiItemDescriptions
                 .AsNoTracking()
                 .Where(d => d.ShopId == 0)
@@ -199,8 +185,7 @@ namespace RevolvAPI.Services
                 i.ProductGroupId.HasValue ? categoryById.GetValueOrDefault(i.ProductGroupId.Value) : null));
         }
 
-        // Löst Retourengrund-IDs zu ihrem (übersetzten) Namen auf. Nimmt deterministisch die
-        // erste Übersetzung (kleinste LanguageId) - ausreichend für Mandanten mit einer Sprache.
+        // First translation by LanguageId (fine for single-language tenants).
         private async Task<Dictionary<int, string>> GetReasonNamesByIdAsync(IEnumerable<int> reasonIds)
         {
             var ids = reasonIds.Distinct().ToList();

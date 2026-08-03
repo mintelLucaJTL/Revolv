@@ -1,7 +1,6 @@
 namespace RevolvAPI.Models.Wawi
 {
-    // Read-only mapping auf die JTL-WAWI-View DAL.ReturnReasons (Basis: dbo.tRMGrund).
-    // Der Name/Beschreibung steckt nicht hier, sondern in WawiReturnReasonTranslation.
+    // Read-only map to DAL.ReturnReasons (dbo.tRMGrund).
     public class WawiReturnReason
     {
         public int Id { get; set; }

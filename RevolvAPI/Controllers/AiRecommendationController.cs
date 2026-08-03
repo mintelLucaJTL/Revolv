@@ -25,8 +25,7 @@ namespace RevolvAPI.Controllers
             _returnAnalytics = returnAnalytics;
         }
 
-        // Status values that mark an AI task as resolved. Any other value
-        // (e.g. "Offen", "Ausstehend", "In Prüfung", "Ticket erstellt") counts as open.
+        // Statuses that count as resolved; anything else is treated as open.
         private static readonly string[] ResolvedStatuses =
             { "Gelöst", "Erledigt", "Geschlossen", "Akzeptiert", "Abgeschlossen" };
 
@@ -41,10 +40,7 @@ namespace RevolvAPI.Controllers
 
             proposal.Status = dto.Status;
 
-            // Keep the parent recommendation's resolved flag in sync: once every description
-            // proposal has been reviewed (accepted or rejected), the recommendation counts as
-            // resolved for the "KI-Status" column and the dashboard KPIs. Undoing a review
-            // (status back to "Ausstehend") automatically reopens it again.
+            // Sync parent IsFullyResolved once every proposal is accepted or rejected.
             var recommendation = await _ctx.AiRecommendations
                 .Include(r => r.DescriptionProposals)
                 .FirstOrDefaultAsync(r => r.Id == proposal.AiRecommendationId);
@@ -57,11 +53,9 @@ namespace RevolvAPI.Controllers
 
             await _ctx.SaveChangesAsync();
 
-            return NoContent(); // 204 - Änderung erfolgreich gespeichert
+            return NoContent();
         }
 
-        // PATCH api/ai/description/{id}/text
-        // Saves a user-edited version of the AI-proposed description text.
         [HttpPatch("description/{id}/text")]
         public async Task<IActionResult> UpdateDescriptionProposedText(int id, [FromBody] UpdateProposalTextDto dto)
         {
@@ -76,9 +70,6 @@ namespace RevolvAPI.Controllers
             return NoContent();
         }
 
-        // PATCH api/ai/action/{id}/complete
-        // Setzt das Feld 'IsCompleted' für eine ActionRecommendation auf true/false.
-        // Prüft Existenz und speichert die Änderung.
         [HttpPatch("action/{id}/complete")]
         public async Task<IActionResult> SetActionCompletion(int id, [FromBody] UpdateCompletionDto dto)
         {
@@ -92,9 +83,6 @@ namespace RevolvAPI.Controllers
 
             return NoContent();
         }
-        // PATCH api/ai/quality/{id}/status
-        // Aktualisiert das Status-Feld eines QualityIssue-Eintrags.
-        // Gleiche Pattern: Validierung → Laden → Aktualisieren → SaveChanges.
 
         [HttpPatch("quality/{id}/status")]
         public async Task<IActionResult> UpdateQualityStatus(int id, [FromBody] UpdateStatusDto dto)
@@ -177,7 +165,6 @@ namespace RevolvAPI.Controllers
             var articleInfo = (await _returnAnalytics.GetArticleDisplayInfoAsync(new[] { articleId }))
                 .GetValueOrDefault(articleId);
 
-            // In DTO umwandeln ohne Circular References
             var dto = new AiRecommendationDetailDto
             {
                 ArticleId = articleId,
@@ -219,9 +206,6 @@ namespace RevolvAPI.Controllers
             return Ok(dto);
         }
 
-        // POST api/ai/analyze/{articleId}
-        // Startet die KI-Analyse für einen Artikel und persistiert das Ergebnis als neue
-        // AiRecommendation inkl. DescriptionProposal und ActionRecommendations.
         [HttpPost("analyze/{articleId}")]
         public async Task<IActionResult> AnalyzeArticle(int articleId)
         {
@@ -239,7 +223,6 @@ namespace RevolvAPI.Controllers
                 .Where(r => r.ArtikelId == articleId)
                 .ToListAsync();
 
-            // Retourengründe aus allen bisherigen QualityIssues des Artikels sammeln.
             var returnReasons = existingRecommendations
                 .SelectMany(r => r.QualityIssues)
                 .Select(q => q.IssueText)
@@ -258,7 +241,6 @@ namespace RevolvAPI.Controllers
                 currentDescription,
                 returnReasons);
 
-            // Antwort der KI in echte DB-Modelle umwandeln.
             var recommendation = new AiRecommendation
             {
                 ArtikelId = articleId,

@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RevolvAPI.DTOs
 {
-    // DTO für alle Endpoints, die einen neuen Status-Text erwarten
     public class UpdateStatusDto
     {
         [Required]

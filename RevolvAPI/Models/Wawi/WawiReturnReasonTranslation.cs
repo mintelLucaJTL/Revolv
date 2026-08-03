@@ -1,7 +1,6 @@
 namespace RevolvAPI.Models.Wawi
 {
-    // Read-only mapping auf die JTL-WAWI-View DAL.ReturnReasonTranslations (Basis: dbo.tRMGrundSprache).
-    // Übersetzter Name/Beschreibung eines Retourengrunds für eine bestimmte Sprache.
+    // Read-only map to DAL.ReturnReasonTranslations (dbo.tRMGrundSprache).
     public class WawiReturnReasonTranslation
     {
         public int ReturnReasonId { get; set; }

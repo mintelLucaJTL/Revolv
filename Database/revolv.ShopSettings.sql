@@ -1,7 +1,6 @@
 USE revolv;
 GO
 
--- Create the 'ShopSettings' table in the 'revolv' schema
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.ShopSettings') AND type in (N'U'))
 BEGIN
     CREATE TABLE [revolv].[ShopSettings] (

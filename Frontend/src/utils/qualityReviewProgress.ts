@@ -1,6 +1,4 @@
-// Status values that mark a review item as resolved, kept in sync with the backend
-// (see QualityController, AiRecommendationController and the Status defaults on the
-// QualityIssue / DescriptionProposal models).
+// Kept in sync with backend status strings on QualityIssue / DescriptionProposal.
 export const QUALITY_ISSUE_STATUS_RESOLVED = "Erledigt";
 export const QUALITY_ISSUE_STATUS_PENDING = "Ausstehend";
 
@@ -33,14 +31,6 @@ export interface ReviewProgress {
   totalCount: number;
 }
 
-/**
- * Computes the "n / total bearbeitet" summary shown in the quality review modal.
- *
- * The total/reviewed counts are derived from the three independent review items of the
- * currently open article (quality issues, the description proposal, action recommendations)
- * instead of being a value hard-coded by the caller, so the counter always reflects the real
- * state of THIS article.
- */
 export function calculateReviewProgress(input: ReviewProgressInput): ReviewProgress {
   const totalCount =
     input.qualityIssueCount +

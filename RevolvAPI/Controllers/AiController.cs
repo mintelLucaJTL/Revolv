@@ -22,8 +22,7 @@ namespace RevolvAPI.Controllers
             _returnAnalytics = returnAnalytics;
         }
 
-        // GET api/ai/recommendations?filter=quality|description
-        // Kompakte Liste aller Artikel mit offenen KI-Maßnahmen für die Übersichtskacheln
+        // filter: quality | description — optional badge filter for overview tiles
         [HttpGet("recommendations")]
         public async Task<IActionResult> GetRecommendations([FromQuery] string? filter = null)
         {
@@ -56,7 +55,6 @@ namespace RevolvAPI.Controllers
                 })
                 .ToListAsync();
 
-            // Artikel-Anzeigedaten (Sku/Name/Kategorie) für die betroffenen Artikel aus der WAWI nachladen.
             var articleInfo = await _returnAnalytics.GetArticleDisplayInfoAsync(rows.Select(r => r.ArtikelId));
 
             var dtos = rows.Select(r =>

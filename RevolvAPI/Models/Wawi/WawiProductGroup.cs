@@ -1,7 +1,6 @@
 namespace RevolvAPI.Models.Wawi
 {
-    // Read-only mapping auf die JTL-WAWI-View DAL.ProductGroups (Basis: dbo.tWarengruppe).
-    // Wird als "Kategorie" eines Artikels verwendet.
+    // Read-only map to DAL.ProductGroups (dbo.tWarengruppe).
     public class WawiProductGroup
     {
         public int Id { get; set; }

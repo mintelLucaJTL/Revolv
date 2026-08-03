@@ -12,14 +12,8 @@ import Sidebar from "../components/Sidebar";
 import QualityReviewModal from "../components/QualityReviewModal";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../utils/api";
-import {
-  BAND_LABELS,
-  buildReturnsApiUrl,
-  parseBand,
-  type RiskBand,
-} from "../utils/riskBand";
+import { BAND_LABELS, buildReturnsApiUrl, parseBand, type RiskBand } from "../utils/riskBand";
 
-// Values returned by GET /api/articles/returns for the "KI-Status" column (see ReturnController).
 type AIStatus = "Keine Empfehlung" | "Ausstehend" | "Angenommen" | "Abgelehnt" | "Gelöst";
 
 interface ReturnItem {
@@ -49,11 +43,6 @@ const BAND_CHIP_CLASSES: Record<RiskBand, string> = {
     "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-900",
 };
 
-/**
- * Traffic-light colors based on the ShopSettings thresholds
- * (same logic as the Dashboard traffic lights):
- * red > redThreshold, yellow >= yellowThreshold && <= redThreshold, green < yellowThreshold
- */
 function rateClasses(rate: number, yellowThreshold: number, redThreshold: number) {
   if (rate > redThreshold) {
     return {
@@ -76,7 +65,6 @@ function rateClasses(rate: number, yellowThreshold: number, redThreshold: number
   };
 }
 
-// Color coding for the "KI-Status" column, matching the values returned by ReturnController.
 function aiStatusClasses(status: AIStatus): string {
   switch (status) {
     case "Angenommen":
@@ -138,8 +126,6 @@ export default function RetourenAnalyseView() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
-  // Lädt die Artikeldetails für eine gegebene ID; wird sowohl beim Öffnen des Modals
-  // als auch für den Refresh nach einer neuen KI-Analyse verwendet.
   const fetchArticleDetail = async (id: string | number) => {
     setDetailError(null);
     setDetailLoading(true);
@@ -162,7 +148,6 @@ export default function RetourenAnalyseView() {
     }
   };
 
-  // Lädt die Details des aktuell geöffneten Artikels erneut (z.B. nach einer KI-Analyse).
   const refetchSelectedDetail = async () => {
     if (selectedId === null) return;
     await fetchArticleDetail(selectedId);
@@ -175,8 +160,7 @@ export default function RetourenAnalyseView() {
     }
   }, [searchParams]);
 
-  // Extracted so it can also be re-run after the modal saves a change (e.g. accepting a
-  // description proposal), keeping the "KI-Status" column in this table in sync.
+  // Also re-run after modal saves so KI-Status stays in sync.
   const loadArticles = async (band: RiskBand | null) => {
     setIsLoading(true);
 

@@ -2,8 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RevolvAPI.Models.Wawi
 {
-    // Read-only mapping auf die JTL-WAWI-View DAL.ReturnLineItems (Basis: dbo.tRMRetourePos) -
-    // eine einzelne zurückgeschickte Artikelposition innerhalb einer Retoure.
+    // Read-only map to DAL.ReturnLineItems (dbo.tRMRetourePos).
     public class WawiReturnLineItem
     {
         public int Id { get; set; }
