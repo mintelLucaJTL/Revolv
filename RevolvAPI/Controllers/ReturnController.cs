@@ -22,24 +22,13 @@ namespace RevolvAPI.Controllers
             _returnAnalytics = returnAnalytics;
         }
 
-        // band (optional): "red" | "yellow" | "green" - filtert auf die Ampel-Risikoklasse (siehe DashboardController.GetTrafficLightKpis).
-        //
-        // Die Retourenquote, der häufigste Retourengrund und die Liste selbst kommen komplett
-        // aus den echten JTL-WAWI-Daten (ReturnAnalyticsService) - das funktioniert auch ohne
-        // jede KI-Analyse. Der KI-Status ("AiStatus") ist eine optionale Zusatzinfo, die nur
-        // angezeigt wird, wenn für den Artikel bereits eine AiRecommendation existiert.
+        // band (optional): "red" | "yellow" | "green" — same thresholds as dashboard traffic lights.
+        // Do not filter to "has returns" only; green band includes 0% articles shared with the dashboard.
         [HttpGet("returns")]
         public async Task<IActionResult> GetArticleReturns([FromQuery] string? band = null)
         {
-            // GetArticleReturnMetricsAsync liefert bereits nur die "relevanten" Artikel (mind.
-            // einmal verkauft oder retourniert) - nicht den kompletten Katalog inkl. nie
-            // verkaufter Varianten. Damit die Ampel-Kacheln auf dem Dashboard (die dieselbe
-            // Datenbasis nutzen) und diese Tabelle konsistent bleiben, wird hier NICHT
-            // zusätzlich auf "hat Retoure" gefiltert - sonst würde z. B. ein Klick auf die
-            // "Grün"-Kachel (Artikel mit 0% Retourenquote) auf eine leere Liste führen.
             var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
 
-            // KI-Status optional nachladen (nur für Artikel, die überhaupt eine KI-Empfehlung haben).
             var artikelIds = metrics.Select(m => m.ArtikelId).ToList();
             var aiRecommendations = await _ctx.AiRecommendations
                 .AsNoTracking()
@@ -55,8 +44,6 @@ namespace RevolvAPI.Controllers
                 {
                     var recs = aiRecsByArticle.GetValueOrDefault(m.ArtikelId);
 
-                    // Granularer KI-Status, abgeleitet vom Review-Status der KI-Textvorschläge:
-                    // Keine Empfehlung / Angenommen / Abgelehnt / Ausstehend (gemischt oder ungeprüft) / Gelöst (kein Vorschlag zu prüfen).
                     var proposals = recs?.SelectMany(r => r.DescriptionProposals ?? new List<DescriptionProposal>()).ToList()
                         ?? new List<DescriptionProposal>();
 
@@ -76,7 +63,6 @@ namespace RevolvAPI.Controllers
                     }
                     else
                     {
-                        // Kein Textvorschlag zum Prüfen vorhanden - Status kommt vom generellen Resolved-Flag.
                         status = recs.All(r => r.IsFullyResolved) ? "Gelöst" : "Ausstehend";
                     }
 

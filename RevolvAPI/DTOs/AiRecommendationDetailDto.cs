@@ -1,28 +1,18 @@
 ﻿namespace RevolvAPI.DTOs
 {
-    /// <summary>
-    /// Kompletter Detail-DTO für die Modal-Seite ohne Circular References.
-    /// </summary>
     public class AiRecommendationDetailDto
     {
-        // SEKTION 1: Artikel-Info (flach, kein Navigation zurück)
         public int ArticleId { get; set; }
         public string? ArticleNumber { get; set; }
         public string? ArticleName { get; set; }
         public string? Category { get; set; }
 
-        // SEKTION 2: KI-Zusammenfassung
         public string? AiSummaryText { get; set; }
         public decimal? ReturnRate { get; set; }
         public bool IsFullyResolved { get; set; }
 
-        // SEKTION 3: Qualitätsprobleme (Array)
         public List<QualityIssueDetailDto> QualityIssues { get; set; } = new();
-
-        // SEKTION 4: Beschreibungsvorschläge (Array)
         public List<DescriptionProposalDetailDto> DescriptionProposals { get; set; } = new();
-
-        // SEKTION 5: Aktionsempfehlungen (Array, mit Checkboxen)
         public List<ActionRecommendationDetailDto> ActionRecommendations { get; set; } = new();
     }
 

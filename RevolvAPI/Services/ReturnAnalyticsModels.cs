@@ -1,6 +1,6 @@
 namespace RevolvAPI.Services
 {
-    // Retourenkennzahlen für einen einzelnen WAWI-Artikel, komplett ohne KI-Bezug berechnet.
+    // Return metrics for one WAWI article (no AI).
     public record ArticleReturnMetric(
         int ArtikelId,
         string Sku,
@@ -11,14 +11,13 @@ namespace RevolvAPI.Services
         decimal ReturnRatePercent,
         string? MostFrequentReason);
 
-    // Anteil eines einzelnen Retourengrunds an allen Retourenpositionen.
     public record ReturnReasonBreakdownItem(
         int ReturnReasonId,
         string ReasonName,
         int Count,
         decimal Percentage);
 
-    // Eine einzelne, zeitlich sortierte Retourenposition für das Live-Feed auf dem Dashboard.
+    // Single return line for the dashboard live feed.
     public record LatestReturnItem(
         int ReturnLineItemId,
         string Sku,
@@ -26,15 +25,12 @@ namespace RevolvAPI.Services
         string ReasonName,
         DateTimeOffset ReturnDate);
 
-    // Artikel mit der höchsten Retourenquote, für die Top-Liste auf dem Dashboard.
     public record TopReturnedArticle(
         string Sku,
         string? Name,
         decimal ReturnRatePercent);
 
-    // Schlanke Artikel-Anzeigedaten (Sku/Name/Kategorie), z.B. um AiRecommendation/QualityIssue-
-    // Zeilen (die nur eine ArtikelId halten, aber kein Navigation-Property mehr auf den Artikel
-    // haben) für die Anzeige mit den echten WAWI-Stammdaten anzureichern.
+    // Sku/Name/Category for enriching AI rows that only hold ArtikelId.
     public record ArticleDisplayInfo(
         int ArtikelId,
         string Sku,

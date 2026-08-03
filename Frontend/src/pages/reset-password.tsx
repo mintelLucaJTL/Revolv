@@ -1,4 +1,12 @@
-import { Box, Button, Card, CardContent, CardHeader, CardTitle, Text } from "@jtl-software/platform-ui-react";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Text,
+} from "@jtl-software/platform-ui-react";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../utils/api";

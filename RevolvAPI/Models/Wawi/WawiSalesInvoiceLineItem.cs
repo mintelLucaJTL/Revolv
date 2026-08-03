@@ -2,8 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RevolvAPI.Models.Wawi
 {
-    // Read-only mapping auf die JTL-WAWI-View DAL.SalesInvoiceLineItems (Basis: Rechnung.tRechnungPosition).
-    // Dient als Nenner der Retourenquote (verkaufte Menge je Artikel).
+    // Read-only map to DAL.SalesInvoiceLineItems (Rechnung.tRechnungPosition).
     public class WawiSalesInvoiceLineItem
     {
         public int Id { get; set; }

@@ -1,12 +1,8 @@
--- Setzt nur die App-eigenen KI-Tabellen ('revolv'-Schema + dbo.QualityIssues) zurück.
--- Die echten WAWI-Tabellen (dbo.tArtikel, dbo.tRMRetoure, ...) werden NICHT angefasst.
+-- Clears app AI tables only; does not touch WAWI data.
 
--- 1. Delete all child tables
 DELETE FROM dbo.QualityIssues;
 DELETE FROM revolv.DescriptionProposals;
 DELETE FROM revolv.ActionRecommendations;
-
--- 2. Delete the parent table
 DELETE FROM revolv.AiRecommendations;
 
 DBCC CHECKIDENT ('dbo.QualityIssues', RESEED, 0);

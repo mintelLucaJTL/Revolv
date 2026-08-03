@@ -6,7 +6,6 @@ using RevolvAPI.DTOs;
 
 namespace RevolvAPI.Controllers
 {
-    // Provides access to the currently logged-in user's own profile (based on the JWT token).
     [ApiController]
     [Route("api/user")]
     [Authorize]
@@ -19,9 +18,6 @@ namespace RevolvAPI.Controllers
             _ctx = ctx;
         }
 
-        // GET: api/user/me
-        // Returns the profile (id, email, name) of the currently authenticated user.
-        // Name can be null for users that registered before this field existed.
         [HttpGet("me")]
         public async Task<IActionResult> GetMe()
         {
@@ -40,9 +36,6 @@ namespace RevolvAPI.Controllers
             return Ok(new UserDto { Id = user.Id, Email = user.Email, Name = user.Name });
         }
 
-        // PATCH: api/user/me
-        // Lets the currently authenticated user set/update their own display name.
-        // Used by the "Please tell us your name" popup shown to users that don't have one yet.
         [HttpPatch("me")]
         public async Task<IActionResult> UpdateMe([FromBody] UpdateNameRequest r)
         {
@@ -83,10 +76,9 @@ namespace RevolvAPI.Controllers
 
             _ctx.Users.Remove(user);
             await _ctx.SaveChangesAsync();
-            return NoContent(); // 204 - User deleted successfully
+            return NoContent();
         }
 
-        // Reads the user id out of the "sub"/NameIdentifier claim that TokenService puts into the JWT.
         private int? GetCurrentUserId()
         {
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

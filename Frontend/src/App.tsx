@@ -21,7 +21,6 @@ function hasValidSession(): boolean {
   return true;
 }
 
-// Diese Komponente schützt eine Route vor Zugriff ohne gültiges Token.
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
 
@@ -32,7 +31,6 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return children;
 }
 
-// Verhindert, dass ein bereits gültig eingeloggter Nutzer /login oder /register aufruft.
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
   if (hasValidSession()) {
     return <Navigate to="/dashboard" replace />;
@@ -45,7 +43,10 @@ export default function App() {
   return (
     <ToastProvider>
       <Routes>
-        <Route path="/" element={<Navigate to={hasValidSession() ? "/dashboard" : "/login"} replace />} />
+        <Route
+          path="/"
+          element={<Navigate to={hasValidSession() ? "/dashboard" : "/login"} replace />}
+        />
         <Route
           path="/login"
           element={

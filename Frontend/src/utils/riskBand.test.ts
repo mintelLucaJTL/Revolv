@@ -1,17 +1,15 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildRetourenAnalysePath,
-  buildReturnsApiUrl,
-  parseBand,
-  type RiskBand,
-} from "./riskBand";
+import { buildRetourenAnalysePath, buildReturnsApiUrl, parseBand, type RiskBand } from "./riskBand";
 
 const BANDS: RiskBand[] = ["red", "yellow", "green"];
 
 describe("riskBand URL helpers", () => {
-  it.each(BANDS)("buildRetourenAnalysePath(%s) routes to Retourenanalyse with band query", (band) => {
-    expect(buildRetourenAnalysePath(band)).toBe(`/retouren-analyse?band=${band}`);
-  });
+  it.each(BANDS)(
+    "buildRetourenAnalysePath(%s) routes to Retourenanalyse with band query",
+    (band) => {
+      expect(buildRetourenAnalysePath(band)).toBe(`/retouren-analyse?band=${band}`);
+    },
+  );
 
   it.each(BANDS)("parseBand(%s) accepts valid band values", (band) => {
     expect(parseBand(band)).toBe(band);

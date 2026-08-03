@@ -31,7 +31,7 @@ namespace RevolvAPI.Services
 
             try
             {
-                // Port 465 = implizites SSL/TLS - laeuft in diesem Netzwerk, 587 (STARTTLS) ist blockiert.
+                // Port 465 = implicit SSL/TLS (587 STARTTLS is blocked on this network).
                 await client.ConnectAsync("smtp.gmail.com", 465, SecureSocketOptions.SslOnConnect);
                 await client.AuthenticateAsync(fromEmail, appPassword);
                 await client.SendAsync(message);
