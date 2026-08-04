@@ -145,12 +145,19 @@ export default function ArticleDetailsPanel({
   const aiSummaryText = review.aiRec?.aiSummaryText;
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} aria-hidden />
-      <aside
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-xs p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      role="presentation"
+    >
+      <div
         role="dialog"
         aria-modal="true"
-        className="fixed right-0 top-0 h-full w-full md:w-1/3 bg-white dark:bg-slate-900 z-50 shadow-lg transform transition-transform overflow-hidden flex flex-col"
+        aria-label={`KI-Empfehlungen für ${article.name}`}
+        className="my-8 w-full max-w-6xl bg-white dark:bg-slate-900 rounded-[28px] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800"
+        onClick={(e) => e.stopPropagation()}
       >
         <Box className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 p-4 flex items-start justify-between z-10">
           <Box className="flex items-center gap-3 min-w-0">
