@@ -41,10 +41,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactFrontend", policy =>
     {
+        // Explicit origin required: AllowCredentials (for the HttpOnly refresh cookie) can't be
+        // combined with AllowAnyOrigin.
         policy.WithOrigins("http://localhost:5173")
-               .AllowAnyOrigin()
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
@@ -59,7 +61,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Issuer"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+            // No grace period: access tokens are short-lived (5 min) and clients refresh before expiry.
+            ClockSkew = TimeSpan.Zero
         };
     });
 
@@ -67,6 +71,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IReturnAnalyticsService, ReturnAnalyticsService>();
 builder.Services.AddHttpClient<IAiService, AiService>();
 builder.Services.AddScoped<IEmailService, EmailService>();

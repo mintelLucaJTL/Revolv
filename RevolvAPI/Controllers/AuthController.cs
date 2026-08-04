@@ -11,25 +11,33 @@ namespace RevolvAPI.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
+        private const string RefreshCookieName = "refreshToken";
+
         private readonly AppDbContext _ctx;
         private readonly ITokenService _tokenService;
         private readonly IPasswordService _passwordService;
+        private readonly IRefreshTokenService _refreshTokenService;
         private readonly IEmailService _emailService;
+        private readonly IWebHostEnvironment _env;
 
         public AuthController(
             AppDbContext ctx,
             ITokenService tokenService,
             IPasswordService passwordService,
-            IEmailService emailService)
+            IRefreshTokenService refreshTokenService,
+            IEmailService emailService,
+            IWebHostEnvironment env)
         {
             _ctx = ctx;
             _tokenService = tokenService;
             _passwordService = passwordService;
+            _refreshTokenService = refreshTokenService;
             _emailService = emailService;
+            _env = env;
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginRequest r)
+        public async Task<IActionResult> Login([FromBody] LoginRequest r)
         {
             // Include Role so TokenService can put the real role name in the JWT.
             var user = _ctx.Users.Include(u => u.Role).FirstOrDefault(u => u.Email == r.Email);
@@ -39,9 +47,72 @@ namespace RevolvAPI.Controllers
                 return Unauthorized("Invalid Email or Password");
             }
 
-            var jwt = _tokenService.CreateToken(user);
-            return Ok(new { token = jwt });
+            // New session: fresh refresh token with its own 2h absolute expiry.
+            var refreshToken = await _refreshTokenService.IssueForNewSessionAsync(user.Id);
+            SetRefreshCookie(refreshToken.RawToken, refreshToken.AbsoluteExpiresAt);
+
+            var accessToken = _tokenService.CreateAccessToken(user);
+
+            return Ok(new { token = accessToken, sessionExpiresAt = refreshToken.AbsoluteExpiresAt });
         }
+
+        // Rotates the refresh cookie and issues a new access token. No [Authorize]: the access
+        // token may already be expired when this is called.
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh()
+        {
+            if (!Request.Cookies.TryGetValue(RefreshCookieName, out var rawToken) || string.IsNullOrEmpty(rawToken))
+            {
+                return Unauthorized(new { message = "No refresh token." });
+            }
+
+            var result = await _refreshTokenService.RotateAsync(rawToken);
+
+            if (!result.Success || result.User == null || result.NewToken == null)
+            {
+                DeleteRefreshCookie();
+                return Unauthorized(new { message = "Refresh token invalid or expired." });
+            }
+
+            SetRefreshCookie(result.NewToken.RawToken, result.NewToken.AbsoluteExpiresAt);
+
+            var accessToken = _tokenService.CreateAccessToken(result.User);
+
+            return Ok(new { token = accessToken, sessionExpiresAt = result.NewToken.AbsoluteExpiresAt });
+        }
+
+        // Revokes the current refresh token so it can't be used again.
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            if (Request.Cookies.TryGetValue(RefreshCookieName, out var rawToken) && !string.IsNullOrEmpty(rawToken))
+            {
+                await _refreshTokenService.RevokeAsync(rawToken);
+            }
+
+            DeleteRefreshCookie();
+            return Ok();
+        }
+
+        private void SetRefreshCookie(string rawToken, DateTime absoluteExpiresAt)
+        {
+            Response.Cookies.Append(RefreshCookieName, rawToken, BuildCookieOptions(absoluteExpiresAt));
+        }
+
+        private void DeleteRefreshCookie()
+        {
+            Response.Cookies.Delete(RefreshCookieName, BuildCookieOptions(DateTime.UtcNow));
+        }
+
+        private CookieOptions BuildCookieOptions(DateTime expiresUtc) => new()
+        {
+            HttpOnly = true,
+            // API runs over plain HTTP locally, so Secure is only required outside Development.
+            Secure = !_env.IsDevelopment(),
+            SameSite = _env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
+            Expires = new DateTimeOffset(DateTime.SpecifyKind(expiresUtc, DateTimeKind.Utc)),
+            Path = "/api/auth",
+        };
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest r)

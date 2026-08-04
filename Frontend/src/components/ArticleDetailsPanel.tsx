@@ -266,7 +266,7 @@ export default function ArticleDetailsPanel({
             <ArticleReviewSections review={review} />
           )}
         </div>
-      </aside>
-    </>
+      </div>
+    </div>
   );
 }

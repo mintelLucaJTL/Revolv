@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogIn } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const inputClassName =
   "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-blue-900";
@@ -22,6 +23,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     setError("");
@@ -32,19 +34,7 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch("http://localhost:5215/api/Auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data?.token) {
-        throw new Error("Ungültige E-Mail oder Passwort.");
-      }
-
-      localStorage.setItem("authToken", data.token);
+      await login(email, password);
       navigate("/dashboard");
     } catch (err) {
       if (err instanceof TypeError) {

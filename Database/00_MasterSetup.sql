@@ -255,6 +255,50 @@ BEGIN
 END
 GO
 
+-- RefreshTokens (Ticket #245: 5-minute access token / 2-hour absolute session)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.RefreshTokens') AND type IN (N'U'))
+BEGIN
+    CREATE TABLE [revolv].[RefreshTokens] (
+        [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+        [UserId] INT NOT NULL,
+        [TokenHash] NVARCHAR(128) NOT NULL,
+        [SessionId] UNIQUEIDENTIFIER NOT NULL,
+        [SessionStartedAt] DATETIME2 NOT NULL,
+        [AbsoluteExpiresAt] DATETIME2 NOT NULL,
+        [CreatedAt] DATETIME2 NOT NULL,
+        [RevokedAt] DATETIME2 NULL,
+        [ReplacedByTokenId] UNIQUEIDENTIFIER NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_RefreshTokens_Users_UserId')
+BEGIN
+    ALTER TABLE [revolv].[RefreshTokens]
+    ADD CONSTRAINT FK_RefreshTokens_Users_UserId
+    FOREIGN KEY ([UserId]) REFERENCES [revolv].[Users]([Id])
+    ON DELETE CASCADE;
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_RefreshTokens_TokenHash')
+BEGIN
+    CREATE UNIQUE INDEX IX_RefreshTokens_TokenHash ON [revolv].[RefreshTokens] ([TokenHash]);
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_RefreshTokens_UserId')
+BEGIN
+    CREATE INDEX IX_RefreshTokens_UserId ON [revolv].[RefreshTokens] ([UserId]);
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_RefreshTokens_SessionId')
+BEGIN
+    CREATE INDEX IX_RefreshTokens_SessionId ON [revolv].[RefreshTokens] ([SessionId]);
+END
+GO
+
 -- Legacy migration: drop old revolv.Articles FK/table if present
 IF EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_AiRecommendations_Articles')
 BEGIN

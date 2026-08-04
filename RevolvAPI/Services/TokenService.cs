@@ -9,19 +9,22 @@ namespace RevolvAPI.Services
 {
     public interface ITokenService
     {
-        string CreateToken(User user);
+        string CreateAccessToken(User user);
     }
 
+    // Creates short-lived JWT access tokens. Session length/renewal is handled by IRefreshTokenService.
     public class TokenService : ITokenService
     {
         private readonly IConfiguration _config;
+
+        private const int DefaultAccessTokenMinutes = 5;
 
         public TokenService(IConfiguration config)
         {
             _config = config;
         }
 
-        public string CreateToken(User user)
+        public string CreateAccessToken(User user)
         {
             var secretKey = _config["Jwt:Key"];
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
@@ -43,11 +46,13 @@ namespace RevolvAPI.Services
                 claims = claims.Append(new Claim(ClaimTypes.Name, user.Name)).ToArray();
             }
 
+            var accessTokenMinutes = _config.GetValue<int?>("Jwt:AccessTokenMinutes") ?? DefaultAccessTokenMinutes;
+
             var token = new JwtSecurityToken(
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Issuer"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(120),
+                expires: DateTime.UtcNow.AddMinutes(accessTokenMinutes),
                 signingCredentials: creds
             );
 

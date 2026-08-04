@@ -13,12 +13,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SetNameModal from "./SetNameModal";
 import { fetchCurrentUser, getInitials, updateCurrentUserName } from "../utils/user";
+import { useAuth } from "../context/AuthContext";
 
 export default function TopNavigationBar() {
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [needsName, setNeedsName] = useState(false);
+  const { logout: authLogout } = useAuth();
 
   useEffect(() => {
     let isMounted = true;
@@ -57,8 +59,7 @@ export default function TopNavigationBar() {
   };
 
   const logout = () => {
-    localStorage.removeItem("authToken");
-    navigate("/login");
+    void authLogout().finally(() => navigate("/login"));
   };
 
   return (

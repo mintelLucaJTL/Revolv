@@ -10,6 +10,7 @@ import Sidebar from "../components/Sidebar";
 import LatestReturnsList from "../components/LatestReturnsList";
 import { apiFetch } from "../utils/api";
 import { buildRetourenAnalysePath } from "../utils/riskBand";
+
 const REFRESH_INTERVAL_MS = 5 * 60_000;
 
 interface DashboardKpiDto {
