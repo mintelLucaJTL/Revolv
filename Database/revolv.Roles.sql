@@ -1,8 +1,7 @@
-USE revolv;
+USE eazybusiness;
 GO
 
--- Ticket #190: feste Rollen-Referenztabelle (kein Selbstverwaltungs-UI - Rollen werden von der
--- App vorgegeben, nicht von Nutzern angelegt).
+
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.Roles') AND type IN (N'U'))
 BEGIN
     CREATE TABLE [revolv].[Roles] (
@@ -12,7 +11,7 @@ BEGIN
 END
 GO
 
--- Seed der beiden Rollen aus Ticket #190 (Admin vs. Mitarbeiter). Idempotent per NOT EXISTS.
+-- Seed der beiden Rollen (Admin vs. Mitarbeiter). Idempotent per NOT EXISTS.
 IF NOT EXISTS (SELECT * FROM [revolv].[Roles] WHERE [RoleName] = 'Admin')
 BEGIN
     INSERT INTO [revolv].[Roles] ([RoleName]) VALUES ('Admin');

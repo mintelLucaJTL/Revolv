@@ -1,4 +1,4 @@
-USE revolv;
+USE eazybusiness;
 GO
 
 -- Ticket #190: Users um CompanyId/RoleId erweitern. Erfordert revolv.Companies und revolv.Roles
