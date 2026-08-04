@@ -19,14 +19,13 @@ namespace RevolvAPI.Services
             );
         }
 
-        // high = red, medium = yellow, low = green (percent values, e.g. 18.2)
         public static string Classify(decimal? returnRatePercent, decimal yellowThreshold, decimal redThreshold)
-        {
-            if (!returnRatePercent.HasValue) return "low";
-            var rate = returnRatePercent.Value;
-            if (rate > redThreshold) return "high";
-            if (rate >= yellowThreshold) return "medium";
-            return "low";
-        }
+            => ReturnRateBandRules.Classify(returnRatePercent, yellowThreshold, redThreshold);
+
+        public static string ToBand(decimal? returnRatePercent, decimal yellowThreshold, decimal redThreshold)
+            => ReturnRateBandRules.ToBand(returnRatePercent, yellowThreshold, redThreshold);
+
+        public static bool IsInBand(decimal returnRatePercent, string band, decimal yellowThreshold, decimal redThreshold)
+            => ReturnRateBandRules.IsInBand(returnRatePercent, band, yellowThreshold, redThreshold);
     }
 }

@@ -28,8 +28,7 @@ type ArticleDetailApiDto = {
   }>;
 };
 
-// Dummy-Daten, solange die KI-Endpunkte für Qualitätsprüfung/Beschreibung/Empfehlungen
-// noch nicht existieren. Rein zu Demo-/Design-Zwecken, nicht persistiert.
+// Demo UI placeholders (not persisted) until live AI detail sections are wired here.
 const DUMMY_QUALITY_ISSUES = [
   { id: "dq-1", text: "Starkes Einlaufen nach dem Waschen bei 22% der Fälle" },
   { id: "dq-2", text: "Größentabelle stimmt nicht mit realem Schnitt überein" },
@@ -106,7 +105,6 @@ export default function ArticleDetailsPanel({
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
-  // Lokaler (nicht persistierter) UI-Zustand für die Dummy-Sektionen.
   const [checkedIssueIds, setCheckedIssueIds] = useState<Set<string>>(new Set());
   const [checkedActionIds, setCheckedActionIds] = useState<Set<string>>(new Set());
   const [proposalDecision, setProposalDecision] = useState<"accepted" | "rejected" | null>(null);
@@ -133,7 +131,6 @@ export default function ArticleDetailsPanel({
       return;
     }
 
-    // Dummy-Zustand pro Artikel zurücksetzen, wenn ein neuer Artikel geöffnet wird.
     setCheckedIssueIds(new Set());
     setCheckedActionIds(new Set());
     setProposalDecision(null);

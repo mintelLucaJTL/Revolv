@@ -13,14 +13,13 @@ namespace RevolvAPI.Services
         /// </summary>
         AiResponseDTO? ParseAiResponse(string? rawAiText);
 
-        // articleName + aktuelle Beschreibung + Retourengründe als Klartext rein,
-        // strukturierte KI-Analyse raus.
+        // Article name + description + return reasons in; structured AI analysis out.
         Task<AiResponseDTO> AnalyzeArticleAsync(
             string articleName,
             string? currentDescription,
             IEnumerable<string> returnReasons);
 
-        // Prompt rein, rohe Text-Antwort raus (OpenRouter Chat-Completions).
+        // Prompt in, raw text out (OpenRouter chat completions).
         Task<string> GenerateAnalysisAsync(string prompt);
     }
 }

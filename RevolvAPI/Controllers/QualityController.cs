@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using RevolvAPI.Controllers;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using RevolvAPI.Services;
 
 namespace RevolvAPI.Controllers
 {
@@ -13,38 +13,48 @@ namespace RevolvAPI.Controllers
     public class QualityController : ControllerBase
     {
         private readonly AppDbContext _ctx;
-        public QualityController(AppDbContext ctx) => _ctx = ctx;
+        private readonly IReturnAnalyticsService _returnAnalytics;
 
-        // GET api/quality/open
-        // Liefert eine Liste aller offenen/ausstehenden QualityIssues,
-        // inkl. Artikelnummer und -name zur Anzeige in der Übersichtstabelle.
+        public QualityController(AppDbContext ctx, IReturnAnalyticsService returnAnalytics)
+        {
+            _ctx = ctx;
+            _returnAnalytics = returnAnalytics;
+        }
+
         [HttpGet("open")]
         public async Task<IActionResult> GetOpenQualityIssues()
         {
-            // Definiere, welche Status als "offen" gelten
             var openStatuses = new[] { "Ausstehend", "Offen" };
 
-            // Lade nur die benötigten Felder:
-            // Include + ThenInclude stellen sicher, dass EF Core die Navigationen laden kann,
-            // damit wir aus den verknüpften Entitäten die Artikeldaten auslesen können.
             var issues = await _ctx.QualityIssues
+                .AsNoTracking()
                 .Where(q => q.Status != null && openStatuses.Contains(q.Status))
                 .Include(q => q.AiRecommendation)
-                    .ThenInclude(ar => ar.Article)
-                .Select(q => new QualityIssueOpenDto
+                .ToListAsync();
+
+            var artikelIds = issues
+                .Where(q => q.AiRecommendation != null)
+                .Select(q => q.AiRecommendation.ArtikelId);
+            var articleInfo = await _returnAnalytics.GetArticleDisplayInfoAsync(artikelIds);
+
+            var dtos = issues.Select(q =>
+            {
+                var artikelId = q.AiRecommendation?.ArtikelId;
+                var info = artikelId.HasValue ? articleInfo.GetValueOrDefault(artikelId.Value) : null;
+
+                return new QualityIssueOpenDto
                 {
                     Id = q.Id,
                     IssueText = q.IssueText ?? string.Empty,
                     AiRecommendationId = q.AiRecommendationId,
-                    ArticleId = q.AiRecommendation != null ? q.AiRecommendation.Article.Id : (int?)null,
-                    ArticleNumber = q.AiRecommendation != null ? q.AiRecommendation.Article.ArticleNumber : null,
-                    ArticleName = q.AiRecommendation != null ? q.AiRecommendation.Article.Name : null,
+                    ArticleId = artikelId,
+                    ArticleNumber = info?.Sku,
+                    ArticleName = info?.Name,
                     Status = q.Status ?? string.Empty
-                })
-                .ToListAsync();
+                };
+            }).ToList();
 
-
-            return Ok(issues);
+            return Ok(dtos);
         }
     }
 }

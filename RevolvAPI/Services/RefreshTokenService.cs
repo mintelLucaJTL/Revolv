@@ -72,7 +72,8 @@ namespace RevolvAPI.Services
                 return new RefreshTokenRotationResult(false, null, null, "session_expired");
             }
 
-            var user = await _ctx.Users.FirstOrDefaultAsync(u => u.Id == existing.UserId);
+            // Include Role so CreateAccessToken can emit the real role claim (Ticket #190).
+            var user = await _ctx.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == existing.UserId);
             if (user == null)
             {
                 await RevokeSessionAsync(existing.SessionId);
@@ -93,13 +94,13 @@ namespace RevolvAPI.Services
             var hash = Hash(rawToken);
             var existing = await _ctx.RefreshTokens.FirstOrDefaultAsync(rt => rt.TokenHash == hash);
 
-            if (existing == null || existing.RevokedAt != null)
+            if (existing == null)
             {
                 return;
             }
 
-            existing.RevokedAt = DateTime.UtcNow;
-            await _ctx.SaveChangesAsync();
+            // Logout ends the whole login session, not just the current rotated token.
+            await RevokeSessionAsync(existing.SessionId);
         }
 
         private async Task RevokeSessionAsync(Guid sessionId)

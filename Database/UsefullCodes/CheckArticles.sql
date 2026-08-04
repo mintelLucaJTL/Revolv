@@ -1,17 +1,20 @@
-SELECT 
-    a.Id AS ArticleId,
-    a.ArticleNumber, 
-    a.Name AS ProductName, 
-    a.Color,
-    r.ReturnRate, 
+-- Joins WAWI articles to AiRecommendations / QualityIssues (ArtikelId = kArtikel).
+SELECT
+    art.kArtikel AS ArtikelId,
+    art.cArtNr AS ArticleNumber,
+    beschreibung.cName AS ProductName,
+    r.ReturnRate,
     q.Id AS QualityIssueId,
-    q.IssueText AS ReturnReason, 
+    q.IssueText AS ReturnReason,
     q.Status AS IssueStatus
-FROM 
-    revolv.Articles a
-LEFT JOIN 
-    revolv.AiRecommendations r ON a.Id = r.ArticleId
-LEFT JOIN 
+FROM
+    dbo.tArtikel art
+LEFT JOIN
+    dbo.tArtikelBeschreibung beschreibung
+        ON beschreibung.kArtikel = art.kArtikel AND beschreibung.kShop = 0
+LEFT JOIN
+    revolv.AiRecommendations r ON art.kArtikel = r.ArtikelId
+LEFT JOIN
     dbo.QualityIssues q ON r.Id = q.AiRecommendationId
-ORDER BY 
-    a.Id;
+ORDER BY
+    art.kArtikel;

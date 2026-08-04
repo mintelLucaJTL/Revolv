@@ -11,13 +11,13 @@ namespace RevolvAPI.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        // The name of the refresh token cookie
         private const string RefreshCookieName = "refreshToken";
 
         private readonly AppDbContext _ctx;
         private readonly ITokenService _tokenService;
         private readonly IPasswordService _passwordService;
         private readonly IRefreshTokenService _refreshTokenService;
+        private readonly IEmailService _emailService;
         private readonly IWebHostEnvironment _env;
 
         public AuthController(
@@ -25,23 +25,23 @@ namespace RevolvAPI.Controllers
             ITokenService tokenService,
             IPasswordService passwordService,
             IRefreshTokenService refreshTokenService,
+            IEmailService emailService,
             IWebHostEnvironment env)
         {
             _ctx = ctx;
             _tokenService = tokenService;
             _passwordService = passwordService;
             _refreshTokenService = refreshTokenService;
+            _emailService = emailService;
             _env = env;
         }
 
-        // POST: api/auth/login
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest r)
         {
-            // Find the user by email
-            var user = _ctx.Users.FirstOrDefault(u => u.Email == r.Email);
+            // Include Role so TokenService can put the real role name in the JWT.
+            var user = _ctx.Users.Include(u => u.Role).FirstOrDefault(u => u.Email == r.Email);
 
-            // Check if user exists and verify password
             if (user == null || !_passwordService.VerifyPassword(r.Password, user.PasswordHash))
             {
                 return Unauthorized("Invalid Email or Password");
@@ -56,68 +56,54 @@ namespace RevolvAPI.Controllers
             return Ok(new { token = accessToken, sessionExpiresAt = refreshToken.AbsoluteExpiresAt });
         }
 
-        // POST: api/auth/refresh
         // Rotates the refresh cookie and issues a new access token. No [Authorize]: the access
         // token may already be expired when this is called.
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh()
         {
-            // Get the refresh token from the cookie
             if (!Request.Cookies.TryGetValue(RefreshCookieName, out var rawToken) || string.IsNullOrEmpty(rawToken))
             {
                 return Unauthorized(new { message = "No refresh token." });
             }
 
-            // Rotate the refresh token
             var result = await _refreshTokenService.RotateAsync(rawToken);
 
-            // Check if the refresh token is valid and if the user is still valid
             if (!result.Success || result.User == null || result.NewToken == null)
             {
                 DeleteRefreshCookie();
                 return Unauthorized(new { message = "Refresh token invalid or expired." });
             }
 
-            // Set the new refresh token cookie
             SetRefreshCookie(result.NewToken.RawToken, result.NewToken.AbsoluteExpiresAt);
 
-            // Create a new access token
             var accessToken = _tokenService.CreateAccessToken(result.User);
 
-            // Return the new access token and the new session expires at
             return Ok(new { token = accessToken, sessionExpiresAt = result.NewToken.AbsoluteExpiresAt });
         }
 
-        // POST: api/auth/logout
         // Revokes the current refresh token so it can't be used again.
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            // Get the refresh token from the cookie 
             if (Request.Cookies.TryGetValue(RefreshCookieName, out var rawToken) && !string.IsNullOrEmpty(rawToken))
             {
-                // Revoke the refresh token
                 await _refreshTokenService.RevokeAsync(rawToken);
             }
 
-            // Delete the refresh token cookie
             DeleteRefreshCookie();
             return Ok();
         }
 
-        // Set the refresh token cookie
         private void SetRefreshCookie(string rawToken, DateTime absoluteExpiresAt)
         {
             Response.Cookies.Append(RefreshCookieName, rawToken, BuildCookieOptions(absoluteExpiresAt));
         }
 
-        // Delete the refresh token cookie
         private void DeleteRefreshCookie()
         {
             Response.Cookies.Delete(RefreshCookieName, BuildCookieOptions(DateTime.UtcNow));
         }
 
-        // Build the cookie options
         private CookieOptions BuildCookieOptions(DateTime expiresUtc) => new()
         {
             HttpOnly = true,
@@ -128,26 +114,40 @@ namespace RevolvAPI.Controllers
             Path = "/api/auth",
         };
 
-        // POST: api/auth/register
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest r)
         {
-            // Check if the email already exists
             if (await _ctx.Users.AnyAsync(u => u.Email == r.Email))
             {
                 return Conflict(new { message = "Diese E-Mail-Adresse wird bereits verwendet." });
             }
 
-            // Create a new user and hash the password
+            // Ticket #190: the registrant founds their own company and becomes its Admin.
+            var adminRoleId = await _ctx.Roles
+                .Where(role => role.RoleName == RoleNames.Admin)
+                .Select(role => role.Id)
+                .FirstOrDefaultAsync();
+
+            if (adminRoleId == 0)
+            {
+                // Seed data missing (see Database/revolv.Roles.sql) - fail loudly instead of
+                // silently assigning a bogus RoleId 0.
+                return Problem("Rollen sind nicht konfiguriert. Bitte revolv.Roles.sql ausführen.");
+            }
+
+            var company = new Company { Name = r.CompanyName.Trim() };
+            _ctx.Companies.Add(company);
+
             var user = new User
             {
                 Name = r.Name.Trim(),
                 Email = r.Email,
-                PasswordHash = _passwordService.HashPassword(r.Password), // hash the password
-                CreatedAt = DateTime.UtcNow
+                PasswordHash = _passwordService.HashPassword(r.Password),
+                CreatedAt = DateTime.UtcNow,
+                Company = company,
+                RoleId = adminRoleId
             };
 
-            // Save the new user to the database
             _ctx.Users.Add(user);
 
             try
@@ -156,34 +156,68 @@ namespace RevolvAPI.Controllers
             }
             catch (DbUpdateException)
             {
-                // Return a conflict error if the email already exists
+                // Race: another request registered the same email between Any() and SaveChanges;
+                // unique index on Email rejects the duplicate.
                 return Conflict(new { message = "Diese E-Mail-Adresse wird bereits verwendet." });
             }
 
             return Ok();
         }
 
-        // POST: api/auth/migrate-passwords
         // One-time helper: re-hash legacy plaintext passwords still stored in the DB.
         [HttpPost("migrate-passwords")]
         public async Task<IActionResult> MigratePasswords()
         {
-            // Find all users with non-empty passwords that are not already hashed with bcrypt
             var users = await _ctx.Users
                 .Where(u => u.PasswordHash != null && u.PasswordHash != "" && !u.PasswordHash.StartsWith("$2"))
                 .ToListAsync();
 
-            // Re-hash the passwords for these users
             foreach (var user in users)
             {
                 user.PasswordHash = _passwordService.EnsureHashed(user.PasswordHash);
             }
 
-            // Save the changes to the database
+            await _ctx.SaveChangesAsync();
+            return Ok(new { migrated = users.Count });
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest r)
+        {
+            var user = await _ctx.Users.FirstOrDefaultAsync(u => u.Email == r.Email);
+
+            // Same response whether or not the email exists (prevents email enumeration).
+            if (user != null)
+            {
+                user.PasswordResetToken = Guid.NewGuid().ToString();
+                user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
+
+                await _ctx.SaveChangesAsync();
+
+                var resetLink = $"http://localhost:5173/reset-password?token={user.PasswordResetToken}";
+                await _emailService.SendPasswordResetEmailAsync(user.Email, resetLink);
+            }
+
+            return Ok(new { message = "Falls ein Account existiert, haben wir einen Reset-Link gesendet." });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest r)
+        {
+            var user = await _ctx.Users.FirstOrDefaultAsync(u => u.PasswordResetToken == r.Token);
+
+            if (user == null || user.ResetTokenExpires == null || user.ResetTokenExpires < DateTime.UtcNow)
+            {
+                return BadRequest(new { message = "Der Reset-Link ist ungültig oder abgelaufen." });
+            }
+
+            user.PasswordHash = _passwordService.HashPassword(r.NewPassword);
+            user.PasswordResetToken = null;
+            user.ResetTokenExpires = null;
+
             await _ctx.SaveChangesAsync();
 
-            // Return the number of users whose passwords were migrated
-            return Ok(new { migrated = users.Count });
+            return Ok(new { message = "Passwort erfolgreich zurückgesetzt." });
         }
     }
 }

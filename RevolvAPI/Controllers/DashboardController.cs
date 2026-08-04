@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
-using RevolvAPI.Models;
 using RevolvAPI.Services;
 
 namespace RevolvAPI.Controllers
@@ -12,118 +11,100 @@ namespace RevolvAPI.Controllers
     public class DashboardController : ControllerBase
     {
         private readonly AppDbContext _ctx;
-        public DashboardController(AppDbContext ctx) => _ctx = ctx;
+        private readonly IReturnAnalyticsService _returnAnalytics;
 
-        // GET api/dashboard/return-reasons
-        // Returns the top 5 return reasons by count.
+        public DashboardController(AppDbContext ctx, IReturnAnalyticsService returnAnalytics)
+        {
+            _ctx = ctx;
+            _returnAnalytics = returnAnalytics;
+        }
+
         [HttpGet("return-reasons")]
         public async Task<IActionResult> GetReturnReasons()
         {
-            // Get the total count of quality issues for the percentage calculation.
-            var totalCount = await _ctx.QualityIssues.CountAsync();
+            var breakdown = await _returnAnalytics.GetReturnReasonBreakdownAsync(top: 5);
 
-            // Group the quality issues by issue text and count the number of issues for each reason.
-            var grouped = await _ctx.QualityIssues
-                .GroupBy(q => q.IssueText ?? "Unbekannt")
-                .Select(g => new { Reason = g.Key, Count = g.Count() })
-                .OrderByDescending(x => x.Count)
-                .Take(5)
-                .ToListAsync();
-
-            // Calculate the percentage of the total count for each reason.
-            // Convert the grouped data to DTOs.
-            var dtos = grouped
+            var dtos = breakdown
                 .Select(x => new ReturnReasonsDTO
                 {
-                    ReasonName = x.Reason,
+                    ReasonName = x.ReasonName,
                     Count = x.Count,
-                    Percentage = totalCount > 0
-                    ? Math.Round((decimal)x.Count * 100m / totalCount, 2) : 0m
+                    Percentage = x.Percentage
                 })
                 .ToList();
 
             return Ok(dtos);
         }
 
-        // Get the dashboard KPI data
+        // wholeReturnQuote/affectedArticle from WAWI; openKiRecommendations/improvedProducts from AI tables.
         [HttpGet("kpi")]
         public async Task<IActionResult> GetDashboardKpi()
         {
-            // AverageAsync throws on an empty set; count first, then average.
-            var recommendationCount = await _ctx.AiRecommendations.CountAsync();
-            var wholeReturnQuote = recommendationCount > 0
-                ? await _ctx.AiRecommendations.AverageAsync(r => r.ReturnRate) ?? 0.0m
-                : 0.0m;
+            var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
+
+            var totalReturned = metrics.Sum(m => m.ReturnedQuantity);
+            var totalSold = metrics.Sum(m => m.SoldQuantity);
+            var wholeReturnQuote = totalSold > 0 ? Math.Round(totalReturned / totalSold * 100m, 1) : 0m;
 
             var kpiDto = new DashboardKpiDto
             {
-                wholeReturnQuote = Math.Round(wholeReturnQuote, 1),
-                affectedArticle = await _ctx.Articles.CountAsync(a => a.AiRecommendations.Any()),
+                wholeReturnQuote = wholeReturnQuote,
+                affectedArticle = metrics.Count(m => m.ReturnedQuantity > 0),
                 openKiRecommendations = await _ctx.AiRecommendations.CountAsync(r => !r.IsFullyResolved),
-                improvedProducts = await _ctx.Articles.CountAsync(a => a.AiRecommendations.Any(r => r.IsFullyResolved))
+                improvedProducts = await _ctx.AiRecommendations
+                    .Where(r => r.IsFullyResolved)
+                    .Select(r => r.ArtikelId)
+                    .Distinct()
+                    .CountAsync()
             };
             return Ok(kpiDto);
         }
 
-        // GET api/dashboard/traffic-lights
-        // Returns the pre-computed counts and average return rates for the red,
         [HttpGet("traffic-lights")]
         public async Task<IActionResult> GetTrafficLightKpis()
         {
             var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx);
+            var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
 
-            // Calculate the traffic light KPIs.
             var kpis = new TrafficLightKpiDto
             {
                 YellowThreshold = yellowThreshold,
                 RedThreshold = redThreshold,
-                Red = await CalculateBandAsync(
-                    _ctx.AiRecommendations.Where(r => r.ReturnRate > redThreshold)),
-                Yellow = await CalculateBandAsync(
-                    _ctx.AiRecommendations.Where(r =>
-                        r.ReturnRate >= yellowThreshold && r.ReturnRate <= redThreshold)),
-                Green = await CalculateBandAsync(
-                    _ctx.AiRecommendations.Where(r => r.ReturnRate < yellowThreshold)),
+                Red = CalculateBand(metrics.Where(m => m.ReturnRatePercent > redThreshold)),
+                Yellow = CalculateBand(metrics.Where(m =>
+                    m.ReturnRatePercent >= yellowThreshold && m.ReturnRatePercent <= redThreshold)),
+                Green = CalculateBand(metrics.Where(m => m.ReturnRatePercent < yellowThreshold)),
             };
 
             return Ok(kpis);
         }
 
-        // Calculates the traffic light KPIs for a single band.
-        private static async Task<TrafficLightGroupDto> CalculateBandAsync(IQueryable<AiRecommendation> query)
+        private static TrafficLightGroupDto CalculateBand(IEnumerable<ArticleReturnMetric> metrics)
         {
-            // Get the count of recommendations in the band.
-            var count = await query.CountAsync();
+            var list = metrics.ToList();
+            var count = list.Count;
+            var average = count > 0 ? list.Average(m => m.ReturnRatePercent) : 0m;
 
-            // Get the average return rate of the recommendations in the band.
-            var average = count > 0
-                ? await query.AverageAsync(r => r.ReturnRate ?? 0m)
-                : 0m;
-
-            // Return the traffic light KPIs for the band.
             return new TrafficLightGroupDto
             {
                 Count = count,
                 AveragePercent = Math.Round(average, 2)
             };
         }
-        // GET api/dashboard/latest-returns
-        // Returns the most recently reported quality issues (used for the dashboard live feed).
+
         [HttpGet("latest-returns")]
         public async Task<IActionResult> GetLatestReturns()
         {
-            var latestReturns = await _ctx.QualityIssues
-                .Include(q => q.AiRecommendation)
-                .ThenInclude(r => r.Article)
-                .OrderByDescending(q => q.Id)
-                .Take(5)
-                .Select(q => new ReturnListItemDto
+            var latest = await _returnAnalytics.GetLatestReturnsAsync(take: 5);
+
+            var latestReturns = latest
+                .Select(x => new ReturnListItemDto
                 {
-                    ArticleNumber = q.AiRecommendation.Article.ArticleNumber ?? string.Empty,
-                    Name = q.AiRecommendation.Article.Name ?? "Unbekannt",
-                    IssueText = q.IssueText ?? "Unbekannt"
+                    ArticleNumber = x.Sku,
+                    Name = x.ArticleName ?? "Unbekannt",
+                    IssueText = x.ReasonName
                 })
-                .ToListAsync();
+                .ToList();
 
             return Ok(latestReturns);
         }
@@ -131,20 +112,18 @@ namespace RevolvAPI.Controllers
         [HttpGet("top-returned-articles")]
         public async Task<IActionResult> GetTopReturnedArticles()
         {
-            var topReturns = await _ctx.AiRecommendations
-                .Include(r => r.Article)
-                .Where(r => r.ReturnRate != null)
-                .OrderByDescending(r => r.ReturnRate)
-                .Take(5)
-                .Select(r => new TopReturnedArticleDto
-                {
-                    ArticleNumber = r.Article.ArticleNumber ?? string.Empty,
-                    Name = r.Article.Name ?? "Unbekannt",
-                    ReturnRate = r.ReturnRate ?? 0m
-                })
-                .ToListAsync();
+            var topReturns = await _returnAnalytics.GetTopReturnedArticlesAsync(take: 5);
 
-            return Ok(topReturns);
+            var dtos = topReturns
+                .Select(x => new TopReturnedArticleDto
+                {
+                    ArticleNumber = x.Sku,
+                    Name = x.Name ?? "Unbekannt",
+                    ReturnRate = x.ReturnRatePercent
+                })
+                .ToList();
+
+            return Ok(dtos);
         }
 
     }

@@ -5,6 +5,7 @@ import { useState } from "react";
 export default function Registrieren() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -14,9 +15,15 @@ export default function Registrieren() {
     if (loading) return;
 
     const trimmedName = name.trim();
+    const trimmedCompanyName = companyName.trim();
 
     if (!trimmedName) {
       alert("Bitte gib deinen Namen ein");
+      return;
+    }
+
+    if (!trimmedCompanyName) {
+      alert("Bitte gib deinen Firmennamen ein");
       return;
     }
 
@@ -31,7 +38,12 @@ export default function Registrieren() {
       const res = await fetch("http://localhost:5215/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmedName, email, password }),
+        body: JSON.stringify({
+          name: trimmedName,
+          companyName: trimmedCompanyName,
+          email,
+          password,
+        }),
       });
 
       if (res.ok) {
@@ -65,6 +77,12 @@ export default function Registrieren() {
             placeholder="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            className={inputClassName}
+            placeholder="Firmenname"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
           />
           <input
             className={inputClassName}

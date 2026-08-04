@@ -14,36 +14,36 @@ namespace RevolvAPI.Controllers
     public class ReturnController : ControllerBase
     {
         private readonly AppDbContext _ctx;
+        private readonly IReturnAnalyticsService _returnAnalytics;
 
+        public ReturnController(AppDbContext ctx, IReturnAnalyticsService returnAnalytics)
+        {
+            _ctx = ctx;
+            _returnAnalytics = returnAnalytics;
+        }
 
-        public ReturnController(AppDbContext ctx) => _ctx = ctx;
-
-        // band (optional): "red" | "yellow" | "green" - filtert auf die Ampel-Risikoklasse (siehe DashboardController.GetTrafficLightKpis).
+        // band (optional): "red" | "yellow" | "green" — same thresholds as dashboard traffic lights.
+        // Do not filter to "has returns" only; green band includes 0% articles shared with the dashboard.
         [HttpGet("returns")]
         public async Task<IActionResult> GetArticleReturns([FromQuery] string? band = null)
         {
-            // Lade Artikel inkl. AiRecommendations, deren QualityIssues (nötig für MostFrequentReason)
-            // und DescriptionProposals (nötig für den granularen KI-Status).
-            var articles = await _ctx.Articles
-                                     .Include(a => a.AiRecommendations)
-                                         .ThenInclude(ar => ar.QualityIssues)
-                                     .Include(a => a.AiRecommendations)
-                                         .ThenInclude(ar => ar.DescriptionProposals)
-                                     .ToListAsync();
+            var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
 
-            //  In-memory Mapping: ReturnRate, AiStatus, Color und MostFrequentReason berechnen
-            var dtos = articles
-                .Select(a =>
+            var artikelIds = metrics.Select(m => m.ArtikelId).ToList();
+            var aiRecommendations = await _ctx.AiRecommendations
+                .AsNoTracking()
+                .Include(r => r.DescriptionProposals)
+                .Where(r => artikelIds.Contains(r.ArtikelId))
+                .ToListAsync();
+            var aiRecsByArticle = aiRecommendations
+                .GroupBy(r => r.ArtikelId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var dtos = metrics
+                .Select(m =>
                 {
-                    var recs = a.AiRecommendations;
+                    var recs = aiRecsByArticle.GetValueOrDefault(m.ArtikelId);
 
-                    // höchste ReturnRate aus den KI-Empfehlungen (oder 0)
-                    var maxReturn = (recs != null && recs.Any())
-                        ? recs.Max(r => r.ReturnRate ?? 0m)
-                        : 0m;
-
-                    // Granularer KI-Status, abgeleitet vom Review-Status der KI-Textvorschläge:
-                    // Keine Empfehlung / Angenommen / Abgelehnt / Ausstehend (gemischt oder ungeprüft) / Gelöst (kein Vorschlag zu prüfen).
                     var proposals = recs?.SelectMany(r => r.DescriptionProposals ?? new List<DescriptionProposal>()).ToList()
                         ?? new List<DescriptionProposal>();
 
@@ -63,31 +63,18 @@ namespace RevolvAPI.Controllers
                     }
                     else
                     {
-                        // Kein Textvorschlag zum Prüfen vorhanden - Status kommt vom generellen Resolved-Flag.
                         status = recs.All(r => r.IsFullyResolved) ? "Gelöst" : "Ausstehend";
                     }
 
-                    // Häufigster IssueText aus allen QualityIssues der Empfehlungen
-                    var mostFrequentReason = recs?
-                        .SelectMany(r => r.QualityIssues ?? new List<QualityIssue>()) // alle QualityIssues sammeln
-                        .Select(q => (q.IssueText ?? "Unbekannt").Trim())
-                        .Where(t => !string.IsNullOrEmpty(t))
-                        .GroupBy(t => t)
-                        .OrderByDescending(g => g.Count())
-                        .Select(g => g.Key)
-                        .FirstOrDefault();
-
                     return new ArticleTableDTO
                     {
-                        id = a.Id,
-                        ArticleNumber = a.ArticleNumber,
-                        Name = a.Name,
-                        Category = a.Category,
-                        Size = a.Size,
-                        ReturnRate = maxReturn,
+                        id = m.ArtikelId,
+                        ArticleNumber = m.Sku,
+                        Name = m.Name,
+                        Category = m.Category,
+                        ReturnRate = m.ReturnRatePercent,
                         AiStatus = status,
-                        color = a.Color, // DTO-Eigenschaft heißt aktuell 'color'
-                        MostFrequentReason = mostFrequentReason
+                        MostFrequentReason = m.MostFrequentReason
                     };
                 })
                 .OrderByDescending(d => d.ReturnRate)
@@ -99,9 +86,9 @@ namespace RevolvAPI.Controllers
 
                 List<ArticleTableDTO>? filtered = band.ToLowerInvariant() switch
                 {
-                    "red" => dtos.Where(d => d.ReturnRate > redThreshold).ToList(),
-                    "yellow" => dtos.Where(d => d.ReturnRate >= yellowThreshold && d.ReturnRate <= redThreshold).ToList(),
-                    "green" => dtos.Where(d => d.ReturnRate < yellowThreshold).ToList(),
+                    "red" or "yellow" or "green" => dtos
+                        .Where(d => ReturnRateBandService.IsInBand(d.ReturnRate, band, yellowThreshold, redThreshold))
+                        .ToList(),
                     _ => null,
                 };
 

@@ -15,7 +15,6 @@ function getAuthHeaders(): HeadersInit {
  * @param path Relative path (e.g. "/api/settings") or absolute URL.
  * @param options Same options as `fetch`; any custom headers are merged on top of the auth header.
  */
-
 // Wrapper around `fetch` that attaches the Bearer token, sends the refresh cookie, and on 401
 // tries one silent refresh + retry before logging out and redirecting to /login.
 export async function apiFetch(
@@ -23,16 +22,14 @@ export async function apiFetch(
   options: RequestInit = {},
   isRetryAfterRefresh = false,
 ): Promise<Response> {
-  // If the path is an absolute URL, use it as is, otherwise prepend the API base URL
   const url = path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
 
-  // Fetch the data from the API
   const response = await fetch(url, {
-    ...options, // Merge the custom options with the auth headers
+    ...options,
     credentials: "include",
     headers: {
-      ...getAuthHeaders(), // Get the authentication headers from the in-memory token
-      ...options.headers, // Merge the custom headers with the auth headers
+      ...getAuthHeaders(),
+      ...options.headers,
     },
   });
 
@@ -43,9 +40,13 @@ export async function apiFetch(
       return apiFetch(path, options, true);
     }
 
-    await logout();
-    if (window.location.pathname !== "/login") {
-      window.location.href = "/login";
+    // Only force logout when the session was cleared (auth rejection). Network blips keep
+    // the in-memory token and return the original 401 to the caller.
+    if (!getAccessToken()) {
+      await logout();
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 import { Box, Card, CardContent, Text } from "@jtl-software/platform-ui-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import KpiCard from "../components/KpiCard";
 import TopNavigationBar from "../components/TopNavigationBar";
 import ReturnReasonsChart from "../components/ReturnReasonsChar";
@@ -7,9 +8,10 @@ import TopReturnsChart from "../components/TopReturnsChart";
 import Sidebar from "../components/Sidebar";
 import LatestReturnsList from "../components/LatestReturnsList";
 import { apiFetch } from "../utils/api";
-const REFRESH_INTERVAL_MS = 5 * 60_000; // 60 Sekunden
+import { buildRetourenAnalysePath } from "../utils/riskBand";
 
-/** Raw data from the backend (DashboardKpiDto) */
+const REFRESH_INTERVAL_MS = 5 * 60_000;
+
 interface DashboardKpiDto {
   wholeReturnQuote: number;
   affectedArticle: number;
@@ -22,7 +24,6 @@ interface TrafficLightGroupDto {
   averagePercent: number;
 }
 
-/** Response from GET /api/dashboard/traffic-lights */
 interface TrafficLightKpiDto {
   red: TrafficLightGroupDto;
   yellow: TrafficLightGroupDto;
@@ -161,26 +162,18 @@ function KpiCardSkeleton() {
   );
 }
 
-interface TrafficLightResponse {
-  red: { count: number; averagePercent: number };
-  yellow: { count: number; averagePercent: number };
-  green: { count: number; averagePercent: number };
-}
-
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [kpiCards, setKpiCards] = useState<KpiNavCard[]>([]);
   const [ampelTiles, setAmpelTiles] = useState<AmpelTile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Geteilter Auf-/Zuklapp-Status: alle drei Ampel-Karten klappen gemeinsam auf/zu.
-  const [isAmpelExpanded, setIsAmpelExpanded] = useState(false);
 
   useEffect(() => {
     const loadDashboardData = async (isBackgroundRefresh: boolean) => {
-      // Beim automatischen Reload keinen vollen Loading-Zustand setzen,
-      // sonst flackern die Skeleton-Karten alle 60 Sekunden auf.
+      // Background refresh: avoid full loading state so skeletons don't flash.
       if (isBackgroundRefresh) {
         setIsRefreshing(true);
       } else {
@@ -189,8 +182,6 @@ export default function Dashboard() {
       setError(null);
 
       try {
-        // Settings + traffic-lights together: badges always use current thresholds,
-        // counts are calculated with the same thresholds on the backend.
         const [kpiResponse, trafficResponse, settingsResponse] = await Promise.all([
           apiFetch("/api/dashboard/kpi"),
           apiFetch("/api/dashboard/traffic-lights"),
@@ -221,8 +212,7 @@ export default function Dashboard() {
         setLastUpdated(new Date());
       } catch (err) {
         console.error("Error loading the dashboard data:", err);
-        // Bei einem Hintergrund-Refresh die zuletzt erfolgreich geladenen Daten stehen lassen,
-        // statt die ganze Seite mit einer Fehlermeldung zu überschreiben.
+        // Keep last good data on background refresh failures.
         if (!isBackgroundRefresh) {
           setKpiCards([]);
           setAmpelTiles([]);
@@ -338,9 +328,7 @@ export default function Dashboard() {
                       smallLabel={t.smallLabel}
                       value={t.value}
                       percent={t.percent}
-                      onClick={() => {}}
-                      isExpanded={isAmpelExpanded}
-                      onToggleExpanded={() => setIsAmpelExpanded((prev) => !prev)}
+                      onClick={() => navigate(buildRetourenAnalysePath(t.variant))}
                     />
                   ))}
             </div>
