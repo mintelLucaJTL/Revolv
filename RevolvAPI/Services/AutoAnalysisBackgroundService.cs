@@ -25,14 +25,35 @@ namespace RevolvAPI.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            // Host.HostOptions.BackgroundServiceExceptionBehavior ist auf StopHost konfiguriert:
+            // eine unbehandelte Exception hier würde nicht nur diesen Job stoppen, sondern die
+            // gesamte API (alle anderen Endpunkte inklusive) mit runterreißen - z. B. wenn die
+            // AutoAnalyzedAt-Spalte auf einer DB noch fehlt, weil die Migration noch nicht
+            // gelaufen ist. Deshalb ist hier alles defensiv abgefangen; dieser Job darf im
+            // schlimmsten Fall nur sich selbst lahmlegen, nie den Rest der Anwendung.
+
             // Der Channel lebt nur im Speicher: Issues, die kurz vor einem Neustart eingereiht,
             // aber noch nicht verarbeitet wurden, gehen sonst verloren. Beim Start deshalb alle
             // noch nicht geclaimten Issues (AutoAnalyzedAt == NULL) erneut einreihen.
-            await RequeueUnclaimedIssuesAsync(stoppingToken);
+            try
+            {
+                await RequeueUnclaimedIssuesAsync(stoppingToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                Console.WriteLine($"[AutoAnalysis] Restart-Recovery-Scan fehlgeschlagen: {ex.Message}");
+            }
 
             await foreach (var qualityIssueId in _queue.ReadAllAsync(stoppingToken))
             {
-                await ProcessAsync(qualityIssueId, stoppingToken);
+                try
+                {
+                    await ProcessAsync(qualityIssueId, stoppingToken);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    Console.WriteLine($"[AutoAnalysis] Verarbeitung von QualityIssue {qualityIssueId} fehlgeschlagen: {ex.Message}");
+                }
             }
         }
 

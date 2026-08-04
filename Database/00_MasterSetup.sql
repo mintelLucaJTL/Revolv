@@ -194,9 +194,9 @@ BEGIN
 
     -- Bereits vor diesem Feature vorhandene Issues gelten nicht als "neu" - sie sollen vom
     -- Restart-Recovery-Scan des Background-Jobs nicht rückwirkend automatisch analysiert werden.
-    UPDATE dbo.QualityIssues
-    SET AutoAnalyzedAt = SYSUTCDATETIME()
-    WHERE AutoAnalyzedAt IS NULL;
+    -- EXEC(...) statt eines direkten UPDATE: sonst kompiliert SQL Server den UPDATE-Teil des
+    -- Batches bereits VOR Ausführung des ALTER und bricht mit "Ungültiger Spaltenname" ab.
+    EXEC('UPDATE dbo.QualityIssues SET AutoAnalyzedAt = SYSUTCDATETIME() WHERE AutoAnalyzedAt IS NULL');
 END
 GO
 

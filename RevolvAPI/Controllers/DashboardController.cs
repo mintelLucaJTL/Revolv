@@ -126,5 +126,32 @@ namespace RevolvAPI.Controllers
             return Ok(dtos);
         }
 
+        // GET api/dashboard/return-costs?months=6
+        // Ticket #273 (Frontend: Kosten-Chart im Dashboard integrieren): liefert die
+        // Retourenkosten pro Monat für die letzten `months` Monate plus Gesamtsumme.
+        [HttpGet("return-costs")]
+        public async Task<IActionResult> GetReturnCosts([FromQuery] int months = 6)
+        {
+            if (months < 1 || months > 24)
+            {
+                return BadRequest("months muss zwischen 1 und 24 liegen.");
+            }
+
+            var monthly = await _returnAnalytics.GetMonthlyReturnCostsAsync(months);
+
+            var dto = new ReturnCostsResponseDto
+            {
+                TotalCost = monthly.Sum(m => m.TotalCost),
+                Monthly = monthly
+                    .Select(m => new MonthlyReturnCostDto
+                    {
+                        Month = $"{m.Month.Year:D4}-{m.Month.Month:D2}",
+                        TotalCost = m.TotalCost
+                    })
+                    .ToList()
+            };
+
+            return Ok(dto);
+        }
     }
 }

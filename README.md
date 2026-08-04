@@ -1,6 +1,6 @@
 # Revolv – JTL Return Analytics
 
-Revolv analysiert Retourenquoten aus einer laufenden JTL-WAWI-Datenbank und liefert KPIs, Ampel-Risikobänder sowie Verbesserungsvorschläge.
+Revolv analysiert Retourenquoten aus einer laufenden JTL-WAWI-Datenbank und liefert KPIs, Ampel-Risikobänder, Retourenkosten-Trends sowie Verbesserungsvorschläge.
 
 ## Tech-Stack
 
