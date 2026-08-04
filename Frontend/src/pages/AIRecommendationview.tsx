@@ -168,46 +168,47 @@ export default function AIRecommendationView() {
   const [selectedArticle, setSelectedArticle] = useState<ArticleOverview | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchOverview = async () => {
-      try {
-        const response = await apiFetch("/api/ai/overview");
+  const fetchOverview = async () => {
+    try {
+      const response = await apiFetch("/api/ai/overview");
 
-        if (!response.ok) {
-          throw new Error(`Fehler beim Laden der KI-Übersicht (${response.status})`);
-        }
-
-        const data = (await response.json()) as ArticleOverviewApiDto[];
-        const mapped: ArticleOverview[] = (Array.isArray(data) ? data : []).map((item) => ({
-          id: item.id,
-          name: item.name ?? "",
-          articleNo: item.articleNumber ?? "",
-          category: item.category ?? "",
-          size: item.size ?? "",
-          returnRate: item.returnRate ?? "low",
-          hasQualityBadge: Boolean(item.hasQualityBadge),
-          hasDescriptionBadge: Boolean(item.hasDescriptionBadge),
-          hasRecommendationBadge: Boolean(item.hasRecommendationBadge),
-          openCount: item.openCount ?? 0,
-          resolvedCount: item.resolvedCount ?? 0,
-          imageUrl: item.imageUrl,
-        }));
-
-        setArticles(mapped);
-      } catch (err) {
-        console.error("Fetch AI overview error:", err);
-        setError(
-          err instanceof TypeError
-            ? "Backend nicht erreichbar. Starte RevolvAPI (http://localhost:5215)."
-            : "Die Artikel konnten nicht geladen werden.",
-        );
-        setArticles([]);
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(`Fehler beim Laden der KI-Übersicht (${response.status})`);
       }
-    };
 
+      const data = (await response.json()) as ArticleOverviewApiDto[];
+      const mapped: ArticleOverview[] = (Array.isArray(data) ? data : []).map((item) => ({
+        id: item.id,
+        name: item.name ?? "",
+        articleNo: item.articleNumber ?? "",
+        category: item.category ?? "",
+        size: item.size ?? "",
+        returnRate: item.returnRate ?? "low",
+        hasQualityBadge: Boolean(item.hasQualityBadge),
+        hasDescriptionBadge: Boolean(item.hasDescriptionBadge),
+        hasRecommendationBadge: Boolean(item.hasRecommendationBadge),
+        openCount: item.openCount ?? 0,
+        resolvedCount: item.resolvedCount ?? 0,
+        imageUrl: item.imageUrl,
+      }));
+
+      setArticles(mapped);
+    } catch (err) {
+      console.error("Fetch AI overview error:", err);
+      setError(
+        err instanceof TypeError
+          ? "Backend nicht erreichbar. Starte RevolvAPI (http://localhost:5215)."
+          : "Die Artikel konnten nicht geladen werden.",
+      );
+      setArticles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     void fetchOverview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const { totalOpen, totalResolved } = useMemo(() => {
@@ -398,6 +399,7 @@ export default function AIRecommendationView() {
         }
         open={panelOpen}
         onClose={closePanel}
+        onArticleUpdated={() => void fetchOverview()}
       />
     </Box>
   );

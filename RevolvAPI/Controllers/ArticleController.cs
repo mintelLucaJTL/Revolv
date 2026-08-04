@@ -52,12 +52,16 @@ namespace RevolvAPI.Controllers
             }
 
             // AI rows keyed by ArtikelId only — article master data lives in WAWI, not revolv.
+            // Ein Artikel kann mehrere Analysen haben (jede "KI-Analyse generieren" legt eine neue
+            // Zeile an); neueste zuerst, damit Konsumenten wie QualityReviewModal per [0] die
+            // aktuell aktive Recommendation bekommen statt einer undefinierten Reihenfolge.
             var recommendations = await _ctx.AiRecommendations
                 .AsNoTracking()
                 .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
                 .Include(r => r.ActionRecommendations)
                 .Where(r => r.ArtikelId == id)
+                .OrderByDescending(r => r.Id)
                 .ToListAsync();
 
             var articleDto = new ArticleDetailDTO

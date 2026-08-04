@@ -103,16 +103,37 @@ namespace RevolvAPI.Controllers
         {
             var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx);
 
-            var rows = await _ctx.AiRecommendations
+            var allRows = await _ctx.AiRecommendations
                 .AsNoTracking()
                 .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
                 .Include(r => r.ActionRecommendations)
-                .Select(r => new
+                .ToListAsync();
+
+            // Ein Artikel kann mehrere Analysen haben (jede "KI-Analyse generieren" legt eine neue
+            // AiRecommendation-Zeile an) — für die Übersicht zählt nur die jeweils neueste pro
+            // Artikel, sonst tauchen re-analysierte Artikel doppelt auf.
+            var latestPerArticle = allRows
+                .GroupBy(r => r.ArtikelId)
+                .Select(g => g.OrderByDescending(r => r.Id).First())
+                .ToList();
+
+            var articleInfo = await _returnAnalytics.GetArticleDisplayInfoAsync(
+                latestPerArticle.Select(r => r.ArtikelId));
+
+            var overview = latestPerArticle.Select(r =>
+            {
+                var info = articleInfo.GetValueOrDefault(r.ArtikelId);
+                return new AiRecommendationOverviewDto
                 {
-                    r.Id,
-                    r.ArtikelId,
-                    r.ReturnRate,
+                    // Bewusst die ArtikelId, nicht r.Id (AiRecommendation-PK) — das Panel öffnet
+                    // damit GET /api/articles/{id}, das nach ArtikelId sucht. Die beiden Id-Räume
+                    // vorher zu vermischen führte zu falschen/404-Detailaufrufen.
+                    Id = r.ArtikelId,
+                    ArticleNumber = info?.Sku ?? string.Empty,
+                    Name = info?.Name ?? string.Empty,
+                    Category = info?.Category ?? string.Empty,
+                    ReturnRate = ReturnRateBandService.Classify(r.ReturnRate, yellowThreshold, redThreshold),
                     HasQualityBadge = r.QualityIssues.Any(),
                     HasDescriptionBadge = r.DescriptionProposals.Any(),
                     HasRecommendationBadge = r.ActionRecommendations.Any(),
@@ -122,26 +143,6 @@ namespace RevolvAPI.Controllers
                     ResolvedCount = r.QualityIssues.Count(q => q.Status == "Erledigt") +
                                  r.DescriptionProposals.Count(d => d.Status == "Erledigt") +
                                  r.ActionRecommendations.Count(a => a.IsCompleted),
-                })
-                .ToListAsync();
-
-            var articleInfo = await _returnAnalytics.GetArticleDisplayInfoAsync(rows.Select(r => r.ArtikelId));
-
-            var overview = rows.Select(r =>
-            {
-                var info = articleInfo.GetValueOrDefault(r.ArtikelId);
-                return new AiRecommendationOverviewDto
-                {
-                    Id = r.Id,
-                    ArticleNumber = info?.Sku ?? string.Empty,
-                    Name = info?.Name ?? string.Empty,
-                    Category = info?.Category ?? string.Empty,
-                    ReturnRate = ReturnRateBandService.Classify(r.ReturnRate, yellowThreshold, redThreshold),
-                    HasQualityBadge = r.HasQualityBadge,
-                    HasDescriptionBadge = r.HasDescriptionBadge,
-                    HasRecommendationBadge = r.HasRecommendationBadge,
-                    OpenCount = r.OpenCount,
-                    ResolvedCount = r.ResolvedCount,
                 };
             }).ToList();
 
