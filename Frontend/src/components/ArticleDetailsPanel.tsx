@@ -1,15 +1,9 @@
 import { useEffect, useState } from "react";
-import {
-  Box,
-  Text,
-  Card,
-  CardContent,
-  Button,
-  Badge,
-  Checkbox,
-} from "@jtl-software/platform-ui-react";
-import QualityWarningCard from "./QualityWarningCard";
+import { Box, Text, Card, CardContent, Button, Badge } from "@jtl-software/platform-ui-react";
+import ArticleReviewSections from "./ArticleReviewSections";
 import { apiFetch } from "../utils/api";
+import { useArticleReview } from "../hooks/useArticleReview";
+import type { ArticleDetailDTO } from "../types/api";
 
 type ArticleType = {
   id: number;
@@ -20,32 +14,6 @@ type ArticleType = {
   category?: string;
   size?: string;
 };
-
-type ArticleDetailApiDto = {
-  id: number;
-  aiRecommendations?: Array<{
-    aiSummaryText?: string | null;
-  }>;
-};
-
-// Demo UI placeholders (not persisted) until live AI detail sections are wired here.
-const DUMMY_QUALITY_ISSUES = [
-  { id: "dq-1", text: "Starkes Einlaufen nach dem Waschen bei 22% der Fälle" },
-  { id: "dq-2", text: "Größentabelle stimmt nicht mit realem Schnitt überein" },
-];
-
-const DUMMY_DESCRIPTION_PROPOSAL = {
-  current: "Lässige Passform mit Stretch-Anteil für optimalen Komfort.",
-  proposed:
-    "Lässige Passform mit 2% Stretch für optimalen Komfort. Wichtig: Größe entspricht einer engeren Bundweite als bei vergleichbaren Modellen. Schnitt fällt bewusst weiter aus. Empfehlung für schlanke Figuren: eine Nummer kleiner wählen.",
-};
-
-const DUMMY_ACTION_RECOMMENDATIONS = [
-  { id: "da-1", text: "Schnitt-Erklärung hinzufügen", impact: "−15% Retouren", priority: "Hoch" },
-  { id: "da-2", text: "Maßtabelle korrigieren", impact: "−10% Retouren", priority: "Hoch" },
-  { id: "da-3", text: "Einlaufhinweis ergänzen", impact: "−8% Retouren", priority: "Hoch" },
-  { id: "da-4", text: "Pflegehinweise aktualisieren", impact: "−5% Retouren", priority: "Mittel" },
-];
 
 function getReturnRateBadgeVariant(
   returnRate?: string | number,
@@ -85,29 +53,23 @@ function getReturnRateBadgeLabel(returnRate?: string | number): string {
   }
 }
 
-function getPriorityBadgeVariant(priority: string): "danger" | "warning" | "secondary" {
-  const normalized = priority.toLowerCase();
-  if (normalized.includes("hoch")) return "danger";
-  if (normalized.includes("mittel")) return "warning";
-  return "secondary";
-}
-
 export default function ArticleDetailsPanel({
   article,
   open,
   onClose,
+  onArticleUpdated,
 }: {
   article: ArticleType | null;
   open: boolean;
   onClose: () => void;
+  onArticleUpdated?: () => void;
 }) {
-  const [aiSummaryText, setAiSummaryText] = useState<string | null>(null);
+  const [articleDetail, setArticleDetail] = useState<ArticleDetailDTO | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
-  const [checkedIssueIds, setCheckedIssueIds] = useState<Set<string>>(new Set());
-  const [checkedActionIds, setCheckedActionIds] = useState<Set<string>>(new Set());
-  const [proposalDecision, setProposalDecision] = useState<"accepted" | "rejected" | null>(null);
+  const review = useArticleReview(articleDetail, onArticleUpdated);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -125,15 +87,11 @@ export default function ArticleDetailsPanel({
 
   useEffect(() => {
     if (!open || !article?.id) {
-      setAiSummaryText(null);
+      setArticleDetail(null);
       setDetailError(null);
       setDetailLoading(false);
       return;
     }
-
-    setCheckedIssueIds(new Set());
-    setCheckedActionIds(new Set());
-    setProposalDecision(null);
 
     const articleId = article.id;
     let cancelled = false;
@@ -141,7 +99,6 @@ export default function ArticleDetailsPanel({
     const fetchDetails = async () => {
       setDetailLoading(true);
       setDetailError(null);
-      setAiSummaryText(null);
 
       try {
         const response = await apiFetch(`/api/articles/${encodeURIComponent(String(articleId))}`);
@@ -150,14 +107,9 @@ export default function ArticleDetailsPanel({
           throw new Error(`Artikeldetails konnten nicht geladen werden (${response.status})`);
         }
 
-        const data = (await response.json()) as ArticleDetailApiDto;
-        const summary =
-          data.aiRecommendations?.find((r) => r.aiSummaryText)?.aiSummaryText ??
-          data.aiRecommendations?.[0]?.aiSummaryText ??
-          null;
-
+        const dto = (await response.json()) as ArticleDetailDTO;
         if (!cancelled) {
-          setAiSummaryText(summary);
+          setArticleDetail(dto);
         }
       } catch (err) {
         console.error("Fetch article details error:", err);
@@ -167,9 +119,9 @@ export default function ArticleDetailsPanel({
               ? "Backend nicht erreichbar."
               : err instanceof Error
                 ? err.message
-                : "Die KI-Zusammenfassung konnte nicht geladen werden.",
+                : "Die Artikeldetails konnten nicht geladen werden.",
           );
-          setAiSummaryText(null);
+          setArticleDetail(null);
         }
       } finally {
         if (!cancelled) {
@@ -183,65 +135,66 @@ export default function ArticleDetailsPanel({
     return () => {
       cancelled = true;
     };
-  }, [open, article?.id]);
+  }, [open, article?.id, reloadToken]);
 
   if (!open || !article) return null;
 
-  const toggleIssue = (id: string) => {
-    setCheckedIssueIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const toggleAction = (id: string) => {
-    setCheckedActionIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const reviewedIssueCount = checkedIssueIds.size;
-  const completedActionCount = checkedActionIds.size;
+  const displayName = articleDetail?.name ?? article.name;
+  const displayNumber = articleDetail?.articleNumber ?? article.number;
+  const displayCategory = articleDetail?.category ?? article.category;
+  const aiSummaryText = review.aiRec?.aiSummaryText;
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} aria-hidden />
-      <aside
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-xs p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      role="presentation"
+    >
+      <div
         role="dialog"
         aria-modal="true"
-        className="fixed right-0 top-0 h-full w-full md:w-1/3 bg-white dark:bg-slate-900 z-50 shadow-lg transform transition-transform overflow-hidden flex flex-col"
+        aria-label={`KI-Empfehlungen für ${article.name}`}
+        className="my-8 w-full max-w-6xl bg-white dark:bg-slate-900 rounded-[28px] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800"
+        onClick={(e) => e.stopPropagation()}
       >
         <Box className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 p-4 flex items-start justify-between z-10">
           <Box className="flex items-center gap-3 min-w-0">
             <img
               src={article.image ?? "/placeholder.png"}
-              alt={article.name ?? "Artikel"}
+              alt={displayName ?? "Artikel"}
               className="w-14 h-14 object-cover rounded-lg flex-shrink-0 bg-slate-100 dark:bg-slate-800"
             />
             <Box className="min-w-0">
               <Box className="flex items-center gap-1.5 dark:text-slate-500">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500 flex-shrink-0" />
                 <Text type="xs" color="muted">
-                  ART-{article.number ?? "—"}
+                  ART-{displayNumber ?? "—"}
                 </Text>
               </Box>
               <Box className="dark:text-slate-100 truncate">
-                <Text weight="bold">{article.name}</Text>
+                <Text weight="bold">{displayName}</Text>
               </Box>
               <Box className="mt-1 flex items-center gap-2 flex-wrap">
                 <Badge
                   label={getReturnRateBadgeLabel(article.returnRate)}
                   variant={getReturnRateBadgeVariant(article.returnRate)}
                 />
-                {(article.category || article.size) && (
+                {(displayCategory || article.size) && (
                   <Text type="xs" color="muted">
-                    {[article.category, article.size].filter(Boolean).join(" · ")}
+                    {[displayCategory, article.size].filter(Boolean).join(" · ")}
                   </Text>
                 )}
               </Box>
+              {!detailLoading && !detailError && articleDetail && (
+                <Box className="mt-1">
+                  <Text type="xs" color="muted">
+                    {review.reviewProgress.reviewedCount} / {review.reviewProgress.totalCount}{" "}
+                    bearbeitet
+                  </Text>
+                </Box>
+              )}
             </Box>
           </Box>
           <Button variant="ghost" size="icon" aria-label="Schließen" onClick={onClose} label="✕" />
@@ -287,133 +240,31 @@ export default function ArticleDetailsPanel({
                   ) : detailError ? (
                     <span className="text-red-600 dark:text-red-400">{detailError}</span>
                   ) : (
-                    (aiSummaryText ??
-                    "Höchste Retourenquote im Sortiment. Die Beschreibung weicht spürbar vom tatsächlichen Produkt ab, was zu vermehrten Rücksendungen führt. Sofortiger Handlungsbedarf.")
+                    <span>
+                      {aiSummaryText ?? "Noch keine KI-Zusammenfassung für diesen Artikel."}
+                    </span>
                   )}
                 </div>
               </CardContent>
             </Card>
           </section>
 
-          {/* Qualitätsprüfung */}
-          <section className="mb-6">
-            <Box className="flex items-center justify-between mb-3">
-              <Box className="flex items-center gap-2 dark:text-slate-100">
-                <span aria-hidden>🛡️</span>
-                <Text weight="bold">Qualitätsprüfung</Text>
-              </Box>
-              <Text type="xs" color="muted">
-                {reviewedIssueCount} / {DUMMY_QUALITY_ISSUES.length} bearbeitet
-              </Text>
-            </Box>
-
-            <div className="space-y-3">
-              {DUMMY_QUALITY_ISSUES.map((issue) => (
-                <QualityWarningCard
-                  key={issue.id}
-                  title="Qualitätswarnung"
-                  description={issue.text}
-                  isChecked={checkedIssueIds.has(issue.id)}
-                  onToggleChecked={() => toggleIssue(issue.id)}
-                  onCreateTicket={() => {}}
-                />
-              ))}
+          {detailLoading ? (
+            <div className="p-6 text-center text-sm text-slate-600 dark:text-slate-400">
+              Lade Artikeldetails…
             </div>
-          </section>
-
-          {/* Produktbeschreibung */}
-          <section className="mb-6">
-            <Box className="flex items-center gap-2 dark:text-slate-100 mb-3">
-              <span aria-hidden>📄</span>
-              <Text weight="bold">Produktbeschreibung</Text>
-            </Box>
-
-            <Card className="p-0 rounded-xl border border-slate-200 dark:border-slate-700 shadow-none overflow-hidden">
-              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-700">
-                <CardContent className="p-3">
-                  <Text type="xs" weight="semibold" color="muted">
-                    AKTUELL
-                  </Text>
-                  <Box className="mt-1.5 dark:text-slate-300">
-                    <Text>{DUMMY_DESCRIPTION_PROPOSAL.current}</Text>
-                  </Box>
-                </CardContent>
-                <CardContent className="p-3 bg-blue-50/60 dark:bg-blue-950/20">
-                  <Box className="flex items-center gap-1 text-blue-600 dark:text-blue-300">
-                    <span aria-hidden>✨</span>
-                    <Text type="xs" weight="semibold">
-                      KI-VORSCHLAG
-                    </Text>
-                  </Box>
-                  <Box className="mt-1.5 dark:text-slate-300">
-                    <Text>{DUMMY_DESCRIPTION_PROPOSAL.proposed}</Text>
-                  </Box>
-                </CardContent>
-              </div>
-
-              <div className="flex border-t border-slate-200 dark:border-slate-700">
-                <div className="flex-1">
-                  <Button
-                    fullWidth
-                    variant={proposalDecision === "accepted" ? "highlight" : "ghost"}
-                    onClick={() => setProposalDecision("accepted")}
-                    label="✓ Übernehmen"
-                  />
-                </div>
-                <div className="flex-1 border-l border-slate-200 dark:border-slate-700">
-                  <Button fullWidth variant="ghost" label="✎ Bearbeiten" />
-                </div>
-                <div className="flex-1 border-l border-slate-200 dark:border-slate-700">
-                  <Button
-                    fullWidth
-                    variant={proposalDecision === "rejected" ? "secondary" : "ghost"}
-                    onClick={() => setProposalDecision("rejected")}
-                    label="✕ Ablehnen"
-                  />
-                </div>
-              </div>
-            </Card>
-          </section>
-
-          {/* Weitere Empfehlungen */}
-          <section className="mb-2">
-            <Box className="flex items-center justify-between mb-3">
-              <Box className="flex items-center gap-2 dark:text-slate-100">
-                <span aria-hidden>✨</span>
-                <Text weight="bold">Weitere Empfehlungen</Text>
-              </Box>
-              <Text type="xs" color="muted">
-                {completedActionCount} / {DUMMY_ACTION_RECOMMENDATIONS.length} erledigt
-              </Text>
-            </Box>
-
-            <div className="space-y-2">
-              {DUMMY_ACTION_RECOMMENDATIONS.map((rec) => {
-                const isChecked = checkedActionIds.has(rec.id);
-                return (
-                  <Card
-                    key={rec.id}
-                    className="p-0 rounded-xl border border-slate-200 dark:border-slate-700 shadow-none hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
-                  >
-                    <CardContent className="flex items-center gap-3 px-3 py-2.5">
-                      <Checkbox value={isChecked} onChange={() => toggleAction(rec.id)} />
-                      <span
-                        className={`flex-1 text-sm ${
-                          isChecked
-                            ? "text-slate-400 dark:text-slate-500 line-through"
-                            : "text-slate-900 dark:text-slate-100"
-                        }`}
-                      >
-                        {rec.text}
-                      </span>
-                      <Badge label={rec.impact} variant="success" />
-                      <Badge label={rec.priority} variant={getPriorityBadgeVariant(rec.priority)} />
-                    </CardContent>
-                  </Card>
-                );
-              })}
+          ) : detailError ? (
+            <div className="p-6 text-center text-sm">
+              <p className="mb-3 text-red-600 dark:text-red-400">{detailError}</p>
+              <Button label="Erneut versuchen" onClick={() => setReloadToken((t) => t + 1)} />
             </div>
-          </section>
+          ) : !articleDetail ? (
+            <div className="p-6 text-center text-sm text-slate-600 dark:text-slate-400">
+              Keine Artikeldaten vorhanden.
+            </div>
+          ) : (
+            <ArticleReviewSections review={review} />
+          )}
         </div>
       </aside>
     </>
