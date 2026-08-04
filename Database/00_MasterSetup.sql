@@ -51,6 +51,108 @@ BEGIN
 END
 GO
 
+-- Companies & Roles (Ticket #190: Datengrundlage für Mandanten-/Team-Support)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.Companies') AND type IN (N'U'))
+BEGIN
+    CREATE TABLE [revolv].[Companies] (
+        [Id] INT IDENTITY(1,1) PRIMARY KEY,
+        [Name] NVARCHAR(255) NOT NULL,
+        [CreatedAt] DATETIME2 NOT NULL DEFAULT GETDATE()
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.Roles') AND type IN (N'U'))
+BEGIN
+    CREATE TABLE [revolv].[Roles] (
+        [Id] INT IDENTITY(1,1) PRIMARY KEY,
+        [RoleName] NVARCHAR(50) NOT NULL UNIQUE
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM [revolv].[Roles] WHERE [RoleName] = 'Admin')
+BEGIN
+    INSERT INTO [revolv].[Roles] ([RoleName]) VALUES ('Admin');
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM [revolv].[Roles] WHERE [RoleName] = 'Mitarbeiter')
+BEGIN
+    INSERT INTO [revolv].[Roles] ([RoleName]) VALUES ('Mitarbeiter');
+END
+GO
+
+-- Users: CompanyId/RoleId hinzufügen, bestehende User einer Default-Company + Admin-Rolle
+-- zuordnen (sie hatten vorher uneingeschränkten Zugriff), dann als Pflichtfeld + FK absichern.
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'revolv.Users') AND name = 'CompanyId'
+)
+BEGIN
+    ALTER TABLE revolv.Users ADD CompanyId INT NULL;
+END
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'revolv.Users') AND name = 'RoleId'
+)
+BEGIN
+    ALTER TABLE revolv.Users ADD RoleId INT NULL;
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM [revolv].[Companies] WHERE [Name] = 'Default Company')
+BEGIN
+    INSERT INTO [revolv].[Companies] ([Name]) VALUES ('Default Company');
+END
+GO
+
+UPDATE u
+SET u.CompanyId = (SELECT TOP 1 Id FROM revolv.Companies WHERE Name = 'Default Company')
+FROM revolv.Users u
+WHERE u.CompanyId IS NULL;
+GO
+
+UPDATE u
+SET u.RoleId = (SELECT TOP 1 Id FROM revolv.Roles WHERE RoleName = 'Admin')
+FROM revolv.Users u
+WHERE u.RoleId IS NULL;
+GO
+
+IF EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'revolv.Users') AND name = 'CompanyId' AND is_nullable = 1
+)
+BEGIN
+    ALTER TABLE revolv.Users ALTER COLUMN CompanyId INT NOT NULL;
+END
+GO
+
+IF EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'revolv.Users') AND name = 'RoleId' AND is_nullable = 1
+)
+BEGIN
+    ALTER TABLE revolv.Users ALTER COLUMN RoleId INT NOT NULL;
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Users_Companies')
+BEGIN
+    ALTER TABLE revolv.Users
+    ADD CONSTRAINT FK_Users_Companies FOREIGN KEY (CompanyId) REFERENCES revolv.Companies(Id);
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Users_Roles')
+BEGIN
+    ALTER TABLE revolv.Users
+    ADD CONSTRAINT FK_Users_Roles FOREIGN KEY (RoleId) REFERENCES revolv.Roles(Id);
+END
+GO
+
 -- AiRecommendations: ArtikelId references WAWI dbo.tArtikel.kArtikel (no FK across schemas)
 IF OBJECT_ID(N'revolv.AiRecommendations', N'U') IS NULL
 BEGIN

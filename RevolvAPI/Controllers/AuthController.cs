@@ -31,7 +31,8 @@ namespace RevolvAPI.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginRequest r)
         {
-            var user = _ctx.Users.FirstOrDefault(u => u.Email == r.Email);
+            // Include Role so TokenService can put the real role name in the JWT.
+            var user = _ctx.Users.Include(u => u.Role).FirstOrDefault(u => u.Email == r.Email);
 
             if (user == null || !_passwordService.VerifyPassword(r.Password, user.PasswordHash))
             {
@@ -50,12 +51,30 @@ namespace RevolvAPI.Controllers
                 return Conflict(new { message = "Diese E-Mail-Adresse wird bereits verwendet." });
             }
 
+            // Ticket #190: the registrant founds their own company and becomes its Admin.
+            var adminRoleId = await _ctx.Roles
+                .Where(role => role.RoleName == RoleNames.Admin)
+                .Select(role => role.Id)
+                .FirstOrDefaultAsync();
+
+            if (adminRoleId == 0)
+            {
+                // Seed data missing (see Database/revolv.Roles.sql) - fail loudly instead of
+                // silently assigning a bogus RoleId 0.
+                return Problem("Rollen sind nicht konfiguriert. Bitte revolv.Roles.sql ausführen.");
+            }
+
+            var company = new Company { Name = r.CompanyName.Trim() };
+            _ctx.Companies.Add(company);
+
             var user = new User
             {
                 Name = r.Name.Trim(),
                 Email = r.Email,
                 PasswordHash = _passwordService.HashPassword(r.Password),
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                Company = company,
+                RoleId = adminRoleId
             };
 
             _ctx.Users.Add(user);

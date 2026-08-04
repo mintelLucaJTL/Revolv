@@ -188,9 +188,7 @@ export default function RetourenAnalyseView() {
     } catch (error) {
       console.error("Fehler beim Laden der Retourendaten:", error);
       const message =
-        error instanceof Error
-          ? error.message
-          : "Die Retourendaten konnten nicht geladen werden.";
+        error instanceof Error ? error.message : "Die Retourendaten konnten nicht geladen werden.";
       setArticlesState((prev) => ({
         status: "error",
         message,

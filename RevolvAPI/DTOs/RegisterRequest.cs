@@ -12,5 +12,10 @@ namespace RevolvAPI.DTOs
         [Required(ErrorMessage = "Password is required")]
         [MinLength(6, ErrorMessage = "Password must be at least 6 characters long")]
         public string Password { get; set; } = string.Empty;
+
+        // Ticket #190: the registrant founds their own company and becomes its Admin.
+        // Joining an existing company happens via invite (see Team-UI follow-up ticket), not here.
+        [Required(ErrorMessage = "Company name is required")]
+        public string CompanyName { get; set; } = string.Empty;
     }
 }

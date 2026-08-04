@@ -18,6 +18,8 @@ namespace RevolvAPI.Data
         }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<Company> Companies { get; set; }
+        public DbSet<Role> Roles { get; set; }
         public DbSet<ActionRecommendation> ActionRecommendations { get; set; }
         public DbSet<DescriptionProposal> DescriptionProposals { get; set; }
         public DbSet<AiRecommendation> AiRecommendations { get; set; }
@@ -70,6 +72,23 @@ namespace RevolvAPI.Data
             // Unique email at DB level (guards race conditions AuthController alone cannot).
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
+                .IsUnique();
+
+            // Restrict (not Cascade): a Company/Role must not silently take its Users down with it.
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Company)
+                .WithMany()
+                .HasForeignKey(u => u.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Role)
+                .WithMany()
+                .HasForeignKey(u => u.RoleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Role>()
+                .HasIndex(r => r.RoleName)
                 .IsUnique();
 
             ConfigureWawiViews(modelBuilder);
