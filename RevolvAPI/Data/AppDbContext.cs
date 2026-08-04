@@ -102,6 +102,7 @@ namespace RevolvAPI.Data
                 e.ToView("Items", schema: "DAL");
                 e.HasKey(x => x.Id);
                 e.Property(x => x.Sku).HasColumnName("Identifiers_SKU");
+                e.Property(x => x.SalesPriceNet).HasColumnName("Prices_SalesPriceNet");
             });
 
             modelBuilder.Entity<WawiItemDescription>(e =>

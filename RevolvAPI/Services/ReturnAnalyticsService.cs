@@ -152,6 +152,77 @@ namespace RevolvAPI.Services
                 .ToList();
         }
 
+        public async Task<List<MonthlyReturnCost>> GetMonthlyReturnCostsAsync(int months)
+        {
+            months = Math.Clamp(months, 1, 24);
+
+            var now = DateTimeOffset.UtcNow;
+            var currentMonthStart = new DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero);
+            var rangeStart = currentMonthStart.AddMonths(-(months - 1));
+
+            var returnRows = await (
+                from li in _ctx.WawiReturnLineItems.AsNoTracking().Where(x => x.ItemId != null && x.ReturnId != null)
+                join r in _ctx.WawiReturns.AsNoTracking() on li.ReturnId!.Value equals r.Id
+                where r.ReturnDate >= rangeStart
+                select new { ItemId = li.ItemId!.Value, li.Quantity, r.ReturnDate })
+                .ToListAsync();
+
+            var priceByItem = await GetAverageSalesPriceByItemAsync(returnRows.Select(x => x.ItemId).Distinct());
+
+            var totalByMonth = returnRows
+                .GroupBy(x => new DateOnly(x.ReturnDate.Year, x.ReturnDate.Month, 1))
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Sum(x => x.Quantity * priceByItem.GetValueOrDefault(x.ItemId, 0m)));
+
+            // Immer genau `months` Einträge zurückgeben (auch mit 0), damit der Dashboard-Chart
+            // eine lückenlose Zeitreihe bekommt statt einzelner fehlender Monate.
+            var result = new List<MonthlyReturnCost>(months);
+            for (var i = 0; i < months; i++)
+            {
+                var monthStart = DateOnly.FromDateTime(rangeStart.AddMonths(i).Date);
+                result.Add(new MonthlyReturnCost(monthStart, Math.Round(totalByMonth.GetValueOrDefault(monthStart, 0m), 2)));
+            }
+
+            return result;
+        }
+
+        // Es gibt keine direkte Verknüpfung zwischen einer Retoure und der ursprünglichen
+        // Rechnungsposition - daher der durchschnittliche tatsächlich in Rechnung gestellte
+        // Netto-Preis (SalesInvoiceLineItems) je Artikel, ersatzweise der aktuelle Katalogpreis
+        // (z. B. bei Retouren zu Artikeln ohne erfasste Verkäufe).
+        private async Task<Dictionary<int, decimal>> GetAverageSalesPriceByItemAsync(IEnumerable<int> itemIds)
+        {
+            var ids = itemIds.ToList();
+            if (ids.Count == 0) return new Dictionary<int, decimal>();
+
+            var invoicePrices = await _ctx.WawiSalesInvoiceLineItems
+                .AsNoTracking()
+                .Where(si => si.ItemId != null && ids.Contains(si.ItemId.Value))
+                .GroupBy(si => si.ItemId!.Value)
+                .Select(g => new { ItemId = g.Key, AveragePrice = g.Average(x => x.SalesPriceNet) })
+                .ToListAsync();
+
+            var priceByItem = invoicePrices.ToDictionary(x => x.ItemId, x => x.AveragePrice);
+
+            var missingIds = ids.Except(priceByItem.Keys).ToList();
+            if (missingIds.Count > 0)
+            {
+                var catalogPrices = await _ctx.WawiItems
+                    .AsNoTracking()
+                    .Where(i => missingIds.Contains(i.Id))
+                    .Select(i => new { i.Id, i.SalesPriceNet })
+                    .ToListAsync();
+
+                foreach (var item in catalogPrices)
+                {
+                    priceByItem[item.Id] = item.SalesPriceNet;
+                }
+            }
+
+            return priceByItem;
+        }
+
         public async Task<Dictionary<int, ArticleDisplayInfo>> GetArticleDisplayInfoAsync(IEnumerable<int> artikelIds)
         {
             var ids = artikelIds.Distinct().ToList();

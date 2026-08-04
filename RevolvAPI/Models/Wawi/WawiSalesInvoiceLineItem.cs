@@ -11,6 +11,9 @@ namespace RevolvAPI.Models.Wawi
         [Column("SKU")]
         public string? Sku { get; set; }
 
+        // Tatsächlich in Rechnung gestellter Netto-Einzelpreis (nicht der aktuelle Katalogpreis).
+        public decimal SalesPriceNet { get; set; }
+
         public int SalesInvoiceId { get; set; }
         public int? ItemId { get; set; }
     }

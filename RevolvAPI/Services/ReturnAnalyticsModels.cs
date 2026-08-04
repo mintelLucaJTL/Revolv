@@ -30,6 +30,13 @@ namespace RevolvAPI.Services
         string? Name,
         decimal ReturnRatePercent);
 
+    // Warenwert der im jeweiligen Kalendermonat zurückgesendeten Artikel (Ticket #273).
+    // Monate ohne Retouren sind mit TotalCost=0 enthalten, damit Aufrufer immer eine
+    // lückenlose Zeitreihe bekommen (kein Chart mit fehlenden Monaten).
+    public record MonthlyReturnCost(
+        DateOnly Month,
+        decimal TotalCost);
+
     // Sku/Name/Category for enriching AI rows that only hold ArtikelId.
     public record ArticleDisplayInfo(
         int ArtikelId,

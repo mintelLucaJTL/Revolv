@@ -11,6 +11,10 @@ namespace RevolvAPI.Services
 
         Task<List<TopReturnedArticle>> GetTopReturnedArticlesAsync(int take = 5);
 
+        // Retourenkosten (Warenwert der zurückgesendeten Artikel, zu Netto-Verkaufspreisen) pro
+        // Kalendermonat für die letzten `months` Monate inkl. aktuellem Monat, älteste zuerst.
+        Task<List<MonthlyReturnCost>> GetMonthlyReturnCostsAsync(int months);
+
         Task<Dictionary<int, ArticleDisplayInfo>> GetArticleDisplayInfoAsync(IEnumerable<int> artikelIds);
     }
 }

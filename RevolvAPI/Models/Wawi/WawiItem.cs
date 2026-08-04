@@ -7,5 +7,9 @@ namespace RevolvAPI.Models.Wawi
         public string? Sku { get; set; }
         public bool IsActive { get; set; }
         public int? ProductGroupId { get; set; }
+
+        // Aktueller Katalog-Nettopreis; Fallback für die Retourenkosten-Aggregation, wenn ein
+        // Artikel keine SalesInvoiceLineItems hat (siehe ReturnAnalyticsService).
+        public decimal SalesPriceNet { get; set; }
     }
 }
