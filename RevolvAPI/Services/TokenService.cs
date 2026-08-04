@@ -27,11 +27,14 @@ namespace RevolvAPI.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            // Ticket #190: caller must load user with Role included (e.g. .Include(u => u.Role)),
+            // otherwise the role claim falls back to "Mitarbeiter" (least privilege).
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, "User")
+                new Claim(ClaimTypes.Role, user.Role?.RoleName ?? RoleNames.Mitarbeiter),
+                new Claim("CompanyId", user.CompanyId.ToString())
             };
 
             // Optional claim — source of truth for display name is GET /api/user/me
