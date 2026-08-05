@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using RevolvAPI.Models;
+using RevolvAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 
 namespace RevolvAPI.Controllers
@@ -33,9 +34,15 @@ namespace RevolvAPI.Controllers
                 return BadRequest("Gelber Schwellenwert muss kleiner als der rote sein (0–100).");
             }
 
+            if (!ToneOfVoiceOptions.IsAllowed(dto.ToneOfVoice))
+            {
+                return BadRequest(
+                    $"Ungültige Tonalität. Erlaubt: {string.Join(", ", ToneOfVoiceOptions.Allowed)}.");
+            }
+
             var settings = await GetOrCreateSingletonAsync();
 
-            settings.ToneOfVoice = dto.ToneOfVoice;
+            settings.ToneOfVoice = ToneOfVoiceOptions.Normalize(dto.ToneOfVoice);
             settings.ThresholdYellow = dto.ThresholdYellow;
             settings.ThresholdRed = dto.ThresholdRed;
             settings.AutoAnalyzeNewIssues = dto.AutoAnalyzeNewIssues;
@@ -69,7 +76,8 @@ namespace RevolvAPI.Controllers
 
         private static ShopSettingDto ToDto(ShopSetting settings) => new ShopSettingDto
         {
-            ToneOfVoice = settings.ToneOfVoice,
+            // Normalize so a previously injected DB value cannot reappear in the UI/API.
+            ToneOfVoice = ToneOfVoiceOptions.Normalize(settings.ToneOfVoice),
             ThresholdYellow = settings.ThresholdYellow,
             ThresholdRed = settings.ThresholdRed,
             AutoAnalyzeNewIssues = settings.AutoAnalyzeNewIssues
