@@ -125,7 +125,7 @@ export default function RetourenAnalyseView() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
-  const fetchArticleDetail = async (id: string | number) => {
+  const fetchArticleDetail = async (id: string | number): Promise<ArticleDetailDTO | null> => {
     setDetailError(null);
     setDetailLoading(true);
     try {
@@ -136,20 +136,22 @@ export default function RetourenAnalyseView() {
       }
       const dto = (await res.json()) as ArticleDetailDTO;
       setSelectedDetail(dto);
+      return dto;
     } catch (e) {
       console.error("Fehler beim Laden der Artikeldetails:", e);
       setDetailError(
         e instanceof Error ? e.message : "Die Artikeldetails konnten nicht geladen werden.",
       );
       setSelectedDetail(null);
+      return null;
     } finally {
       setDetailLoading(false);
     }
   };
 
-  const refetchSelectedDetail = async () => {
-    if (selectedId === null) return;
-    await fetchArticleDetail(selectedId);
+  const refetchSelectedDetail = async (): Promise<ArticleDetailDTO | null> => {
+    if (selectedId === null) return null;
+    return await fetchArticleDetail(selectedId);
   };
 
   useEffect(() => {
