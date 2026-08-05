@@ -1,7 +1,6 @@
 USE eazybusiness;
 GO
 
--- Ticket #190: Datengrundlage für Mandanten-/Team-Support.
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.Companies') AND type IN (N'U'))
 BEGIN
     CREATE TABLE [revolv].[Companies] (
