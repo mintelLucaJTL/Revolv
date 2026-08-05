@@ -70,7 +70,7 @@ function TopArticleAxisTick({ x = 0, y = 0, payload }: AxisTickProps) {
 }
 
 function ChartSkeleton() {
-  return <div className="animate-pulse h-52 rounded-xl bg-slate-100 dark:bg-slate-800" />;
+  return <div className="animate-pulse h-64 rounded-xl bg-slate-100 dark:bg-slate-800" />;
 }
 
 // Component for the top-returned-articles chart
@@ -146,14 +146,18 @@ export default function TopReturnsChart() {
         {isLoading ? (
           <ChartSkeleton />
         ) : error ? (
-          <div className="h-52 flex items-center justify-center text-sm text-red-600">{error}</div>
+          <div className="h-64 flex items-center justify-center text-sm text-red-600">{error}</div>
         ) : (
-          <div className="h-52 w-full">
+          <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topReturns}>
                 <XAxis dataKey="name" interval={0} tick={<TopArticleAxisTick />} />
                 <YAxis tick={{ fontSize: 12, fill: "#64748B" }} unit="%" />
                 <Tooltip
+                  // Default cursor is a gray highlight rectangle spanning the whole hovered
+                  // column, drawn separately from the bar itself - looked like a solid gray
+                  // blob painted over the placeholder cells' dashed/transparent look.
+                  cursor={false}
                   formatter={(value, _name, item) =>
                     item?.payload?.isPlaceholder
                       ? ["–", "Kein weiterer Artikel"]
@@ -165,8 +169,16 @@ export default function TopReturnsChart() {
                     borderColor: "#334155",
                     color: "#e2e8f0",
                   }}
+                  // Recharts colors each item's text from its Cell fill by default, which
+                  // resolves to black for the transparent placeholder cells - invisible
+                  // against this dark tooltip background. Force the same readable color
+                  // for every item regardless of theme or which bar is hovered.
+                  itemStyle={{ color: "#e2e8f0" }}
+                  labelStyle={{ color: "#e2e8f0" }}
                 />
-                <Bar dataKey="returnRate" radius={[8, 8, 0, 0]}>
+                {/* activeBar off: Recharts' default hover highlight is a solid gray fill that
+                    would paint over the placeholder cells' dashed/transparent look. */}
+                <Bar dataKey="returnRate" radius={[8, 8, 0, 0]} activeBar={false}>
                   {topReturns.map((entry) =>
                     entry.isPlaceholder ? (
                       <Cell

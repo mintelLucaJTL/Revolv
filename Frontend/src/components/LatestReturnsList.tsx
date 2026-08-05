@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Box, Card, CardContent, CardHeader, CardTitle } from "@jtl-software/platform-ui-react";
 import { apiFetch } from "../utils/api";
+import { getReasonColor } from "../utils/reasonColors";
 
 interface LatestReturnItem {
   articleNumber: string;
@@ -101,7 +102,12 @@ export default function LatestReturnsList() {
                           {item.name}
                         </td>
                         <td className="px-4 py-3">
-                          <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:text-slate-300">
+                            <span
+                              className="h-2 w-2 flex-shrink-0 rounded-full"
+                              style={{ backgroundColor: getReasonColor(item.issueText) }}
+                              aria-hidden="true"
+                            />
                             {item.issueText}
                           </span>
                         </td>

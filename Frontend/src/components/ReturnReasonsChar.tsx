@@ -9,6 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { apiFetch } from "../utils/api";
+import { getReasonColor } from "../utils/reasonColors";
 
 // DTO for the return reasons
 interface ReturnReasonDto {
@@ -25,9 +26,6 @@ interface ReturnReasonChartItem {
   percentage: number;
   colorCode: string;
 }
-
-// Colors for the chart
-const CHART_COLORS = ["#3B82F6", "#EF4444", "#F59E0B", "#10B981", "#8B5CF6", "#64748B"];
 
 function ChartSkeleton() {
   return (
@@ -82,7 +80,7 @@ export default function ReturnReasonsChart() {
           reasonName: item.reasonName || "Unbekannt",
           count: item.count,
           percentage: Number(item.percentage),
-          colorCode: CHART_COLORS[index % CHART_COLORS.length],
+          colorCode: getReasonColor(item.reasonName || "Unbekannt"),
         }));
 
         // Set the return reasons
@@ -150,6 +148,10 @@ export default function ReturnReasonsChart() {
                       borderColor: "#334155",
                       color: "#e2e8f0",
                     }}
+                    // See TopReturnsChart: Recharts colors item text from the segment's own
+                    // fill by default, which can end up unreadable against this dark tooltip.
+                    itemStyle={{ color: "#e2e8f0" }}
+                    labelStyle={{ color: "#e2e8f0" }}
                   />
                 </PieChart>
               </ResponsiveContainer>
