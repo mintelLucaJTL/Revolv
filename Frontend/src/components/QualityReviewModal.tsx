@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, Button, Text, Box } from "@jtl-software/platform-ui-react";
 import ArticleReviewSections from "./ArticleReviewSections";
 import { apiFetch } from "../utils/api";
+import {
+  findAiRecommendation,
+  isUsableAiRecommendation,
+} from "../utils/aiRecommendation";
 import { useToast } from "./Toast";
 import { useArticleReview } from "../hooks/useArticleReview";
-import type { ArticleDetailDTO } from "../types/api";
+import type { AnalyzeArticleResponse, ArticleDetailDTO } from "../types/api";
 
 // Placeholder until backend exposes real return comments.
 const PLACEHOLDER_CUSTOMER_COMMENTS = [
@@ -13,6 +17,9 @@ const PLACEHOLDER_CUSTOMER_COMMENTS = [
   "Passt nicht zur angegebenen Größentabelle.",
 ];
 
+const EMPTY_RESULT_TOAST =
+  "Die KI-Analyse lieferte keinen sichtbaren Vorschlag. Bitte erneut versuchen.";
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -20,7 +27,7 @@ interface Props {
   isLoading?: boolean;
   error?: string | null;
   onArticleUpdated?: () => void;
-  onRefetchDetail?: () => void | Promise<void>;
+  onRefetchDetail?: () => void | Promise<ArticleDetailDTO | null | void>;
 }
 
 export default function QualityReviewModal({
@@ -34,14 +41,51 @@ export default function QualityReviewModal({
 }: Props) {
   const { showToast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  /** Recommendation from the latest analyze POST — drives selection + toast. */
+  const [preferredRecommendationId, setPreferredRecommendationId] = useState<
+    string | number | null
+  >(null);
+  /** When set, show feedback toast once this id is present in articleDetail. */
+  const [pendingFeedbackId, setPendingFeedbackId] = useState<string | number | null>(null);
 
-  const review = useArticleReview(articleDetail, onArticleUpdated);
+  // New article → fall back to newest recommendation ([0]).
+  useEffect(() => {
+    setPreferredRecommendationId(null);
+    setPendingFeedbackId(null);
+  }, [articleDetail?.id]);
+
+  const review = useArticleReview(articleDetail, onArticleUpdated, preferredRecommendationId);
   const summaryText = review.aiRec?.aiSummaryText ?? "";
+
+  // Success/warning only after the matching recommendation is in props (rendered).
+  useEffect(() => {
+    if (pendingFeedbackId == null) return;
+
+    const matched = findAiRecommendation(articleDetail, pendingFeedbackId);
+    if (matched) {
+      if (isUsableAiRecommendation(matched)) {
+        showToast({ type: "success", message: "KI-Analyse abgeschlossen." });
+      } else {
+        showToast({ type: "warning", message: EMPTY_RESULT_TOAST });
+      }
+      setPendingFeedbackId(null);
+      return;
+    }
+
+    // Refetch may still be flushing into props; warn if the id never appears.
+    const timeoutId = window.setTimeout(() => {
+      showToast({ type: "warning", message: EMPTY_RESULT_TOAST });
+      setPendingFeedbackId(null);
+    }, 3000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [pendingFeedbackId, articleDetail, showToast]);
 
   const handleAnalyze = async () => {
     if (!articleDetail?.id) return;
 
     setIsAnalyzing(true);
+    setPendingFeedbackId(null);
     try {
       const response = await apiFetch(`/api/ai/analyze/${articleDetail.id}`, {
         method: "POST",
@@ -51,9 +95,31 @@ export default function QualityReviewModal({
         throw new Error(`HTTP ${response.status}`);
       }
 
-      await onRefetchDetail?.();
+      const body = (await response.json()) as AnalyzeArticleResponse;
+      const recommendationId = body.recommendationId;
+
+      if (recommendationId == null) {
+        showToast({ type: "warning", message: EMPTY_RESULT_TOAST });
+        return;
+      }
+
+      const refreshed = await onRefetchDetail?.();
       onArticleUpdated?.();
-      showToast({ type: "success", message: "KI-Analyse abgeschlossen." });
+
+      if (refreshed === null) {
+        showToast({ type: "warning", message: EMPTY_RESULT_TOAST });
+        return;
+      }
+
+      // When refetch returns a DTO, fail fast if the POST id is missing.
+      if (refreshed && !findAiRecommendation(refreshed, recommendationId)) {
+        showToast({ type: "warning", message: EMPTY_RESULT_TOAST });
+        return;
+      }
+
+      // Select by POST recommendationId; toast waits until it appears in rendered props.
+      setPreferredRecommendationId(recommendationId);
+      setPendingFeedbackId(recommendationId);
     } catch (err) {
       console.error("Failed to trigger AI analysis:", err);
       showToast({
