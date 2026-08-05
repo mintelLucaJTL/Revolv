@@ -25,11 +25,6 @@ namespace RevolvAPI.Controllers
             _returnAnalytics = returnAnalytics;
         }
 
-        // Statuses that count as resolved; anything else is treated as open.
-        private static readonly string[] ResolvedStatuses =
-            { "Gelöst", "Erledigt", "Geschlossen", "Akzeptiert", "Abgeschlossen" };
-
-
         [HttpPatch("description/{id}/status")]
         public async Task<IActionResult> UpdateDescriptionStatus(int id, [FromBody] UpdateStatusDto dto)
         {
@@ -40,15 +35,15 @@ namespace RevolvAPI.Controllers
 
             proposal.Status = dto.Status;
 
-            // Sync parent IsFullyResolved once every proposal is accepted or rejected.
             var recommendation = await _ctx.AiRecommendations
+                .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
+                .Include(r => r.ActionRecommendations)
                 .FirstOrDefaultAsync(r => r.Id == proposal.AiRecommendationId);
 
-            if (recommendation != null && recommendation.DescriptionProposals.Any())
+            if (recommendation != null)
             {
-                recommendation.IsFullyResolved = recommendation.DescriptionProposals.All(p =>
-                    p.Status == "Akzeptiert" || p.Status == "Abgelehnt");
+                recommendation.IsFullyResolved = AiRecommendationProgress.Count(recommendation).IsFullyResolved;
             }
 
             await _ctx.SaveChangesAsync();
@@ -79,6 +74,18 @@ namespace RevolvAPI.Controllers
             if (action == null) return NotFound();
 
             action.IsCompleted = dto.IsCompleted;
+
+            var recommendation = await _ctx.AiRecommendations
+                .Include(r => r.QualityIssues)
+                .Include(r => r.DescriptionProposals)
+                .Include(r => r.ActionRecommendations)
+                .FirstOrDefaultAsync(r => r.Id == action.AiRecommendationId);
+
+            if (recommendation != null)
+            {
+                recommendation.IsFullyResolved = AiRecommendationProgress.Count(recommendation).IsFullyResolved;
+            }
+
             await _ctx.SaveChangesAsync();
 
             return NoContent();
@@ -93,11 +100,28 @@ namespace RevolvAPI.Controllers
             if (issue == null) return NotFound();
 
             issue.Status = dto.Status;
+
+            var recommendation = await _ctx.AiRecommendations
+                .Include(r => r.QualityIssues)
+                .Include(r => r.DescriptionProposals)
+                .Include(r => r.ActionRecommendations)
+                .FirstOrDefaultAsync(r => r.Id == issue.AiRecommendationId);
+
+            if (recommendation != null)
+            {
+                recommendation.IsFullyResolved = AiRecommendationProgress.Count(recommendation).IsFullyResolved;
+            }
+
             await _ctx.SaveChangesAsync();
 
             return NoContent();
         }
 
+        /// <summary>
+        /// Overview cards for the KI-Hub. Returns one row per article using the newest
+        /// recommendation. <c>articleId</c> is for GET /api/articles/{id}; <c>recommendationId</c>
+        /// is the AiRecommendations PK — do not interchange them.
+        /// </summary>
         [HttpGet("overview")]
         public async Task<IActionResult> GetOverview()
         {
@@ -113,10 +137,7 @@ namespace RevolvAPI.Controllers
             // Ein Artikel kann mehrere Analysen haben (jede "KI-Analyse generieren" legt eine neue
             // AiRecommendation-Zeile an) — für die Übersicht zählt nur die jeweils neueste pro
             // Artikel, sonst tauchen re-analysierte Artikel doppelt auf.
-            var latestPerArticle = allRows
-                .GroupBy(r => r.ArtikelId)
-                .Select(g => g.OrderByDescending(r => r.Id).First())
-                .ToList();
+            var latestPerArticle = AiRecommendationProgress.SelectLatestPerArticle(allRows).ToList();
 
             var articleInfo = await _returnAnalytics.GetArticleDisplayInfoAsync(
                 latestPerArticle.Select(r => r.ArtikelId));
@@ -124,12 +145,13 @@ namespace RevolvAPI.Controllers
             var overview = latestPerArticle.Select(r =>
             {
                 var info = articleInfo.GetValueOrDefault(r.ArtikelId);
+                var progress = AiRecommendationProgress.Count(r);
                 return new AiRecommendationOverviewDto
                 {
-                    // Bewusst die ArtikelId, nicht r.Id (AiRecommendation-PK) — das Panel öffnet
-                    // damit GET /api/articles/{id}, das nach ArtikelId sucht. Die beiden Id-Räume
-                    // vorher zu vermischen führte zu falschen/404-Detailaufrufen.
-                    Id = r.ArtikelId,
+                    // articleId = WAWI-Artikel; recommendationId = AiRecommendation-PK.
+                    // Niemals vermischen — Detailpanel ruft GET /api/articles/{articleId} auf.
+                    ArticleId = r.ArtikelId,
+                    RecommendationId = r.Id,
                     ArticleNumber = info?.Sku ?? string.Empty,
                     Name = info?.Name ?? string.Empty,
                     Category = info?.Category ?? string.Empty,
@@ -137,12 +159,8 @@ namespace RevolvAPI.Controllers
                     HasQualityBadge = r.QualityIssues.Any(),
                     HasDescriptionBadge = r.DescriptionProposals.Any(),
                     HasRecommendationBadge = r.ActionRecommendations.Any(),
-                    OpenCount = r.QualityIssues.Count(q => q.Status != "Erledigt") +
-                                r.DescriptionProposals.Count(d => d.Status != "Erledigt") +
-                                r.ActionRecommendations.Count(a => !a.IsCompleted),
-                    ResolvedCount = r.QualityIssues.Count(q => q.Status == "Erledigt") +
-                                 r.DescriptionProposals.Count(d => d.Status == "Erledigt") +
-                                 r.ActionRecommendations.Count(a => a.IsCompleted),
+                    OpenCount = progress.OpenCount,
+                    ResolvedCount = progress.ResolvedCount,
                 };
             }).ToList();
 
@@ -158,7 +176,9 @@ namespace RevolvAPI.Controllers
                 .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
                 .Include(r => r.ActionRecommendations)
-                .FirstOrDefaultAsync(r => r.ArtikelId == articleId);
+                .Where(r => r.ArtikelId == articleId)
+                .OrderByDescending(r => r.Id)
+                .FirstOrDefaultAsync();
 
             if (recommendation == null)
                 return NotFound(new { message = "Keine KI-Empfehlungen für diesen Artikel gefunden." });
@@ -226,3 +246,4 @@ namespace RevolvAPI.Controllers
         }
     }
 }
+
