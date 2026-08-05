@@ -1,4 +1,4 @@
-USE revolv;
+USE eazybusiness;
 GO
 
 -- Ticket #190: feste Rollen-Referenztabelle (kein Selbstverwaltungs-UI - Rollen werden von der

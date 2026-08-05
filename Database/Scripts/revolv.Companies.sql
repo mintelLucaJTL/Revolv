@@ -1,4 +1,4 @@
-USE revolv;
+USE eazybusiness;
 GO
 
 -- Ticket #190: Datengrundlage für Mandanten-/Team-Support.

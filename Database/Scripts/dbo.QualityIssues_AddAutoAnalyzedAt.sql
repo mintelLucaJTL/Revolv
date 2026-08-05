@@ -1,4 +1,4 @@
-USE revolv;
+USE eazybusiness;
 GO
 
 -- Ticket #252: automatische KI-Analyse bei neuen QualityIssues.

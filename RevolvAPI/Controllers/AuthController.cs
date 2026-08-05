@@ -130,7 +130,7 @@ namespace RevolvAPI.Controllers
 
             if (adminRoleId == 0)
             {
-                // Seed data missing (see Database/revolv.Roles.sql) - fail loudly instead of
+                // Seed data missing (see Database/Scripts/revolv.Roles.sql) - fail loudly instead of
                 // silently assigning a bogus RoleId 0.
                 return Problem("Rollen sind nicht konfiguriert. Bitte revolv.Roles.sql ausführen.");
             }

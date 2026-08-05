@@ -1,4 +1,4 @@
-USE revolv;
+USE eazybusiness;
 GO
 
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.ShopSettings') AND type in (N'U'))
