@@ -20,16 +20,22 @@ export {
 };
 
 /**
- * Shared review state/logic for one article's active AI recommendation
- * (aiRecommendations[0] — the backend returns newest first). Used by both
- * QualityReviewModal and ArticleDetailsPanel so quality-issue/action/proposal
- * persistence isn't implemented twice.
+ * Shared review state/logic for one article's active AI recommendation.
+ * Prefers `preferredRecommendationId` when set (e.g. after analyze POST);
+ * otherwise uses aiRecommendations[0] (backend returns newest first).
+ * Used by both QualityReviewModal and ArticleDetailsPanel so
+ * quality-issue/action/proposal persistence isn't implemented twice.
  */
 export function useArticleReview(
   articleDetail: ArticleDetailDTO | null | undefined,
   onArticleUpdated?: () => void,
+  preferredRecommendationId?: string | number | null,
 ) {
-  const aiRec = articleDetail?.aiRecommendations?.[0];
+  const recommendations = articleDetail?.aiRecommendations;
+  const aiRec =
+    preferredRecommendationId != null
+      ? recommendations?.find((rec) => String(rec.id) === String(preferredRecommendationId))
+      : recommendations?.[0];
   const issues = aiRec?.qualityIssues ?? [];
   const actionRecommendations = aiRec?.actionRecommendations ?? [];
   const descriptionProposals = aiRec?.descriptionProposals ?? [];

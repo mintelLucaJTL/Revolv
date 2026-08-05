@@ -50,6 +50,11 @@ export interface AiRecommendation {
   actionRecommendations?: ActionRecommendation[];
 }
 
+/** Response body from POST /api/ai/analyze/{articleId}. */
+export interface AnalyzeArticleResponse {
+  recommendationId: number;
+}
+
 export interface ArticleDetailDTO {
   id: string;
   articleNumber?: string;

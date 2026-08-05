@@ -22,6 +22,7 @@
   <ItemGroup>
     <Compile Include="..\RevolvAPI\Services\ReturnRateBandRules.cs" Link="ReturnRateBandRules.cs" />
     <Compile Include="..\RevolvAPI\Services\AiRecommendationProgressRules.cs" Link="AiRecommendationProgressRules.cs" />
+    <Compile Include="..\RevolvAPI\Services\ToneOfVoiceOptions.cs" Link="ToneOfVoiceOptions.cs" />
   </ItemGroup>
 
 </Project>

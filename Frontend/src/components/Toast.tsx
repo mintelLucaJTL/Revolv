@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
-type ToastType = "success" | "error";
+type ToastType = "success" | "error" | "warning";
 
 interface ToastMessage {
   id: number;
@@ -27,6 +27,8 @@ const toastClasses: Record<ToastType, string> = {
     "border-green-100 bg-green-50 text-green-700 dark:border-green-800/50 dark:bg-green-950/60 dark:text-green-300",
   error:
     "border-red-100 bg-red-50 text-red-600 dark:border-red-800/50 dark:bg-red-950/60 dark:text-red-300",
+  warning:
+    "border-amber-100 bg-amber-50 text-amber-800 dark:border-amber-800/50 dark:bg-amber-950/60 dark:text-amber-300",
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
