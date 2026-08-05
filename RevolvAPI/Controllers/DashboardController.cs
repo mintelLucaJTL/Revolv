@@ -147,7 +147,8 @@ namespace RevolvAPI.Controllers
                     .Select(m => new MonthlyReturnCostDto
                     {
                         Month = $"{m.Month.Year:D4}-{m.Month.Month:D2}",
-                        TotalCost = m.TotalCost
+                        TotalCost = m.TotalCost,
+                        IsEstimated = m.IsEstimated
                     })
                     .ToList()
             };

@@ -29,7 +29,10 @@ Bewusst **nicht** enthalten (out of scope für dieses Kostenmodell):
 
 Der Report basiert also überwiegend auf **echten Ist-Daten**, nicht auf konfigurierbaren
 Annahmen. Die einzige "Annahme" ist der Preis-Fallback auf den Katalogpreis bei fehlenden
-Verkaufsdaten — dokumentiert im Code-Kommentar von `GetAverageSalesPriceByItemAsync`.
+Verkaufsdaten. Damit das im Response sichtbar ist statt sich mit echten Werten zu vermischen,
+markiert jeder Monat ein `isEstimated`-Flag: `true`, wenn mindestens ein in diesem Monat
+zurückgesendeter Artikel über den Katalogpreis statt eines echten Rechnungspreises bewertet
+wurde.
 
 ## Zeitdimension
 
@@ -56,8 +59,11 @@ nicht gemappt.
 
 ## Referenzierbare Implementierung
 
-- Berechnungslogik: `RevolvAPI/Services/ReturnAnalyticsService.cs` (`GetMonthlyReturnCostsAsync`,
+- Datenzugriff: `RevolvAPI/Services/ReturnAnalyticsService.cs` (`GetMonthlyReturnCostsAsync`,
   `GetAverageSalesPriceByItemAsync`)
+- Reine, getestete Berechnungslogik: `RevolvAPI/Services/ReturnCostAggregator.cs`
+  (Monats-Bucketing, Rundung, Lückenfüllung, Schätzwert-Flag)
+- Tests: `RevolvAPI.Tests/ReturnCostAggregatorTests.cs`
 - Endpoint: `GET /api/dashboard/return-costs?months=6` → `ReturnCostsResponseDto`
-  (`RevolvAPI/DTOs/ReturnCostsResponseDto.cs`)
+  (`RevolvAPI/DTOs/ReturnCostsResponseDto.cs`), jeder Monat mit `isEstimated`-Flag
 - Datenmodell: `MonthlyReturnCost` (`RevolvAPI/Services/ReturnAnalyticsModels.cs`)
