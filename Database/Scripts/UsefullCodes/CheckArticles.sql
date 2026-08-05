@@ -1,3 +1,6 @@
+USE eazybusiness;
+GO
+
 -- Joins WAWI articles to AiRecommendations / QualityIssues (ArtikelId = kArtikel).
 SELECT
     art.kArtikel AS ArtikelId,

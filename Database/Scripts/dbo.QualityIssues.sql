@@ -1,4 +1,4 @@
-USE revolv;
+USE eazybusiness;
 GO
 
 CREATE TABLE dbo.QualityIssues (

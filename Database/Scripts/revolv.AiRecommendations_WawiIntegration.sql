@@ -1,4 +1,4 @@
-USE revolv;
+USE eazybusiness;
 GO
 
 -- Migrate AiRecommendations from revolv.Articles FK to WAWI ArtikelId. Idempotent.
