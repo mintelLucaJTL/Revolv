@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardContent, Text, Box } from "@jtl-software/platform-ui-react";
+import { Card, CardContent } from "@jtl-software/platform-ui-react";
 
 type Variant = "red" | "green" | "yellow";
 
@@ -11,20 +11,26 @@ interface Props {
   onClick?: () => void;
 }
 
-// Shared traffic-light styling for the Ampel KPI tiles.
+// Full-card traffic-light styling for the Ampel KPI tiles — same red/yellow/green tokens as
+// the band chips on Retouren-Analyse, so the color language stays consistent across the app.
 const CONFIG = {
-  red: { border: "border-red-100", accent: "text-red-600", bg: "bg-red-50", pill: "bg-red-600" },
-  green: {
-    border: "border-green-100",
-    accent: "text-green-600",
-    bg: "bg-green-50",
-    pill: "bg-green-600",
+  red: {
+    card: "bg-red-50 border-red-300 dark:bg-red-950/40 dark:border-red-800",
+    text: "text-red-700 dark:text-red-300",
+    dot: "bg-red-500",
+    pill: "bg-red-600 dark:bg-red-500",
   },
   yellow: {
-    border: "border-yellow-100",
-    accent: "text-yellow-600",
-    bg: "bg-yellow-50",
-    pill: "bg-yellow-500",
+    card: "bg-yellow-50 border-yellow-300 dark:bg-yellow-950/40 dark:border-yellow-800",
+    text: "text-yellow-800 dark:text-yellow-300",
+    dot: "bg-yellow-500",
+    pill: "bg-yellow-600 dark:bg-yellow-500",
+  },
+  green: {
+    card: "bg-green-50 border-green-300 dark:bg-green-950/40 dark:border-green-800",
+    text: "text-green-700 dark:text-green-300",
+    dot: "bg-green-500",
+    pill: "bg-green-600 dark:bg-green-500",
   },
 } as const;
 
@@ -41,8 +47,8 @@ export default function KpiCard({
 
   return (
     <Card
-      className={`rounded-lg p-2 ${cfg.border} transition-all dark:bg-slate-900 dark:border-slate-700 ${
-        isInteractive ? "cursor-pointer hover:shadow-sm" : ""
+      className={`rounded-2xl border-2 p-8 ${cfg.card} transition-all ${
+        isInteractive ? "cursor-pointer hover:shadow-md" : ""
       }`}
       onClick={onClick}
       role={isInteractive ? "button" : undefined}
@@ -61,40 +67,27 @@ export default function KpiCard({
           : undefined
       }
     >
-      <CardHeader className="flex items-start justify-between p-0 mb-1">
-        <div className="flex items-center gap-3">
-          <div className={`${cfg.bg} p-2 rounded-full dark:bg-slate-800`}>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className={cfg.accent}
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="8" />
-            </svg>
-          </div>
-        </div>
-      </CardHeader>
-
       <CardContent className="p-0">
-        <div className="flex items-center gap-2">
-          <span className={`${cfg.accent} text-lg font-bold`}>{value} Artikel</span>
+        {/* Headline first — the info a new user needs to understand the card at a glance. */}
+        <div className="flex items-center gap-3">
+          <span className={`h-3.5 w-3.5 flex-shrink-0 rounded-full ${cfg.dot}`} aria-hidden="true" />
+          <span className={`text-2xl font-bold leading-snug ${cfg.text}`}>
+            {smallLabel}
+            {percent ? `: ${percent}` : ""}
+          </span>
+        </div>
+
+        {/* Article count + band badge are secondary detail below the headline. */}
+        <div className="mt-5 flex items-center gap-3">
+          <span className={`text-2xl font-semibold ${cfg.text}`}>{value} Artikel</span>
           {badgeLabel && (
-            <span className={`${cfg.pill} rounded-full px-2 py-0.5 text-xs font-medium text-white`}>
+            <span
+              className={`${cfg.pill} rounded-full px-3 py-1 text-sm font-semibold text-white`}
+            >
               {badgeLabel}
             </span>
           )}
         </div>
-        <Box className="mt-0.5 text-xs dark:text-slate-300">
-          <Text>
-            {smallLabel}
-            {percent ? `: ${percent}` : ""}
-          </Text>
-        </Box>
       </CardContent>
     </Card>
   );
