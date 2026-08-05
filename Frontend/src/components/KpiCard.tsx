@@ -17,19 +17,19 @@ const CONFIG = {
   red: {
     card: "bg-red-50 border-red-300 dark:bg-red-950/40 dark:border-red-800",
     text: "text-red-700 dark:text-red-300",
-    dot: "bg-red-500",
+    label: "text-red-600/80 dark:text-red-400/80",
     pill: "bg-red-600 dark:bg-red-500",
   },
   yellow: {
     card: "bg-yellow-50 border-yellow-300 dark:bg-yellow-950/40 dark:border-yellow-800",
     text: "text-yellow-800 dark:text-yellow-300",
-    dot: "bg-yellow-500",
+    label: "text-yellow-700/80 dark:text-yellow-400/80",
     pill: "bg-yellow-600 dark:bg-yellow-500",
   },
   green: {
     card: "bg-green-50 border-green-300 dark:bg-green-950/40 dark:border-green-800",
     text: "text-green-700 dark:text-green-300",
-    dot: "bg-green-500",
+    label: "text-green-600/80 dark:text-green-400/80",
     pill: "bg-green-600 dark:bg-green-500",
   },
 } as const;
@@ -68,18 +68,18 @@ export default function KpiCard({
       }
     >
       <CardContent className="p-0">
-        {/* Headline first — the info a new user needs to understand the card at a glance. */}
-        <div className="flex items-center gap-3">
-          <span className={`h-3.5 w-3.5 flex-shrink-0 rounded-full ${cfg.dot}`} aria-hidden="true" />
-          <span className={`text-2xl font-bold leading-snug ${cfg.text}`}>
-            {smallLabel}
-            {percent ? `: ${percent}` : ""}
-          </span>
+        {/* Eyebrow label — names the band before the number, no color dot needed since the
+            whole card is already tinted for the band. */}
+        <div className={`text-sm font-semibold uppercase tracking-wide ${cfg.label}`}>
+          {smallLabel}
         </div>
 
-        {/* Article count + band badge are secondary detail below the headline. */}
-        <div className="mt-5 flex items-center gap-3">
-          <span className={`text-2xl font-semibold ${cfg.text}`}>{value} Artikel</span>
+        {/* The percentage is the number that matters most, so it gets the biggest type. */}
+        <div className={`mt-2 text-4xl font-bold leading-none ${cfg.text}`}>{percent}</div>
+
+        {/* Article count + band badge are supporting detail below the headline. */}
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <span className={`text-lg font-semibold ${cfg.text}`}>{value} Artikel</span>
           {badgeLabel && (
             <span
               className={`${cfg.pill} rounded-full px-3 py-1 text-sm font-semibold text-white`}
