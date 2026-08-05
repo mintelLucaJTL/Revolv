@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
+using RevolvAPI.Extensions;
 using RevolvAPI.Models;
 using RevolvAPI.Services;
 
@@ -27,13 +28,16 @@ namespace RevolvAPI.Controllers
         [HttpGet("returns")]
         public async Task<IActionResult> GetArticleReturns([FromQuery] string? band = null)
         {
+            var companyId = User.GetCompanyId();
             var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
 
             var artikelIds = metrics.Select(m => m.ArtikelId).ToList();
+            // Nach CompanyId gefiltert: der KI-Status in der Tabelle darf nicht die
+            // Empfehlungen einer anderen Firma widerspiegeln.
             var aiRecommendations = await _ctx.AiRecommendations
                 .AsNoTracking()
                 .Include(r => r.DescriptionProposals)
-                .Where(r => artikelIds.Contains(r.ArtikelId))
+                .Where(r => artikelIds.Contains(r.ArtikelId) && r.CompanyId == companyId)
                 .ToListAsync();
             var aiRecsByArticle = aiRecommendations
                 .GroupBy(r => r.ArtikelId)
@@ -82,7 +86,7 @@ namespace RevolvAPI.Controllers
 
             if (!string.IsNullOrEmpty(band))
             {
-                var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx);
+                var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx, companyId);
 
                 List<ArticleTableDTO>? filtered = band.ToLowerInvariant() switch
                 {

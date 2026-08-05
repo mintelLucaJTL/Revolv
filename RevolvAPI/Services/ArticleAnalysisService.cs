@@ -18,7 +18,7 @@ namespace RevolvAPI.Services
             _returnAnalytics = returnAnalytics;
         }
 
-        public async Task<int?> AnalyzeArticleAsync(int articleId)
+        public async Task<int?> AnalyzeArticleAsync(int articleId, int companyId)
         {
             var articleInfo = (await _returnAnalytics.GetArticleDisplayInfoAsync(new[] { articleId }))
                 .GetValueOrDefault(articleId);
@@ -28,10 +28,12 @@ namespace RevolvAPI.Services
                 return null;
             }
 
+            // Nur die eigenen bisherigen Analysen als Kontext nutzen - sonst würden Rückgabegründe
+            // oder Beschreibungstexte einer anderen Firma in die eigene KI-Anfrage einfließen.
             var existingRecommendations = await _ctx.AiRecommendations
                 .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
-                .Where(r => r.ArtikelId == articleId)
+                .Where(r => r.ArtikelId == articleId && r.CompanyId == companyId)
                 .ToListAsync();
 
             // Retourengründe aus allen bisherigen QualityIssues des Artikels sammeln.
@@ -57,6 +59,7 @@ namespace RevolvAPI.Services
             var recommendation = new AiRecommendation
             {
                 ArtikelId = articleId,
+                CompanyId = companyId,
                 AiSummaryText = aiResult.Summary,
                 IsFullyResolved = false,
             };

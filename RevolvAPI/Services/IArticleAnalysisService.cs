@@ -7,9 +7,9 @@ namespace RevolvAPI.Services
     public interface IArticleAnalysisService
     {
         // Startet die KI-Analyse für einen Artikel und persistiert das Ergebnis als neue
-        // AiRecommendation inkl. DescriptionProposal(s) und ActionRecommendation(s).
-        // Gibt die Id der neuen AiRecommendation zurück, oder null, wenn der Artikel
-        // (in der WAWI) nicht gefunden wurde.
-        Task<int?> AnalyzeArticleAsync(int articleId);
+        // AiRecommendation inkl. DescriptionProposal(s) und ActionRecommendation(s), zugeordnet
+        // zu companyId (Folge-Ticket zu #190). Gibt die Id der neuen AiRecommendation zurück,
+        // oder null, wenn der Artikel (in der WAWI) nicht gefunden wurde.
+        Task<int?> AnalyzeArticleAsync(int articleId, int companyId);
     }
 }

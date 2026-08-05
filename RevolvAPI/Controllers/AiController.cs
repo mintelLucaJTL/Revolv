@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
+using RevolvAPI.Extensions;
 using RevolvAPI.Models;
 using RevolvAPI.Services;
 
@@ -33,7 +34,10 @@ namespace RevolvAPI.Controllers
                 return BadRequest("filter must be 'quality' or 'description'");
             }
 
-            IQueryable<AiRecommendation> query = _ctx.AiRecommendations.AsNoTracking();
+            var companyId = User.GetCompanyId();
+            IQueryable<AiRecommendation> query = _ctx.AiRecommendations
+                .AsNoTracking()
+                .Where(r => r.CompanyId == companyId);
 
             query = normalizedFilter switch
             {

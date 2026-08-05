@@ -6,12 +6,11 @@ namespace RevolvAPI.Services
     // Shared return-rate traffic-light bands based on ShopSettings thresholds.
     public static class ReturnRateBandService
     {
-        public static async Task<(decimal Yellow, decimal Red)> GetThresholdsAsync(AppDbContext ctx)
+        public static async Task<(decimal Yellow, decimal Red)> GetThresholdsAsync(AppDbContext ctx, int companyId)
         {
             var settings = await ctx.ShopSettings
                 .AsNoTracking()
-                .OrderBy(s => s.Id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(s => s.CompanyId == companyId);
 
             return (
                 Yellow: settings?.ThresholdYellow ?? 10m,

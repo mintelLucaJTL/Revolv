@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
+using RevolvAPI.Extensions;
 using RevolvAPI.Models;
 using RevolvAPI.Services;
 using System.Threading.Tasks;
@@ -30,8 +31,14 @@ namespace RevolvAPI.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var proposal = await _ctx.DescriptionProposals.FindAsync(id);
-            if (proposal == null) return NotFound();
+            var companyId = User.GetCompanyId();
+
+            // Include(AiRecommendation) + CompanyId-Check: ohne das könnte jeder eingeloggte User
+            // per erratener/durchprobierter Id fremde Firmen-Daten patchen (IDOR).
+            var proposal = await _ctx.DescriptionProposals
+                .Include(p => p.AiRecommendation)
+                .FirstOrDefaultAsync(p => p.Id == id);
+            if (proposal == null || proposal.AiRecommendation.CompanyId != companyId) return NotFound();
 
             proposal.Status = dto.Status;
 
@@ -56,8 +63,12 @@ namespace RevolvAPI.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var proposal = await _ctx.DescriptionProposals.FindAsync(id);
-            if (proposal == null) return NotFound();
+            var companyId = User.GetCompanyId();
+
+            var proposal = await _ctx.DescriptionProposals
+                .Include(p => p.AiRecommendation)
+                .FirstOrDefaultAsync(p => p.Id == id);
+            if (proposal == null || proposal.AiRecommendation.CompanyId != companyId) return NotFound();
 
             proposal.ProposedText = dto.ProposedText;
             await _ctx.SaveChangesAsync();
@@ -70,8 +81,12 @@ namespace RevolvAPI.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var action = await _ctx.ActionRecommendations.FindAsync(id);
-            if (action == null) return NotFound();
+            var companyId = User.GetCompanyId();
+
+            var action = await _ctx.ActionRecommendations
+                .Include(a => a.AiRecommendation)
+                .FirstOrDefaultAsync(a => a.Id == id);
+            if (action == null || action.AiRecommendation?.CompanyId != companyId) return NotFound();
 
             action.IsCompleted = dto.IsCompleted;
 
@@ -96,8 +111,12 @@ namespace RevolvAPI.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var issue = await _ctx.QualityIssues.FindAsync(id);
-            if (issue == null) return NotFound();
+            var companyId = User.GetCompanyId();
+
+            var issue = await _ctx.QualityIssues
+                .Include(q => q.AiRecommendation)
+                .FirstOrDefaultAsync(q => q.Id == id);
+            if (issue == null || issue.AiRecommendation.CompanyId != companyId) return NotFound();
 
             issue.Status = dto.Status;
 
@@ -125,13 +144,15 @@ namespace RevolvAPI.Controllers
         [HttpGet("overview")]
         public async Task<IActionResult> GetOverview()
         {
-            var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx);
+            var companyId = User.GetCompanyId();
+            var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx, companyId);
 
             var allRows = await _ctx.AiRecommendations
                 .AsNoTracking()
                 .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
                 .Include(r => r.ActionRecommendations)
+                .Where(r => r.CompanyId == companyId)
                 .ToListAsync();
 
             // Ein Artikel kann mehrere Analysen haben (jede "KI-Analyse generieren" legt eine neue
@@ -171,12 +192,14 @@ namespace RevolvAPI.Controllers
         [HttpGet("recommendations/{articleId}")]
         public async Task<IActionResult> GetRecommendation(int articleId)
         {
+            var companyId = User.GetCompanyId();
+
             var recommendation = await _ctx.AiRecommendations
                 .AsNoTracking()
                 .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
                 .Include(r => r.ActionRecommendations)
-                .Where(r => r.ArtikelId == articleId)
+                .Where(r => r.ArtikelId == articleId && r.CompanyId == companyId)
                 .OrderByDescending(r => r.Id)
                 .FirstOrDefaultAsync();
 
@@ -235,7 +258,7 @@ namespace RevolvAPI.Controllers
         [HttpPost("analyze/{articleId}")]
         public async Task<IActionResult> AnalyzeArticle(int articleId)
         {
-            var recommendationId = await _articleAnalysisService.AnalyzeArticleAsync(articleId);
+            var recommendationId = await _articleAnalysisService.AnalyzeArticleAsync(articleId, User.GetCompanyId());
 
             if (recommendationId == null)
             {

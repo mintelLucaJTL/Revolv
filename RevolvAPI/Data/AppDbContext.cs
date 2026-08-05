@@ -92,6 +92,26 @@ namespace RevolvAPI.Data
                 .HasIndex(r => r.RoleName)
                 .IsUnique();
 
+            // Folge-Ticket zu #190: AiRecommendations/ShopSettings gehören jeweils zu genau
+            // einer Company. Restrict statt Cascade, wie bei User - eine Company darf nicht
+            // versehentlich ihre Analysen/Einstellungen mit sich reißen.
+            modelBuilder.Entity<AiRecommendation>()
+                .HasOne(r => r.Company)
+                .WithMany()
+                .HasForeignKey(r => r.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ShopSetting>()
+                .HasOne(s => s.Company)
+                .WithMany()
+                .HasForeignKey(s => s.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Genau eine Settings-Zeile pro Firma (ersetzt den früheren globalen Singleton).
+            modelBuilder.Entity<ShopSetting>()
+                .HasIndex(s => s.CompanyId)
+                .IsUnique();
+
             modelBuilder.Entity<RefreshToken>(entity =>
             {
                 entity.HasIndex(rt => rt.TokenHash).IsUnique();
