@@ -9,6 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { apiFetch } from "../utils/api";
+import { getReasonColor } from "../utils/reasonColors";
 
 // DTO for the return reasons
 interface ReturnReasonDto {
@@ -26,13 +27,10 @@ interface ReturnReasonChartItem {
   colorCode: string;
 }
 
-// Colors for the chart
-const CHART_COLORS = ["#3B82F6", "#EF4444", "#F59E0B", "#10B981", "#8B5CF6", "#64748B"];
-
 function ChartSkeleton() {
   return (
     <div className="animate-pulse space-y-3">
-      <div className="flex h-64 items-center justify-center">
+      <div className="flex h-52 items-center justify-center">
         <div className="h-44 w-44 rounded-full border-[28px] border-slate-200 dark:border-slate-700" />
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -82,7 +80,7 @@ export default function ReturnReasonsChart() {
           reasonName: item.reasonName || "Unbekannt",
           count: item.count,
           percentage: Number(item.percentage),
-          colorCode: CHART_COLORS[index % CHART_COLORS.length],
+          colorCode: getReasonColor(item.reasonName || "Unbekannt"),
         }));
 
         // Set the return reasons
@@ -118,14 +116,14 @@ export default function ReturnReasonsChart() {
         {isLoading ? (
           <ChartSkeleton />
         ) : error ? (
-          <div className="h-64 flex items-center justify-center text-sm text-red-600">{error}</div>
+          <div className="h-52 flex items-center justify-center text-sm text-red-600">{error}</div>
         ) : returnReasons.length === 0 ? (
-          <div className="h-64 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+          <div className="h-52 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
             Keine Retourengründe gefunden.
           </div>
         ) : (
           <>
-            <div className="h-64 w-full">
+            <div className="h-52 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   {/* Donut-Look über innerRadius + outerRadius */}
@@ -150,6 +148,10 @@ export default function ReturnReasonsChart() {
                       borderColor: "#334155",
                       color: "#e2e8f0",
                     }}
+                    // See TopReturnsChart: Recharts colors item text from the segment's own
+                    // fill by default, which can end up unreadable against this dark tooltip.
+                    itemStyle={{ color: "#e2e8f0" }}
+                    labelStyle={{ color: "#e2e8f0" }}
                   />
                 </PieChart>
               </ResponsiveContainer>
