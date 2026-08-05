@@ -53,8 +53,14 @@ export default function ReturnCostsChart() {
   const [chartData, setChartData] = useState<MonthlyCostChartItem[]>([]);
   const [totalCost, setTotalCost] = useState(0);
 
+  // isLoading: only the very first load (nothing to show yet, full skeleton is fine).
+  // isRefreshing: a period switch after that - keep the previous chart visible and just
+  // show a subtle indicator, so the card's height/content never collapses and pops back
+  // (that collapse was the "springt beim Laden" jump).
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const hasLoadedOnceRef = useRef(false);
 
   // Guards against an older, slower request overwriting a newer one when the
   // period is switched quickly (e.g. "3 Monate" then immediately "12 Monate").
@@ -62,7 +68,11 @@ export default function ReturnCostsChart() {
 
   const loadReturnCosts = async (selectedMonths: number) => {
     latestRequestRef.current = selectedMonths;
-    setIsLoading(true);
+    if (hasLoadedOnceRef.current) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
     setError("");
 
     try {
@@ -87,11 +97,19 @@ export default function ReturnCostsChart() {
       if (latestRequestRef.current !== selectedMonths) return;
 
       console.error("Fehler beim Laden der Retourenkosten:", err);
-      setChartData([]);
-      setTotalCost(0);
+      // Keep the previous good chart on screen for a failed refresh - only a first-load
+      // failure has nothing to fall back to and needs the full error state.
+      if (!hasLoadedOnceRef.current) {
+        setChartData([]);
+        setTotalCost(0);
+      }
       setError(err instanceof Error ? err.message : "Retourenkosten konnten nicht geladen werden.");
     } finally {
-      if (latestRequestRef.current === selectedMonths) setIsLoading(false);
+      if (latestRequestRef.current === selectedMonths) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+        hasLoadedOnceRef.current = true;
+      }
     }
   };
 
@@ -114,6 +132,13 @@ export default function ReturnCostsChart() {
           </div>
 
           <div className="flex items-center gap-2" role="group" aria-label="Zeitraum wählen">
+            {isRefreshing && (
+              <span
+                className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"
+                title="Aktualisiere..."
+                aria-label="Aktualisiere Daten"
+              />
+            )}
             {PERIOD_OPTIONS.map((option) => (
               <Button
                 key={option.months}
@@ -127,7 +152,7 @@ export default function ReturnCostsChart() {
       </CardHeader>
 
       <CardContent className="space-y-3">
-        {!isLoading && !error && hasData && (
+        {hasData && (
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {formatCurrency(totalCost)}
@@ -138,9 +163,15 @@ export default function ReturnCostsChart() {
           </div>
         )}
 
+        {error && hasData && (
+          <div className="text-sm text-red-600" role="alert">
+            {error} – zuletzt geladene Daten werden weiter angezeigt.
+          </div>
+        )}
+
         {isLoading ? (
           <ChartSkeleton />
-        ) : error ? (
+        ) : error && !hasData ? (
           <div className="h-52 flex flex-col items-center justify-center gap-3 text-sm text-red-600">
             <span>{error}</span>
             <Button label="Erneut versuchen" onClick={() => void loadReturnCosts(months)} />

@@ -17,11 +17,34 @@ interface TopReturnedArticleChartItem {
   name: string;
   returnRate: number;
   colorCode: string;
+  isPlaceholder: boolean;
 }
 
 // Colors by rank: highest return rate (index 0, most critical) in signal red,
 // descending to green for the lowest of the top 5.
 const CHART_COLORS = ["#EF4444", "#F97316", "#F59E0B", "#84CC16", "#10B981"];
+
+const REQUIRED_SLOTS = 5;
+
+// Always render 5 slots so the chart's shape/width stays constant regardless of how many
+// articles actually have returns - missing slots become empty dashed placeholders instead
+// of the chart just getting narrower or showing fewer bars.
+function padWithPlaceholders(
+  items: TopReturnedArticleChartItem[],
+): TopReturnedArticleChartItem[] {
+  const padded = [...items];
+  while (padded.length < REQUIRED_SLOTS) {
+    padded.push({
+      id: `placeholder-${padded.length}`,
+      articleNumber: "",
+      name: "",
+      returnRate: 100,
+      colorCode: "transparent",
+      isPlaceholder: true,
+    });
+  }
+  return padded;
+}
 
 const AXIS_LABEL_MAX_LENGTH = 14;
 
@@ -83,10 +106,11 @@ export default function TopReturnsChart() {
           name: item.name || "Unbekannt",
           returnRate: Number(item.returnRate),
           colorCode: CHART_COLORS[index % CHART_COLORS.length],
+          isPlaceholder: false,
         }));
 
-        // Set the top returned articles
-        setTopReturns(chartData);
+        // Set the top returned articles (padded to 5 slots - see padWithPlaceholders)
+        setTopReturns(padWithPlaceholders(chartData));
       } catch (err) {
         console.error("Fehler beim Laden der meistretournierten Artikel:", err);
         setTopReturns([]);
@@ -123,10 +147,6 @@ export default function TopReturnsChart() {
           <ChartSkeleton />
         ) : error ? (
           <div className="h-52 flex items-center justify-center text-sm text-red-600">{error}</div>
-        ) : topReturns.length === 0 ? (
-          <div className="h-52 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
-            Keine Artikel gefunden.
-          </div>
         ) : (
           <div className="h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -134,7 +154,11 @@ export default function TopReturnsChart() {
                 <XAxis dataKey="name" interval={0} tick={<TopArticleAxisTick />} />
                 <YAxis tick={{ fontSize: 12, fill: "#64748B" }} unit="%" />
                 <Tooltip
-                  formatter={(value) => [`${Number(value ?? 0).toFixed(1)}%`, "Retourenquote"]}
+                  formatter={(value, _name, item) =>
+                    item?.payload?.isPlaceholder
+                      ? ["–", "Kein weiterer Artikel"]
+                      : [`${Number(value ?? 0).toFixed(1)}%`, "Retourenquote"]
+                  }
                   contentStyle={{
                     borderRadius: 12,
                     backgroundColor: "#0f172a",
@@ -143,9 +167,19 @@ export default function TopReturnsChart() {
                   }}
                 />
                 <Bar dataKey="returnRate" radius={[8, 8, 0, 0]}>
-                  {topReturns.map((entry) => (
-                    <Cell key={entry.id} fill={entry.colorCode} />
-                  ))}
+                  {topReturns.map((entry) =>
+                    entry.isPlaceholder ? (
+                      <Cell
+                        key={entry.id}
+                        fill="transparent"
+                        stroke="#CBD5E1"
+                        strokeDasharray="4 4"
+                        strokeWidth={1.5}
+                      />
+                    ) : (
+                      <Cell key={entry.id} fill={entry.colorCode} />
+                    ),
+                  )}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
