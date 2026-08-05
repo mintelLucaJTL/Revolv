@@ -2,6 +2,8 @@
 
 Revolv analysiert Retourenquoten aus einer laufenden JTL-WAWI-Datenbank und liefert KPIs, Ampel-Risikobänder, Retourenkosten-Trends sowie Verbesserungsvorschläge.
 
+Das Kostenmodell hinter der Retourenkosten-Analyse (Kostenkomponenten, Ist-Daten vs. Annahmen, Zeitdimension, Währung/MwSt.) ist dokumentiert in [`docs/kostenmodell-retourenanalyse.md`](docs/kostenmodell-retourenanalyse.md).
+
 ## Tech-Stack
 
 | Schicht | Technik |
@@ -17,6 +19,7 @@ Revolv/
 ├── RevolvAPI/     # ASP.NET Core Web API
 ├── Frontend/      # React-App
 ├── Database/      # SQL-Setup (00_MasterSetup.sql ausführen)
+├── docs/          # Konzept-Dokumente (z. B. Kostenmodell Retourenanalyse)
 └── mockup/        # Figma-Prototyp als Referenz
 ```
 

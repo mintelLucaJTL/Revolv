@@ -167,34 +167,30 @@ namespace RevolvAPI.Services
                 select new { ItemId = li.ItemId!.Value, li.Quantity, r.ReturnDate })
                 .ToListAsync();
 
-            var priceByItem = await GetAverageSalesPriceByItemAsync(returnRows.Select(x => x.ItemId).Distinct());
+            var (priceByItem, estimatedItemIds) =
+                await GetAverageSalesPriceByItemAsync(returnRows.Select(x => x.ItemId).Distinct());
 
-            var totalByMonth = returnRows
-                .GroupBy(x => new DateOnly(x.ReturnDate.Year, x.ReturnDate.Month, 1))
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.Sum(x => x.Quantity * priceByItem.GetValueOrDefault(x.ItemId, 0m)));
+            var lines = returnRows
+                .Select(x => new ReturnCostLine(
+                    x.ItemId, x.Quantity, new DateOnly(x.ReturnDate.Year, x.ReturnDate.Month, 1)))
+                .ToList();
 
-            // Immer genau `months` Einträge zurückgeben (auch mit 0), damit der Dashboard-Chart
-            // eine lückenlose Zeitreihe bekommt statt einzelner fehlender Monate.
-            var result = new List<MonthlyReturnCost>(months);
-            for (var i = 0; i < months; i++)
-            {
-                var monthStart = DateOnly.FromDateTime(rangeStart.AddMonths(i).Date);
-                result.Add(new MonthlyReturnCost(monthStart, Math.Round(totalByMonth.GetValueOrDefault(monthStart, 0m), 2)));
-            }
+            var rangeStartMonth = DateOnly.FromDateTime(rangeStart.Date);
 
-            return result;
+            return ReturnCostAggregator.Aggregate(lines, priceByItem, estimatedItemIds, rangeStartMonth, months);
         }
 
         // Es gibt keine direkte Verknüpfung zwischen einer Retoure und der ursprünglichen
         // Rechnungsposition - daher der durchschnittliche tatsächlich in Rechnung gestellte
         // Netto-Preis (SalesInvoiceLineItems) je Artikel, ersatzweise der aktuelle Katalogpreis
-        // (z. B. bei Retouren zu Artikeln ohne erfasste Verkäufe).
-        private async Task<Dictionary<int, decimal>> GetAverageSalesPriceByItemAsync(IEnumerable<int> itemIds)
+        // (z. B. bei Retouren zu Artikeln ohne erfasste Verkäufe). Artikel, die den Katalogpreis-
+        // Fallback nutzen, landen in estimatedItemIds, damit Aufrufer diese Monate als Schätzung
+        // kennzeichnen können statt gemessene und geschätzte Werte ununterscheidbar zu vermischen.
+        private async Task<(Dictionary<int, decimal> PriceByItem, HashSet<int> EstimatedItemIds)>
+            GetAverageSalesPriceByItemAsync(IEnumerable<int> itemIds)
         {
             var ids = itemIds.ToList();
-            if (ids.Count == 0) return new Dictionary<int, decimal>();
+            if (ids.Count == 0) return (new Dictionary<int, decimal>(), new HashSet<int>());
 
             var invoicePrices = await _ctx.WawiSalesInvoiceLineItems
                 .AsNoTracking()
@@ -206,6 +202,8 @@ namespace RevolvAPI.Services
             var priceByItem = invoicePrices.ToDictionary(x => x.ItemId, x => x.AveragePrice);
 
             var missingIds = ids.Except(priceByItem.Keys).ToList();
+            var estimatedItemIds = new HashSet<int>(missingIds);
+
             if (missingIds.Count > 0)
             {
                 var catalogPrices = await _ctx.WawiItems
@@ -220,7 +218,7 @@ namespace RevolvAPI.Services
                 }
             }
 
-            return priceByItem;
+            return (priceByItem, estimatedItemIds);
         }
 
         public async Task<Dictionary<int, ArticleDisplayInfo>> GetArticleDisplayInfoAsync(IEnumerable<int> artikelIds)

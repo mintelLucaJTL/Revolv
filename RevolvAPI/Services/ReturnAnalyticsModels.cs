@@ -33,9 +33,13 @@ namespace RevolvAPI.Services
     // Warenwert der im jeweiligen Kalendermonat zurückgesendeten Artikel (Ticket #273).
     // Monate ohne Retouren sind mit TotalCost=0 enthalten, damit Aufrufer immer eine
     // lückenlose Zeitreihe bekommen (kein Chart mit fehlenden Monaten).
+    // IsEstimated=true, wenn mindestens ein Artikel in diesem Monat mangels echter
+    // Rechnungsdaten über den Katalogpreis statt des tatsächlichen Verkaufspreises
+    // bewertet wurde (siehe ReturnAnalyticsService.GetAverageSalesPriceByItemAsync).
     public record MonthlyReturnCost(
         DateOnly Month,
-        decimal TotalCost);
+        decimal TotalCost,
+        bool IsEstimated);
 
     // Sku/Name/Category for enriching AI rows that only hold ArtikelId.
     public record ArticleDisplayInfo(
