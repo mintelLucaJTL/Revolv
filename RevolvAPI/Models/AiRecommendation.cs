@@ -16,6 +16,11 @@ namespace RevolvAPI.Models
         public decimal? ReturnRate { get; set; }
         public bool IsFullyResolved { get; set; }
 
+        // Folge-Ticket zu #190: welche Firma diese Analyse gehört - Controller filtern
+        // darauf, damit Firma A keine Empfehlungen/Qualitätsprobleme von Firma B sieht.
+        public int CompanyId { get; set; }
+        public Company? Company { get; set; }
+
         // Navigation properties
         public ICollection<DescriptionProposal> DescriptionProposals { get; set; } = new List<DescriptionProposal>();
         public ICollection<QualityIssue> QualityIssues { get; set; } = new List<QualityIssue>();

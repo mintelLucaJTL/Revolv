@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using RevolvAPI.Extensions;
 using RevolvAPI.Services;
 
 namespace RevolvAPI.Controllers
@@ -51,16 +52,19 @@ namespace RevolvAPI.Controllers
                 return NotFound();
             }
 
+            var companyId = User.GetCompanyId();
+
             // AI rows keyed by ArtikelId only — article master data lives in WAWI, not revolv.
             // Ein Artikel kann mehrere Analysen haben (jede "KI-Analyse generieren" legt eine neue
             // Zeile an); neueste zuerst, damit Konsumenten wie QualityReviewModal per [0] die
             // aktuell aktive Recommendation bekommen statt einer undefinierten Reihenfolge.
+            // Nach CompanyId gefiltert: Firma A darf keine Empfehlungen von Firma B sehen.
             var recommendations = await _ctx.AiRecommendations
                 .AsNoTracking()
                 .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
                 .Include(r => r.ActionRecommendations)
-                .Where(r => r.ArtikelId == id)
+                .Where(r => r.ArtikelId == id && r.CompanyId == companyId)
                 .OrderByDescending(r => r.Id)
                 .ToListAsync();
 

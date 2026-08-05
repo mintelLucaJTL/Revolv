@@ -90,16 +90,8 @@ namespace RevolvAPI.Services
                 return;
             }
 
-            var settings = await ctx.ShopSettings
-                .AsNoTracking()
-                .OrderBy(s => s.Id)
-                .FirstOrDefaultAsync(stoppingToken);
-
-            if (settings?.AutoAnalyzeNewIssues != true)
-            {
-                return; // Flag deaktiviert -> keine automatische Provideranfrage.
-            }
-
+            // Erst die Firma des Issues bestimmen (über die zugehörige AiRecommendation) -
+            // AutoAnalyzeNewIssues ist jetzt pro Firma konfigurierbar, nicht mehr global.
             var issue = await ctx.QualityIssues
                 .AsNoTracking()
                 .Include(q => q.AiRecommendation)
@@ -110,11 +102,22 @@ namespace RevolvAPI.Services
                 return;
             }
 
+            var companyId = issue.AiRecommendation.CompanyId;
+
+            var settings = await ctx.ShopSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.CompanyId == companyId, stoppingToken);
+
+            if (settings?.AutoAnalyzeNewIssues != true)
+            {
+                return; // Flag deaktiviert -> keine automatische Provideranfrage.
+            }
+
             var analysisService = scope.ServiceProvider.GetRequiredService<IArticleAnalysisService>();
 
             try
             {
-                await analysisService.AnalyzeArticleAsync(issue.AiRecommendation.ArtikelId);
+                await analysisService.AnalyzeArticleAsync(issue.AiRecommendation.ArtikelId, companyId);
             }
             catch (Exception ex)
             {

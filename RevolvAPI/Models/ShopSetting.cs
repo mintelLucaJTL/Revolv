@@ -3,11 +3,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RevolvAPI.Models
 {
-    // Shop-wide configuration for the AI tone of voice and the return-rate traffic light thresholds.
+    // Configuration for the AI tone of voice and the return-rate traffic light thresholds -
+    // one row per Company (Folge-Ticket zu #190), not a single global row anymore.
     [Table("ShopSettings", Schema = "revolv")]
     public class ShopSetting
     {
         public int Id { get; set; }
+
+        public int CompanyId { get; set; }
+        public Company? Company { get; set; }
 
         public string ToneOfVoice { get; set; } = "Formell und sachlich";
 

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
+using RevolvAPI.Extensions;
 using RevolvAPI.Models;
 using RevolvAPI.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -20,7 +21,7 @@ namespace RevolvAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<ShopSettingDto>> GetSettings()
         {
-            var settings = await GetOrCreateSingletonAsync();
+            var settings = await GetOrCreateForCompanyAsync(User.GetCompanyId());
             return Ok(ToDto(settings));
         }
 
@@ -34,13 +35,7 @@ namespace RevolvAPI.Controllers
                 return BadRequest("Gelber Schwellenwert muss kleiner als der rote sein (0–100).");
             }
 
-            if (!ToneOfVoiceOptions.IsAllowed(dto.ToneOfVoice))
-            {
-                return BadRequest(
-                    $"Ungültige Tonalität. Erlaubt: {string.Join(", ", ToneOfVoiceOptions.Allowed)}.");
-            }
-
-            var settings = await GetOrCreateSingletonAsync();
+            var settings = await GetOrCreateForCompanyAsync(User.GetCompanyId());
 
             settings.ToneOfVoice = ToneOfVoiceOptions.Normalize(dto.ToneOfVoice);
             settings.ThresholdYellow = dto.ThresholdYellow;
@@ -52,14 +47,19 @@ namespace RevolvAPI.Controllers
             return Ok(ToDto(settings));
         }
 
-        // Ensures exactly one ShopSettings row (StrictMode double-GET can otherwise create duplicates).
-        private async Task<ShopSetting> GetOrCreateSingletonAsync()
+        // Folge-Ticket zu #190: eine Settings-Zeile pro Firma statt eines globalen Singletons.
+        // Ensures exactly one ShopSettings row per company (StrictMode double-GET can otherwise
+        // create duplicates).
+        private async Task<ShopSetting> GetOrCreateForCompanyAsync(int companyId)
         {
-            var all = await _ctx.ShopSettings.OrderBy(s => s.Id).ToListAsync();
+            var all = await _ctx.ShopSettings
+                .Where(s => s.CompanyId == companyId)
+                .OrderBy(s => s.Id)
+                .ToListAsync();
 
             if (all.Count == 0)
             {
-                var created = new ShopSetting();
+                var created = new ShopSetting { CompanyId = companyId };
                 _ctx.ShopSettings.Add(created);
                 await _ctx.SaveChangesAsync();
                 return created;

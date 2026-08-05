@@ -1,12 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
+using RevolvAPI.Extensions;
 using RevolvAPI.Services;
 
 namespace RevolvAPI.Controllers
 {
+    // War bislang ohne [Authorize] - musste ergänzt werden, sonst lässt sich /kpi nicht nach
+    // Firma filtern (keine CompanyId ohne eingeloggten User). Folge-Ticket zu #190.
     [ApiController]
+    [Authorize]
     [Route("api/dashboard")]
     public class DashboardController : ControllerBase
     {
@@ -42,17 +47,22 @@ namespace RevolvAPI.Controllers
         {
             var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
 
+            var companyId = User.GetCompanyId();
+
             var totalReturned = metrics.Sum(m => m.ReturnedQuantity);
             var totalSold = metrics.Sum(m => m.SoldQuantity);
             var wholeReturnQuote = totalSold > 0 ? Math.Round(totalReturned / totalSold * 100m, 1) : 0m;
 
             // Same progress rules as /api/ai/overview: newest recommendation per article,
             // open/resolved via AiRecommendationProgress (not historical duplicate rows).
+            // Nach CompanyId gefiltert, sonst zählen openKiRecommendations/improvedProducts
+            // die Empfehlungen aller Firmen mit.
             var aiRows = await _ctx.AiRecommendations
                 .AsNoTracking()
                 .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
                 .Include(r => r.ActionRecommendations)
+                .Where(r => r.CompanyId == companyId)
                 .ToListAsync();
 
             var latestPerArticle = AiRecommendationProgress.SelectLatestPerArticle(aiRows).ToList();
@@ -73,7 +83,7 @@ namespace RevolvAPI.Controllers
         [HttpGet("traffic-lights")]
         public async Task<IActionResult> GetTrafficLightKpis()
         {
-            var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx);
+            var (yellowThreshold, redThreshold) = await ReturnRateBandService.GetThresholdsAsync(_ctx, User.GetCompanyId());
             var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
 
             var kpis = new TrafficLightKpiDto
