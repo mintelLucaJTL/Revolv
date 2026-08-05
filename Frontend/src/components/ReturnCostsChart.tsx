@@ -44,7 +44,7 @@ function formatCurrency(value: number, maximumFractionDigits = 2): string {
 }
 
 function ChartSkeleton() {
-  return <div className="animate-pulse h-64 rounded-xl bg-slate-100 dark:bg-slate-800" />;
+  return <div className="animate-pulse h-52 rounded-xl bg-slate-100 dark:bg-slate-800" />;
 }
 
 // Component for the monthly return-costs chart (Ticket #273)
@@ -141,16 +141,16 @@ export default function ReturnCostsChart() {
         {isLoading ? (
           <ChartSkeleton />
         ) : error ? (
-          <div className="h-64 flex flex-col items-center justify-center gap-3 text-sm text-red-600">
+          <div className="h-52 flex flex-col items-center justify-center gap-3 text-sm text-red-600">
             <span>{error}</span>
             <Button label="Erneut versuchen" onClick={() => void loadReturnCosts(months)} />
           </div>
         ) : !hasData ? (
-          <div className="h-64 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+          <div className="h-52 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
             Keine Retourenkosten im gewählten Zeitraum.
           </div>
         ) : (
-          <div className="h-64 w-full">
+          <div className="h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#64748B" }} />

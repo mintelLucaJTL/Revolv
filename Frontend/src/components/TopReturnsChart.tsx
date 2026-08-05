@@ -23,8 +23,31 @@ interface TopReturnedArticleChartItem {
 // descending to green for the lowest of the top 5.
 const CHART_COLORS = ["#EF4444", "#F97316", "#F59E0B", "#84CC16", "#10B981"];
 
+const AXIS_LABEL_MAX_LENGTH = 14;
+
+interface AxisTickProps {
+  x?: number;
+  y?: number;
+  payload?: { value?: string };
+}
+
+// Default Recharts ticks silently drop labels it thinks would collide - with long product
+// names in the now-narrower (2-column) chart that hid the middle bar's label entirely.
+// Truncating keeps every bar labeled; the full name is still in the tooltip on hover.
+function TopArticleAxisTick({ x = 0, y = 0, payload }: AxisTickProps) {
+  const label = payload?.value ?? "";
+  const short =
+    label.length > AXIS_LABEL_MAX_LENGTH ? `${label.slice(0, AXIS_LABEL_MAX_LENGTH - 1)}…` : label;
+
+  return (
+    <text x={x} y={y + 14} textAnchor="middle" fontSize={11} fill="#64748B">
+      {short}
+    </text>
+  );
+}
+
 function ChartSkeleton() {
-  return <div className="animate-pulse h-64 rounded-xl bg-slate-100 dark:bg-slate-800" />;
+  return <div className="animate-pulse h-52 rounded-xl bg-slate-100 dark:bg-slate-800" />;
 }
 
 // Component for the top-returned-articles chart
@@ -99,16 +122,16 @@ export default function TopReturnsChart() {
         {isLoading ? (
           <ChartSkeleton />
         ) : error ? (
-          <div className="h-64 flex items-center justify-center text-sm text-red-600">{error}</div>
+          <div className="h-52 flex items-center justify-center text-sm text-red-600">{error}</div>
         ) : topReturns.length === 0 ? (
-          <div className="h-64 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+          <div className="h-52 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
             Keine Artikel gefunden.
           </div>
         ) : (
-          <div className="h-64 w-full">
+          <div className="h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topReturns}>
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#64748B" }} />
+                <XAxis dataKey="name" interval={0} tick={<TopArticleAxisTick />} />
                 <YAxis tick={{ fontSize: 12, fill: "#64748B" }} unit="%" />
                 <Tooltip
                   formatter={(value) => [`${Number(value ?? 0).toFixed(1)}%`, "Retourenquote"]}

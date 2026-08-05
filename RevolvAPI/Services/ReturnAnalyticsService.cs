@@ -44,9 +44,11 @@ namespace RevolvAPI.Services
                 .ToListAsync();
             var soldByArticle = soldAgg.ToDictionary(x => x.ArtikelId, x => x.Quantity);
 
-            // Skip never-sold variant SKUs; WAWI catalogs include every size/color child.
+            // Ticket #288: nie verkaufte Artikel dürfen nirgends auftauchen - sie hätten sonst
+            // (mangels Verkäufen) eine irreführende 0%-Retourenquote, obwohl sie ggf. sogar
+            // Retouren haben (Datenanomalie/Testware). WAWI-Kataloge enthalten außerdem jedes
+            // Größen-/Farb-Kind als eigenes SKU, auch wenn es nie verkauft wurde.
             var relevantArticleIds = new HashSet<int>(soldByArticle.Keys);
-            relevantArticleIds.UnionWith(returnedByArticle.Keys);
 
             var items = await _ctx.WawiItems
                 .AsNoTracking()
@@ -93,10 +95,14 @@ namespace RevolvAPI.Services
 
         public async Task<List<ReturnReasonBreakdownItem>> GetReturnReasonBreakdownAsync(int top = 5)
         {
-            var totalCount = await _ctx.WawiReturnLineItems.AsNoTracking().CountAsync();
-
-            var grouped = await _ctx.WawiReturnLineItems
+            // Ticket #288: Retouren zu nie verkauften Artikeln dürfen auch hier nicht einfließen.
+            var soldLineItems = _ctx.WawiReturnLineItems
                 .AsNoTracking()
+                .Where(li => li.ItemId != null && _ctx.WawiSalesInvoiceLineItems.Any(si => si.ItemId == li.ItemId));
+
+            var totalCount = await soldLineItems.CountAsync();
+
+            var grouped = await soldLineItems
                 .Where(li => li.ReturnReasonId != null)
                 .GroupBy(li => li.ReturnReasonId!.Value)
                 .Select(g => new { ReasonId = g.Key, Count = g.Count() })
@@ -117,8 +123,11 @@ namespace RevolvAPI.Services
 
         public async Task<List<LatestReturnItem>> GetLatestReturnsAsync(int take = 5)
         {
+            // Ticket #288: nie verkaufte Artikel gehören nicht in die Live-Retourentabelle.
             var rows = await (
-                from li in _ctx.WawiReturnLineItems.AsNoTracking().Where(x => x.ReturnId != null)
+                from li in _ctx.WawiReturnLineItems.AsNoTracking()
+                    .Where(x => x.ReturnId != null && x.ItemId != null
+                        && _ctx.WawiSalesInvoiceLineItems.Any(si => si.ItemId == x.ItemId))
                 join r in _ctx.WawiReturns.AsNoTracking() on li.ReturnId!.Value equals r.Id
                 orderby r.ReturnDate descending
                 select new { LineItem = li, Return = r })

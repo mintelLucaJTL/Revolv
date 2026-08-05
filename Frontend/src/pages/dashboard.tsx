@@ -323,7 +323,7 @@ export default function Dashboard() {
                 <span className="h-2 w-2 rounded-full bg-green-500" aria-hidden="true" />
               </div>
               <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-                Ampel-Status der Retourenquote
+                Deine Retouren-Ampel
               </h2>
             </div>
 
@@ -345,9 +345,10 @@ export default function Dashboard() {
                   ))}
             </div>
 
-            <TopReturnsChart />
-
-            <ReturnCostsChart />
+            <div className="w-full mt-2 grid gap-6 grid-cols-1 lg:grid-cols-2">
+              <TopReturnsChart />
+              <ReturnCostsChart />
+            </div>
 
             <div className="w-full mt-6 grid gap-6 grid-cols-1 lg:grid-cols-2">
               <ReturnReasonsChart />

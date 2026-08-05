@@ -1,13 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Box,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Table,
-} from "@jtl-software/platform-ui-react";
-import type { ITableColumnProps } from "@jtl-software/platform-ui-react";
+import { Box, Card, CardContent, CardHeader, CardTitle } from "@jtl-software/platform-ui-react";
 import { apiFetch } from "../utils/api";
 
 interface LatestReturnItem {
@@ -16,26 +8,21 @@ interface LatestReturnItem {
   issueText: string;
 }
 
-const columns: ITableColumnProps<LatestReturnItem>[] = [
-  {
-    title: "Artikel-Nr.",
-    dataIndex: "articleNumber",
-    key: "articleNumber",
-  },
-  {
-    title: "Produktname",
-    dataIndex: "name",
-    key: "name",
-    render: (value) => (
-      <span className="font-semibold text-slate-900 dark:text-slate-100">{value}</span>
-    ),
-  },
-  {
-    title: "Retourengrund",
-    dataIndex: "issueText",
-    key: "issueText",
-  },
-];
+function TableRowSkeleton() {
+  return (
+    <tr className="animate-pulse">
+      <td className="px-4 py-3">
+        <div className="h-3.5 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+      </td>
+      <td className="px-4 py-3">
+        <div className="h-3.5 w-32 rounded bg-slate-200 dark:bg-slate-700" />
+      </td>
+      <td className="px-4 py-3">
+        <div className="h-6 w-24 rounded-full bg-slate-100 dark:bg-slate-800" />
+      </td>
+    </tr>
+  );
+}
 
 export default function LatestReturnsList() {
   const [returns, setReturns] = useState<LatestReturnItem[]>([]);
@@ -71,24 +58,58 @@ export default function LatestReturnsList() {
         <CardTitle className="dark:text-slate-100">Letzte Retouren</CardTitle>
       </CardHeader>
       <CardContent>
-        <Box className="text-sm text-slate-500 mb-4 dark:text-slate-400">
+        <Box className="text-sm text-slate-500 mb-3 dark:text-slate-400">
           Live-Feed der zuletzt eingegangenen Problemfälle
         </Box>
 
         {error ? (
-          <div className="p-4 text-center text-sm text-red-600">{error}</div>
+          <div className="h-52 flex items-center justify-center text-sm text-red-600">{error}</div>
+        ) : !isLoading && returns.length === 0 ? (
+          <div className="h-52 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+            Keine aktuellen Retouren vorhanden.
+          </div>
         ) : (
-          <Table
-            columns={columns}
-            dataSource={returns}
-            isLoading={isLoading}
-            size="sm"
-            emptyContent={
-              <div className="p-4 text-center text-sm text-slate-500">
-                Keine aktuellen Retouren vorhanden.
-              </div>
-            }
-          />
+          <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-700">
+            <table className="min-w-full divide-y divide-slate-100 dark:divide-slate-700">
+              <thead className="bg-slate-50 dark:bg-slate-800">
+                <tr>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Artikel-Nr.
+                  </th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Produktname
+                  </th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Retourengrund
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white dark:divide-slate-700 dark:bg-slate-900">
+                {isLoading
+                  ? Array.from({ length: 3 }, (_, index) => (
+                      <TableRowSkeleton key={`latest-returns-skeleton-${index}`} />
+                    ))
+                  : returns.map((item, index) => (
+                      <tr
+                        key={`${item.articleNumber}-${index}`}
+                        className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        <td className="px-4 py-3 text-sm text-slate-400 dark:text-slate-500">
+                          {item.articleNumber}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {item.name}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            {item.issueText}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </CardContent>
     </Card>
