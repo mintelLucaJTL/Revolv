@@ -316,6 +316,17 @@ export default function Dashboard() {
           </div>
 
           <div className="grid gap-4 mt-6">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 rounded-full bg-slate-900 px-2.5 py-1.5 shadow-sm dark:bg-slate-950 dark:ring-1 dark:ring-white/10">
+                <span className="h-2 w-2 rounded-full bg-red-500" aria-hidden="true" />
+                <span className="h-2 w-2 rounded-full bg-yellow-400" aria-hidden="true" />
+                <span className="h-2 w-2 rounded-full bg-green-500" aria-hidden="true" />
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                Ampel-Status der Retourenquote
+              </h2>
+            </div>
+
             <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
               {isLoading
                 ? Array.from({ length: 3 }, (_, index) => (
