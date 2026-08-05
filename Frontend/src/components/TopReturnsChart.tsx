@@ -133,9 +133,13 @@ export default function TopReturnsChart() {
   return (
     <Card className="w-full dark:bg-slate-900 dark:border-slate-700">
       <CardHeader>
-        <CardTitle className="dark:text-slate-100">
-          Top 5 Artikel mit höchster Retourenquote
-        </CardTitle>
+        {/* min-h matches ReturnCostsChart's header (title + period buttons) so both cards'
+            headers are exactly the same height and the charts below start level. */}
+        <div className="flex min-h-10 items-center">
+          <CardTitle className="dark:text-slate-100">
+            Top 5 Artikel mit höchster Retourenquote
+          </CardTitle>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-3">

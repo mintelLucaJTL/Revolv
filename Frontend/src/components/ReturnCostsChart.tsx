@@ -69,12 +69,11 @@ export default function ReturnCostsChart() {
   const [chartData, setChartData] = useState<MonthlyCostChartItem[]>([]);
   const [totalCost, setTotalCost] = useState(0);
 
-  // isLoading: only the very first load (nothing to show yet, full skeleton is fine).
-  // isRefreshing: a period switch after that - keep the previous chart visible and just
-  // show a subtle indicator, so the card's height/content never collapses and pops back
-  // (that collapse was the "springt beim Laden" jump).
+  // isLoading: only the very first load (nothing to show yet, full skeleton is fine). A period
+  // switch after that keeps the previous chart visible with no loading indicator at all, so the
+  // card's height/content never collapses and pops back (that collapse was the "springt beim
+  // Laden" jump) and there's no blinking indicator competing with the rest of the dashboard.
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState("");
   const hasLoadedOnceRef = useRef(false);
 
@@ -84,9 +83,7 @@ export default function ReturnCostsChart() {
 
   const loadReturnCosts = async (selectedMonths: number) => {
     latestRequestRef.current = selectedMonths;
-    if (hasLoadedOnceRef.current) {
-      setIsRefreshing(true);
-    } else {
+    if (!hasLoadedOnceRef.current) {
       setIsLoading(true);
     }
     setError("");
@@ -123,7 +120,6 @@ export default function ReturnCostsChart() {
     } finally {
       if (latestRequestRef.current === selectedMonths) {
         setIsLoading(false);
-        setIsRefreshing(false);
         hasLoadedOnceRef.current = true;
       }
     }
@@ -140,18 +136,13 @@ export default function ReturnCostsChart() {
     <Card className="w-full dark:bg-slate-900 dark:border-slate-700">
       <CardHeader>
         {/* Title-only, single line - matches TopReturnsChart's header exactly so both cards
-            end up the same height instead of this one growing taller from a stacked subtitle. */}
-        <div className="flex items-center justify-between gap-4">
+            end up the same height instead of this one growing taller from a stacked subtitle.
+            min-h matches TopReturnsChart's (see there) since the period buttons are taller
+            than plain title text. */}
+        <div className="flex min-h-10 items-center justify-between gap-4">
           <CardTitle className="dark:text-slate-100">Retourenkosten</CardTitle>
 
           <div className="flex items-center gap-2" role="group" aria-label="Zeitraum wählen">
-            {isRefreshing && (
-              <span
-                className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"
-                title="Aktualisiere..."
-                aria-label="Aktualisiere Daten"
-              />
-            )}
             {PERIOD_OPTIONS.map((option) => (
               <Button
                 key={option.months}
@@ -165,20 +156,14 @@ export default function ReturnCostsChart() {
       </CardHeader>
 
       <CardContent className="space-y-3">
+        {/* One line, same length class as TopReturnsChart's subtitle - keeps both cards'
+            pre-chart content the same height so the two charts start at the same vertical
+            position, not just the cards' outer borders. The total (previously appended here)
+            made this wrap to a second line depending on locale/period, breaking that alignment
+            - it's still visible per-month via the tooltip on hover. */}
         <Box className="text-sm text-slate-500 dark:text-slate-400">
           Warenwert der zurückgesendeten Artikel pro Monat
         </Box>
-
-        {hasData && (
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {formatCurrency(totalCost)}
-            </span>
-            <span className="text-sm text-slate-500 dark:text-slate-400">
-              Gesamt in den letzten {months} Monaten
-            </span>
-          </div>
-        )}
 
         {error && hasData && (
           <div className="text-sm text-red-600" role="alert">
