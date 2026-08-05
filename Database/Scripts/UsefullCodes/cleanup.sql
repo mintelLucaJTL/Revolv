@@ -1,3 +1,6 @@
+USE eazybusiness;
+GO
+
 -- Clears app AI tables only; does not touch WAWI data.
 
 DELETE FROM dbo.QualityIssues;

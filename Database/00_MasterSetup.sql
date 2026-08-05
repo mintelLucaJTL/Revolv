@@ -184,7 +184,7 @@ GO
 
 -- Ticket #252: automatische KI-Analyse bei neuen QualityIssues (ShopSetting.AutoAnalyzeNewIssues).
 -- AutoAnalyzedAt = wann der Background-Job dieses Issue geclaimt/bearbeitet hat (NULL = noch
--- nicht). Siehe auch Database/dbo.QualityIssues_AddAutoAnalyzedAt.sql.
+-- nicht). Siehe auch Database/Scripts/dbo.QualityIssues_AddAutoAnalyzedAt.sql.
 IF NOT EXISTS (
     SELECT * FROM sys.columns
     WHERE object_id = OBJECT_ID(N'dbo.QualityIssues') AND name = 'AutoAnalyzedAt'

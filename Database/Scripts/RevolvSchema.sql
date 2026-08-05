@@ -1,4 +1,4 @@
-USE revolv;
+USE eazybusiness;
 GO
 
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'revolv')

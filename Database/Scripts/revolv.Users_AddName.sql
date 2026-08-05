@@ -1,4 +1,4 @@
-USE revolv;
+USE eazybusiness;
 GO
 
 -- Adds nullable display Name for existing users (prompted on next login).

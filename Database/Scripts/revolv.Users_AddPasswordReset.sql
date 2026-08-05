@@ -1,4 +1,4 @@
-USE revolv;
+USE eazybusiness;
 GO
 
 -- Password-reset columns for revolv.Users.

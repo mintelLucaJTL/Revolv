@@ -1,4 +1,4 @@
-USE revolv;
+USE eazybusiness;
 GO
 
 -- AiRecommendations.ArtikelId references WAWI dbo.tArtikel.kArtikel (no FK; different schema).
