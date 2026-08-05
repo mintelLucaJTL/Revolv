@@ -46,16 +46,26 @@ namespace RevolvAPI.Controllers
             var totalSold = metrics.Sum(m => m.SoldQuantity);
             var wholeReturnQuote = totalSold > 0 ? Math.Round(totalReturned / totalSold * 100m, 1) : 0m;
 
+            // Same progress rules as /api/ai/overview: newest recommendation per article,
+            // open/resolved via AiRecommendationProgress (not historical duplicate rows).
+            var aiRows = await _ctx.AiRecommendations
+                .AsNoTracking()
+                .Include(r => r.QualityIssues)
+                .Include(r => r.DescriptionProposals)
+                .Include(r => r.ActionRecommendations)
+                .ToListAsync();
+
+            var latestPerArticle = AiRecommendationProgress.SelectLatestPerArticle(aiRows).ToList();
+            var progressPerArticle = latestPerArticle
+                .Select(AiRecommendationProgress.Count)
+                .ToList();
+
             var kpiDto = new DashboardKpiDto
             {
                 wholeReturnQuote = wholeReturnQuote,
                 affectedArticle = metrics.Count(m => m.ReturnedQuantity > 0),
-                openKiRecommendations = await _ctx.AiRecommendations.CountAsync(r => !r.IsFullyResolved),
-                improvedProducts = await _ctx.AiRecommendations
-                    .Where(r => r.IsFullyResolved)
-                    .Select(r => r.ArtikelId)
-                    .Distinct()
-                    .CountAsync()
+                openKiRecommendations = progressPerArticle.Count(p => p.OpenCount > 0),
+                improvedProducts = progressPerArticle.Count(p => p.IsFullyResolved),
             };
             return Ok(kpiDto);
         }

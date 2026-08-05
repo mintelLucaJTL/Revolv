@@ -9,7 +9,8 @@ import { apiFetch } from "../utils/api";
 const filters = ["Alle Artikel", "Qualität", "Beschreibung", "Empfehlungen"];
 
 interface ArticleOverview {
-  id: number;
+  articleId: number;
+  recommendationId: number;
   name: string;
   articleNo: string;
   category: string;
@@ -24,7 +25,8 @@ interface ArticleOverview {
 }
 
 interface ArticleOverviewApiDto {
-  id: number;
+  articleId: number;
+  recommendationId: number;
   name: string;
   articleNumber: string;
   category: string;
@@ -40,7 +42,8 @@ interface ArticleOverviewApiDto {
 
 const sampleArticles: ArticleOverview[] = [
   {
-    id: 1001,
+    articleId: 1001,
+    recommendationId: 9001,
     name: "Beispiel Sneaker X",
     articleNo: "BEX-1001",
     category: "Schuhe",
@@ -54,7 +57,8 @@ const sampleArticles: ArticleOverview[] = [
     imageUrl: "/images/sneaker-1.jpg",
   },
   {
-    id: 1002,
+    articleId: 1002,
+    recommendationId: 9002,
     name: "Beispiel T-Shirt",
     articleNo: "BT-1002",
     category: "Bekleidung",
@@ -178,7 +182,8 @@ export default function AIRecommendationView() {
 
       const data = (await response.json()) as ArticleOverviewApiDto[];
       const mapped: ArticleOverview[] = (Array.isArray(data) ? data : []).map((item) => ({
-        id: item.id,
+        articleId: item.articleId,
+        recommendationId: item.recommendationId,
         name: item.name ?? "",
         articleNo: item.articleNumber ?? "",
         category: item.category ?? "",
@@ -300,7 +305,7 @@ export default function AIRecommendationView() {
                     filteredArticles.length > 0 ? (
                       filteredArticles.map((article) => (
                         <div
-                          key={article.id}
+                          key={article.articleId}
                           role="button"
                           tabIndex={0}
                           onClick={() => openArticlePanel(article)}
@@ -341,7 +346,7 @@ export default function AIRecommendationView() {
                       </div>
                       {filteredSampleArticles.map((article) => (
                         <div
-                          key={article.id}
+                          key={article.articleId}
                           role="button"
                           tabIndex={0}
                           onClick={() => openArticlePanel(article)}
@@ -387,7 +392,7 @@ export default function AIRecommendationView() {
         article={
           selectedArticle
             ? {
-                id: selectedArticle.id,
+                articleId: selectedArticle.articleId,
                 image: selectedArticle.imageUrl,
                 name: selectedArticle.name,
                 number: selectedArticle.articleNo,

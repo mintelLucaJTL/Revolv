@@ -93,6 +93,17 @@ Die meisten Endpunkte brauchen ein JWT. In Swagger:
 
 Alle Routen: Swagger UI. Frontend-Routen: `/login`, `/register`, `/dashboard`, `/retouren-analyse`, `/ki-empfehlungen`, `/settings`, `/profile`.
 
+### KI-Hub Overview (`GET /api/ai/overview`)
+
+Liefert **eine Karte pro Artikel** (neueste `AiRecommendation`). IDs sind getrennt:
+
+| Feld | Bedeutung |
+|------|-----------|
+| `articleId` | WAWI-Artikel (`kArtikel`) — für `GET /api/articles/{articleId}` und UI-Keys |
+| `recommendationId` | PK von `revolv.AiRecommendations` — nicht für Artikel-Detailaufrufe verwenden |
+
+`openCount` / `resolvedCount` nutzen dieselben Statusregeln wie Modal und Dashboard: QualityIssue `Erledigt`, DescriptionProposal `Akzeptiert`/`Abgelehnt`, ActionRecommendation `isCompleted`.
+
 ## Code-Qualität (Husky)
 
 Pre-Commit prüft `Frontend/` (Oxlint/Oxfmt) und `RevolvAPI/` (`dotnet format` + Build).

@@ -32,7 +32,8 @@ export function useArticleReview(
   const aiRec = articleDetail?.aiRecommendations?.[0];
   const issues = aiRec?.qualityIssues ?? [];
   const actionRecommendations = aiRec?.actionRecommendations ?? [];
-  const descriptionProposal = aiRec?.descriptionProposals?.[0];
+  const descriptionProposals = aiRec?.descriptionProposals ?? [];
+  const descriptionProposal = descriptionProposals[0];
   const descriptionProposalId = descriptionProposal?.id;
 
   const [completedActionIds, setCompletedActionIds] = useState<Set<string | number>>(new Set());
@@ -233,19 +234,27 @@ export function useArticleReview(
 
   const isProposalReviewed = isDescriptionProposalReviewed(proposalStatus);
 
+  // Mirror overview counting: every proposal/issue/action is one progress item.
+  // Local proposalStatus overrides the first proposal so accept/reject updates the bar immediately.
+  const proposalStatusesForProgress = descriptionProposals.map((p, index) =>
+    index === 0 ? proposalStatus : (p.status ?? ""),
+  );
+
   const reviewProgress = calculateReviewProgress({
-    qualityIssueCount: issues.length,
-    resolvedQualityIssueCount: issues.filter((iss) => completedQualityIssueIds.has(iss.id)).length,
-    actionRecommendationCount: actionRecommendations.length,
-    completedActionRecommendationCount: completedActionCount,
-    hasDescriptionProposal: descriptionProposalId !== undefined,
-    isDescriptionProposalReviewed: isProposalReviewed,
+    qualityIssueStatuses: issues.map((iss) =>
+      completedQualityIssueIds.has(iss.id)
+        ? QUALITY_ISSUE_STATUS_RESOLVED
+        : QUALITY_ISSUE_STATUS_PENDING,
+    ),
+    descriptionProposalStatuses: proposalStatusesForProgress,
+    actionIsCompletedFlags: actionRecommendations.map((rec) => completedActionIds.has(rec.id)),
   });
 
   return {
     aiRec,
     issues,
     actionRecommendations,
+    descriptionProposals,
     descriptionProposal,
     descriptionProposalId,
     completedActionIds,

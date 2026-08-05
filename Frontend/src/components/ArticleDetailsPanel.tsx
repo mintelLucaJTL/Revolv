@@ -6,7 +6,7 @@ import { useArticleReview } from "../hooks/useArticleReview";
 import type { ArticleDetailDTO } from "../types/api";
 
 type ArticleType = {
-  id: number;
+  articleId: number;
   image?: string;
   name: string;
   number?: string | number;
@@ -86,14 +86,14 @@ export default function ArticleDetailsPanel({
   }, [open, onClose]);
 
   useEffect(() => {
-    if (!open || !article?.id) {
+    if (!open || !article?.articleId) {
       setArticleDetail(null);
       setDetailError(null);
       setDetailLoading(false);
       return;
     }
 
-    const articleId = article.id;
+    const articleId = article.articleId;
     let cancelled = false;
 
     const fetchDetails = async () => {
@@ -135,7 +135,7 @@ export default function ArticleDetailsPanel({
     return () => {
       cancelled = true;
     };
-  }, [open, article?.id, reloadToken]);
+  }, [open, article?.articleId, reloadToken]);
 
   if (!open || !article) return null;
 

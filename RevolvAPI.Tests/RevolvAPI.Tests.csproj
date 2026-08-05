@@ -18,9 +18,10 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <!-- Link pure band rules so threshold tests do not rebuild the running API host. -->
+  <!-- Link pure helpers so threshold/progress tests do not rebuild the running API host. -->
   <ItemGroup>
     <Compile Include="..\RevolvAPI\Services\ReturnRateBandRules.cs" Link="ReturnRateBandRules.cs" />
+    <Compile Include="..\RevolvAPI\Services\AiRecommendationProgressRules.cs" Link="AiRecommendationProgressRules.cs" />
   </ItemGroup>
 
 </Project>
