@@ -19,7 +19,7 @@ namespace RevolvAPI.Services
             string? currentDescription,
             IEnumerable<string> returnReasons);
 
-        // Prompt in, raw text out (OpenRouter chat completions).
-        Task<string> GenerateAnalysisAsync(string prompt);
+        // User prompt (+ optional system prompt) in, raw text out (OpenRouter chat completions).
+        Task<string> GenerateAnalysisAsync(string userPrompt, string? systemPrompt = null);
     }
 }

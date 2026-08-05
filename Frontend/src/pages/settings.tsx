@@ -17,6 +17,17 @@ type ThemeMode = "light" | "dark";
 // API endpoint for the settings.
 const API_SETTINGS = "/api/settings";
 
+// Must match RevolvAPI ToneOfVoiceOptions.Allowed.
+const ALLOWED_TONES = ["Locker", "Formell und sachlich"] as const;
+
+const DEFAULT_TONE = "Formell und sachlich";
+
+function normalizeTone(tone: string | undefined): string {
+  return ALLOWED_TONES.includes(tone as (typeof ALLOWED_TONES)[number])
+    ? (tone as string)
+    : DEFAULT_TONE;
+}
+
 // Applies the settings to the form.
 function applySettingsToForm(
   data: SettingsApiDto,
@@ -27,7 +38,7 @@ function applySettingsToForm(
     setRedThreshold: (v: number) => void;
   },
 ) {
-  setters.setTone(data.toneOfVoice ?? "Du-Form");
+  setters.setTone(normalizeTone(data.toneOfVoice));
   setters.setAutoAnalysis(Boolean(data.autoAnalyzeNewIssues));
   setters.setYellowThreshold(Number(data.thresholdYellow));
   setters.setRedThreshold(Number(data.thresholdRed));
@@ -215,10 +226,7 @@ export default function Settings() {
                         onChange={(event) => setTone(event.target.value)}
                         className={inputClass}
                       >
-                        <option value="Du-Form">Du-Form</option>
-                        <option value="Sie-Form">Sie-Form</option>
                         <option value="Locker">Locker</option>
-                        <option value="Formell">Formell</option>
                         <option value="Formell und sachlich">Formell und sachlich</option>
                       </select>
                     </label>
