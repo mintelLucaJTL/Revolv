@@ -60,7 +60,7 @@ function formatCurrency(value: number, maximumFractionDigits = 2): string {
 }
 
 function ChartSkeleton() {
-  return <div className="animate-pulse h-52 rounded-xl bg-slate-100 dark:bg-slate-800" />;
+  return <div className="animate-pulse h-64 rounded-xl bg-slate-100 dark:bg-slate-800" />;
 }
 
 // Component for the monthly return-costs chart (Ticket #273)
@@ -139,13 +139,10 @@ export default function ReturnCostsChart() {
   return (
     <Card className="w-full dark:bg-slate-900 dark:border-slate-700">
       <CardHeader>
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <CardTitle className="dark:text-slate-100">Retourenkosten</CardTitle>
-            <Box className="text-sm text-slate-500 dark:text-slate-400">
-              Warenwert der zurückgesendeten Artikel pro Monat
-            </Box>
-          </div>
+        {/* Title-only, single line - matches TopReturnsChart's header exactly so both cards
+            end up the same height instead of this one growing taller from a stacked subtitle. */}
+        <div className="flex items-center justify-between gap-4">
+          <CardTitle className="dark:text-slate-100">Retourenkosten</CardTitle>
 
           <div className="flex items-center gap-2" role="group" aria-label="Zeitraum wählen">
             {isRefreshing && (
@@ -168,6 +165,10 @@ export default function ReturnCostsChart() {
       </CardHeader>
 
       <CardContent className="space-y-3">
+        <Box className="text-sm text-slate-500 dark:text-slate-400">
+          Warenwert der zurückgesendeten Artikel pro Monat
+        </Box>
+
         {hasData && (
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
@@ -188,16 +189,16 @@ export default function ReturnCostsChart() {
         {isLoading ? (
           <ChartSkeleton />
         ) : error && !hasData ? (
-          <div className="h-52 flex flex-col items-center justify-center gap-3 text-sm text-red-600">
+          <div className="h-64 flex flex-col items-center justify-center gap-3 text-sm text-red-600">
             <span>{error}</span>
             <Button label="Erneut versuchen" onClick={() => void loadReturnCosts(months)} />
           </div>
         ) : !hasData ? (
-          <div className="h-52 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+          <div className="h-64 flex items-center justify-center text-sm text-slate-500 dark:text-slate-400">
             Keine Retourenkosten im gewählten Zeitraum.
           </div>
         ) : (
-          <div className="h-52 w-full">
+          <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#64748B" }} />
