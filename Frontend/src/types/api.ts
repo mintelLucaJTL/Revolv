@@ -12,6 +12,9 @@ export interface ReturnItem {
   mostFrequentReason: string | null;
   reason?: string;
   aiStatus: AIStatus;
+  hasQualityBadge?: boolean;
+  hasDescriptionBadge?: boolean;
+  hasRecommendationBadge?: boolean;
 }
 
 export interface SettingsApiDto {

@@ -21,5 +21,20 @@ namespace RevolvAPI.Extensions
 
             return companyId;
         }
+
+        // Same fail-loud rationale as GetCompanyId — used by TeamController to keep "wer bin ich"
+        // (z. B. "kann mich nicht selbst entfernen") an einer Stelle statt Claim-Namen zu duplizieren.
+        public static int GetUserId(this ClaimsPrincipal user)
+        {
+            var claim = user.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (claim == null || !int.TryParse(claim.Value, out var userId))
+            {
+                throw new InvalidOperationException(
+                    "User-Id-Claim fehlt oder ist ungültig - Endpunkt braucht [Authorize].");
+            }
+
+            return userId;
+        }
     }
 }

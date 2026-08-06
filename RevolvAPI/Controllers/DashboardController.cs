@@ -90,10 +90,13 @@ namespace RevolvAPI.Controllers
             {
                 YellowThreshold = yellowThreshold,
                 RedThreshold = redThreshold,
-                Red = CalculateBand(metrics.Where(m => m.ReturnRatePercent > redThreshold)),
+                Red = CalculateBand(metrics.Where(m =>
+                    ReturnRateBandService.ToBand(m.ReturnRatePercent, yellowThreshold, redThreshold) == "red")),
                 Yellow = CalculateBand(metrics.Where(m =>
-                    m.ReturnRatePercent >= yellowThreshold && m.ReturnRatePercent <= redThreshold)),
-                Green = CalculateBand(metrics.Where(m => m.ReturnRatePercent < yellowThreshold)),
+                    ReturnRateBandService.ToBand(m.ReturnRatePercent, yellowThreshold, redThreshold) == "yellow")),
+                // Exclude 0% (sold, never returned) — those are not "low return rate", they have no returns.
+                Green = CalculateBand(metrics.Where(m =>
+                    ReturnRateBandService.ToBand(m.ReturnRatePercent, yellowThreshold, redThreshold) == "green")),
             };
 
             return Ok(kpis);

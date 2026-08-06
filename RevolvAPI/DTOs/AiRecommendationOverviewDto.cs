@@ -17,7 +17,7 @@ namespace RevolvAPI.DTOs
         public string ArticleNumber { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;
-        public string ReturnRate { get; set; } = "low";
+        public string ReturnRate { get; set; } = "none";
         public bool HasQualityBadge { get; set; }
         public bool HasDescriptionBadge { get; set; }
         public bool HasRecommendationBadge { get; set; }

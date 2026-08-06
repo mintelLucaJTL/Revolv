@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, Button, Text, Box } from "@jtl-software/platform-ui-react";
+import { Card, CardContent, CardHeader, CardTitle, Button, Text } from "@jtl-software/platform-ui-react";
+import { Sparkles } from "lucide-react";
 import ArticleReviewSections from "./ArticleReviewSections";
 import { apiFetch } from "../utils/api";
 import {
@@ -165,10 +166,7 @@ export default function QualityReviewModal({
           <CardHeader className="px-6 py-5">
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Qualitätsprüfung</CardTitle>
-                  <Text>Prüfe den Artikel und vergleiche aktuellen Text mit KI-Vorschlag.</Text>
-                </div>
+                <CardTitle>KI-Prüfung</CardTitle>
                 <div className="flex flex-shrink-0 items-center gap-2">
                   <Button
                     label={isAnalyzing ? "Analysiert…" : "KI-Analyse generieren"}
@@ -198,19 +196,11 @@ export default function QualityReviewModal({
               </div>
 
               {summaryText ? (
-                <Box className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                  <Text weight="semibold">Zusammenfassung</Text>
-                  <Box className="mt-1">
-                    <Text>{summaryText}</Text>
-                  </Box>
-                </Box>
+                <div className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
+                  <Sparkles size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+                  <Text>{summaryText}</Text>
+                </div>
               ) : null}
-
-              <Box className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                <span>
-                  {review.reviewProgress.reviewedCount} / {review.reviewProgress.totalCount} bearbeitet
-                </span>
-              </Box>
             </div>
           </CardHeader>
 
@@ -226,7 +216,11 @@ export default function QualityReviewModal({
                 Keine Artikeldaten vorhanden.
               </div>
             ) : (
-              <ArticleReviewSections review={review} />
+              <ArticleReviewSections
+                review={review}
+                isAnalyzing={isAnalyzing}
+                onStartAnalysis={handleAnalyze}
+              />
             )}
 
             {customerCommentsSection}

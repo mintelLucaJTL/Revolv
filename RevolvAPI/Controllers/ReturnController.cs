@@ -24,7 +24,7 @@ namespace RevolvAPI.Controllers
         }
 
         // band (optional): "red" | "yellow" | "green" — same thresholds as dashboard traffic lights.
-        // Do not filter to "has returns" only; green band includes 0% articles shared with the dashboard.
+        // Green is > 0% and below the yellow threshold; 0% articles are excluded (same as Ampel KPIs).
         [HttpGet("returns")]
         public async Task<IActionResult> GetArticleReturns([FromQuery] string? band = null)
         {
@@ -36,7 +36,9 @@ namespace RevolvAPI.Controllers
             // Empfehlungen einer anderen Firma widerspiegeln.
             var aiRecommendations = await _ctx.AiRecommendations
                 .AsNoTracking()
+                .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
+                .Include(r => r.ActionRecommendations)
                 .Where(r => artikelIds.Contains(r.ArtikelId) && r.CompanyId == companyId)
                 .ToListAsync();
 
@@ -78,7 +80,12 @@ namespace RevolvAPI.Controllers
                         Category = m.Category,
                         ReturnRate = m.ReturnRatePercent,
                         AiStatus = status,
-                        MostFrequentReason = m.MostFrequentReason
+                        MostFrequentReason = m.MostFrequentReason,
+                        // Folge-Ticket zu "KI-Lösungs-Hub in Retouren-Analyse zusammenlegen":
+                        // dieselben drei Tags, die vorher nur der separate Hub zeigte.
+                        HasQualityBadge = recs?.Any(r => r.QualityIssues.Any()) ?? false,
+                        HasDescriptionBadge = recs?.Any(r => r.DescriptionProposals.Any()) ?? false,
+                        HasRecommendationBadge = recs?.Any(r => r.ActionRecommendations.Any()) ?? false,
                     };
                 })
                 .OrderByDescending(d => d.ReturnRate)
