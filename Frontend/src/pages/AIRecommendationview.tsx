@@ -15,7 +15,7 @@ interface ArticleOverview {
   articleNo: string;
   category: string;
   size: string;
-  returnRate: "high" | "medium" | "low";
+  returnRate: "high" | "medium" | "low" | "none";
   hasQualityBadge: boolean;
   hasDescriptionBadge: boolean;
   hasRecommendationBadge: boolean;
@@ -31,7 +31,7 @@ interface ArticleOverviewApiDto {
   articleNumber: string;
   category: string;
   size: string;
-  returnRate: "high" | "medium" | "low";
+  returnRate: "high" | "medium" | "low" | "none";
   hasQualityBadge: boolean;
   hasDescriptionBadge: boolean;
   hasRecommendationBadge: boolean;
@@ -188,7 +188,7 @@ export default function AIRecommendationView() {
         articleNo: item.articleNumber ?? "",
         category: item.category ?? "",
         size: item.size ?? "",
-        returnRate: item.returnRate ?? "low",
+        returnRate: item.returnRate ?? "none",
         hasQualityBadge: Boolean(item.hasQualityBadge),
         hasDescriptionBadge: Boolean(item.hasDescriptionBadge),
         hasRecommendationBadge: Boolean(item.hasRecommendationBadge),

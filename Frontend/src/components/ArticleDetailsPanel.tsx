@@ -20,11 +20,13 @@ function getReturnRateBadgeVariant(
 ): "danger" | "warning" | "success" | "secondary" {
   const level =
     typeof returnRate === "number"
-      ? returnRate > 25
-        ? "high"
-        : returnRate >= 10
-          ? "medium"
-          : "low"
+      ? returnRate <= 0
+        ? "none"
+        : returnRate > 25
+          ? "high"
+          : returnRate >= 10
+            ? "medium"
+            : "low"
       : returnRate;
 
   switch (level) {
@@ -34,13 +36,17 @@ function getReturnRateBadgeVariant(
       return "warning";
     case "low":
       return "success";
+    case "none":
+      return "secondary";
     default:
       return "secondary";
   }
 }
 
 function getReturnRateBadgeLabel(returnRate?: string | number): string {
-  if (typeof returnRate === "number") return `${returnRate.toFixed(1)}%`;
+  if (typeof returnRate === "number") {
+    return returnRate === 0 ? "0%" : `${returnRate.toFixed(1)}%`;
+  }
   switch (returnRate) {
     case "high":
       return "Hoch";
@@ -48,6 +54,8 @@ function getReturnRateBadgeLabel(returnRate?: string | number): string {
       return "Mittel";
     case "low":
       return "Niedrig";
+    case "none":
+      return "0%";
     default:
       return "—";
   }

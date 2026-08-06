@@ -163,10 +163,18 @@ namespace RevolvAPI.Controllers
             var articleInfo = await _returnAnalytics.GetArticleDisplayInfoAsync(
                 latestPerArticle.Select(r => r.ArtikelId));
 
+            // Live rates from WAWI (same as dashboard) — AiRecommendations.ReturnRate is often
+            // null on older rows and was never set before the analyze fix.
+            var rateByArticle = (await _returnAnalytics.GetArticleReturnMetricsAsync())
+                .ToDictionary(m => m.ArtikelId, m => m.ReturnRatePercent);
+
             var overview = latestPerArticle.Select(r =>
             {
                 var info = articleInfo.GetValueOrDefault(r.ArtikelId);
                 var progress = AiRecommendationProgress.Count(r);
+                var returnRate = rateByArticle.TryGetValue(r.ArtikelId, out var liveRate)
+                    ? liveRate
+                    : r.ReturnRate;
                 return new AiRecommendationOverviewDto
                 {
                     // articleId = WAWI-Artikel; recommendationId = AiRecommendation-PK.
@@ -176,7 +184,7 @@ namespace RevolvAPI.Controllers
                     ArticleNumber = info?.Sku ?? string.Empty,
                     Name = info?.Name ?? string.Empty,
                     Category = info?.Category ?? string.Empty,
-                    ReturnRate = ReturnRateBandService.Classify(r.ReturnRate, yellowThreshold, redThreshold),
+                    ReturnRate = ReturnRateBandService.Classify(returnRate, yellowThreshold, redThreshold),
                     HasQualityBadge = r.QualityIssues.Any(),
                     HasDescriptionBadge = r.DescriptionProposals.Any(),
                     HasRecommendationBadge = r.ActionRecommendations.Any(),
@@ -209,6 +217,9 @@ namespace RevolvAPI.Controllers
             var articleInfo = (await _returnAnalytics.GetArticleDisplayInfoAsync(new[] { articleId }))
                 .GetValueOrDefault(articleId);
 
+            var liveRate = (await _returnAnalytics.GetArticleReturnMetricsAsync())
+                .FirstOrDefault(m => m.ArtikelId == articleId)?.ReturnRatePercent;
+
             var dto = new AiRecommendationDetailDto
             {
                 ArticleId = articleId,
@@ -216,7 +227,7 @@ namespace RevolvAPI.Controllers
                 ArticleName = articleInfo?.Name,
                 Category = articleInfo?.Category,
                 AiSummaryText = recommendation.AiSummaryText,
-                ReturnRate = recommendation.ReturnRate,
+                ReturnRate = liveRate ?? recommendation.ReturnRate,
                 IsFullyResolved = recommendation.IsFullyResolved,
                 QualityIssues = recommendation.QualityIssues
                     .Select(q => new QualityIssueDetailDto

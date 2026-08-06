@@ -26,18 +26,26 @@ public class ReturnRateBandServiceTests
     }
 
     [Theory]
-    [InlineData(0, "green")]
+    [InlineData(0.01, "green")]
     [InlineData(4.1, "green")]
     [InlineData(9.99, "green")]
-    public void ToBand_RatesBelowYellowThreshold_AreGreen(decimal rate, string expected)
+    public void ToBand_PositiveRatesBelowYellowThreshold_AreGreen(decimal rate, string expected)
     {
         Assert.Equal(expected, ReturnRateBandRules.ToBand(rate, Yellow, Red));
     }
 
-    [Fact]
-    public void ToBand_NullRate_IsGreen()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void ToBand_ZeroOrNegativeRate_IsNone(decimal rate)
     {
-        Assert.Equal("green", ReturnRateBandRules.ToBand(null, Yellow, Red));
+        Assert.Equal("none", ReturnRateBandRules.ToBand(rate, Yellow, Red));
+    }
+
+    [Fact]
+    public void ToBand_NullRate_IsNone()
+    {
+        Assert.Equal("none", ReturnRateBandRules.ToBand(null, Yellow, Red));
     }
 
     [Theory]
@@ -47,6 +55,7 @@ public class ReturnRateBandServiceTests
     [InlineData(9.99, "yellow", false)]
     [InlineData(9.99, "green", true)]
     [InlineData(10, "green", false)]
+    [InlineData(0, "green", false)]
     public void IsInBand_RespectsInclusiveYellowAndExclusiveRedBoundary(
         decimal rate,
         string band,
@@ -56,10 +65,12 @@ public class ReturnRateBandServiceTests
     }
 
     [Fact]
-    public void Classify_MapsBandsToLegacyHighMediumLow()
+    public void Classify_MapsBandsToLegacyHighMediumLowAndNone()
     {
         Assert.Equal("high", ReturnRateBandRules.Classify(30m, Yellow, Red));
         Assert.Equal("medium", ReturnRateBandRules.Classify(25m, Yellow, Red));
         Assert.Equal("low", ReturnRateBandRules.Classify(5m, Yellow, Red));
+        Assert.Equal("none", ReturnRateBandRules.Classify(0m, Yellow, Red));
+        Assert.Equal("none", ReturnRateBandRules.Classify(null, Yellow, Red));
     }
 }
