@@ -55,17 +55,16 @@ namespace RevolvAPI.Controllers
             var companyId = User.GetCompanyId();
 
             // AI rows keyed by ArtikelId only — article master data lives in WAWI, not revolv.
-            // Ein Artikel kann mehrere Analysen haben (jede "KI-Analyse generieren" legt eine neue
-            // Zeile an); neueste zuerst, damit Konsumenten wie QualityReviewModal per [0] die
-            // aktuell aktive Recommendation bekommen statt einer undefinierten Reihenfolge.
+            // Ein Artikel kann mehrere Analysen haben; neueste zuerst via OrderNewestFirst (#242),
+            // damit Tabelle/Modal/KI-Hub dieselbe aktive Empfehlung sehen ([0] = aktiv).
             // Nach CompanyId gefiltert: Firma A darf keine Empfehlungen von Firma B sehen.
-            var recommendations = await _ctx.AiRecommendations
-                .AsNoTracking()
-                .Include(r => r.QualityIssues)
-                .Include(r => r.DescriptionProposals)
-                .Include(r => r.ActionRecommendations)
-                .Where(r => r.ArtikelId == id && r.CompanyId == companyId)
-                .OrderByDescending(r => r.Id)
+            var recommendations = await AiRecommendationProgress.OrderNewestFirst(
+                    _ctx.AiRecommendations
+                        .AsNoTracking()
+                        .Include(r => r.QualityIssues)
+                        .Include(r => r.DescriptionProposals)
+                        .Include(r => r.ActionRecommendations)
+                        .Where(r => r.ArtikelId == id && r.CompanyId == companyId))
                 .ToListAsync();
 
             var articleDto = new ArticleDetailDTO

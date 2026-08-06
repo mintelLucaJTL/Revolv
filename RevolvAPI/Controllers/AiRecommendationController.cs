@@ -202,13 +202,15 @@ namespace RevolvAPI.Controllers
         {
             var companyId = User.GetCompanyId();
 
-            var recommendation = await _ctx.AiRecommendations
-                .AsNoTracking()
-                .Include(r => r.QualityIssues)
-                .Include(r => r.DescriptionProposals)
-                .Include(r => r.ActionRecommendations)
-                .Where(r => r.ArtikelId == articleId && r.CompanyId == companyId)
-                .OrderByDescending(r => r.Id)
+            // Active = newest by IDENTITY id (shared OrderNewestFirst). Include proposals so
+            // currentDescription / text proposals are present for the detail UI (#242).
+            var recommendation = await AiRecommendationProgress.OrderNewestFirst(
+                    _ctx.AiRecommendations
+                        .AsNoTracking()
+                        .Include(r => r.QualityIssues)
+                        .Include(r => r.DescriptionProposals)
+                        .Include(r => r.ActionRecommendations)
+                        .Where(r => r.ArtikelId == articleId && r.CompanyId == companyId))
                 .FirstOrDefaultAsync();
 
             if (recommendation == null)
@@ -265,18 +267,25 @@ namespace RevolvAPI.Controllers
         // Startet die KI-Analyse für einen Artikel manuell. Die eigentliche Logik lebt in
         // ArticleAnalysisService (Ticket #252) und wird von dort auch vom automatischen
         // Background-Job (AutoAnalysisBackgroundService) für ShopSetting.AutoAnalyzeNewIssues
-        // wiederverwendet.
+        // wiederverwendet. Leere/ungültige KI-Ergebnisse werden nicht persistiert (#242).
         [HttpPost("analyze/{articleId}")]
         public async Task<IActionResult> AnalyzeArticle(int articleId)
         {
-            var recommendationId = await _articleAnalysisService.AnalyzeArticleAsync(articleId, User.GetCompanyId());
+            var result = await _articleAnalysisService.AnalyzeArticleAsync(articleId, User.GetCompanyId());
 
-            if (recommendationId == null)
+            return result.Status switch
             {
-                return NotFound(new { message = "Artikel nicht gefunden." });
-            }
-
-            return Ok(new { recommendationId });
+                ArticleAnalysisStatus.ArticleNotFound =>
+                    NotFound(new { message = "Artikel nicht gefunden." }),
+                ArticleAnalysisStatus.EmptyOrInvalidAiResult =>
+                    UnprocessableEntity(new
+                    {
+                        message = "Die KI-Analyse lieferte kein gültiges Ergebnis. Bitte erneut versuchen.",
+                    }),
+                ArticleAnalysisStatus.Success =>
+                    Ok(new { recommendationId = result.RecommendationId }),
+                _ => StatusCode(StatusCodes.Status500InternalServerError),
+            };
         }
     }
 }

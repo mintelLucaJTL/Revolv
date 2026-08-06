@@ -58,6 +58,7 @@ namespace RevolvAPI.Services
 
         /// <summary>
         /// One active (newest) recommendation id per article — historical analyses are collapsed.
+        /// Newest = highest recommendation id (IDENTITY creation order; descending).
         /// </summary>
         public static IReadOnlyList<(int ArticleId, int RecommendationId)> SelectLatestPerArticle(
             IEnumerable<(int ArticleId, int RecommendationId)> recommendations) =>
@@ -65,5 +66,13 @@ namespace RevolvAPI.Services
                 .GroupBy(r => r.ArticleId)
                 .Select(g => g.OrderByDescending(r => r.RecommendationId).First())
                 .ToList();
+
+        /// <summary>
+        /// Canonical sort for active/newest-first lists: highest recommendation id first
+        /// (IDENTITY correlates with creation time).
+        /// </summary>
+        public static IOrderedEnumerable<(int ArticleId, int RecommendationId)> OrderNewestFirst(
+            IEnumerable<(int ArticleId, int RecommendationId)> recommendations) =>
+            recommendations.OrderByDescending(r => r.RecommendationId);
     }
 }

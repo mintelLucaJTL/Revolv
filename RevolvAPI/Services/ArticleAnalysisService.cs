@@ -18,22 +18,28 @@ namespace RevolvAPI.Services
             _returnAnalytics = returnAnalytics;
         }
 
-        public async Task<int?> AnalyzeArticleAsync(int articleId, int companyId)
+        public async Task<ArticleAnalysisResult> AnalyzeArticleAsync(int articleId, int companyId)
         {
             var articleInfo = (await _returnAnalytics.GetArticleDisplayInfoAsync(new[] { articleId }))
                 .GetValueOrDefault(articleId);
 
             if (articleInfo == null)
             {
-                return null;
+                return ArticleAnalysisResult.NotFound();
             }
+
+            // Live return rate for the new row (Ticket #242) — same source as the returns table.
+            var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
+            var returnRate = metrics.FirstOrDefault(m => m.ArtikelId == articleId)?.ReturnRatePercent;
 
             // Nur die eigenen bisherigen Analysen als Kontext nutzen - sonst würden Rückgabegründe
             // oder Beschreibungstexte einer anderen Firma in die eigene KI-Anfrage einfließen.
+            // DescriptionProposals müssen geladen sein, sonst bleibt currentDescription leer (#242).
             var existingRecommendations = await _ctx.AiRecommendations
                 .Include(r => r.QualityIssues)
                 .Include(r => r.DescriptionProposals)
                 .Where(r => r.ArtikelId == articleId && r.CompanyId == companyId)
+                .OrderByDescending(r => r.Id)
                 .ToListAsync();
 
             // Retourengründe aus allen bisherigen QualityIssues des Artikels sammeln.
@@ -45,35 +51,46 @@ namespace RevolvAPI.Services
                 .Distinct()
                 .ToList();
 
+            var mostFrequentReason = metrics.FirstOrDefault(m => m.ArtikelId == articleId)?.MostFrequentReason;
+            if (!string.IsNullOrWhiteSpace(mostFrequentReason) &&
+                !returnReasons.Contains(mostFrequentReason, StringComparer.OrdinalIgnoreCase))
+            {
+                returnReasons.Add(mostFrequentReason);
+            }
+
+            // Neueste Recommendation zuerst (bereits OrderByDescending Id) — CurrentText der
+            // aktiven Analyse an die KI übergeben, nicht eine ältere/leere Zeile.
             var currentDescription = existingRecommendations
                 .SelectMany(r => r.DescriptionProposals)
                 .Select(d => d.CurrentText)
-                .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
+                .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t))
+                ?? existingRecommendations
+                    .SelectMany(r => r.DescriptionProposals)
+                    .Select(d => d.ProposedText)
+                    .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
 
             var aiResult = await _aiService.AnalyzeArticleAsync(
                 articleInfo.Name ?? "Unbekannter Artikel",
                 currentDescription,
                 returnReasons);
 
-            // Live return rate from WAWI sales/returns (same source as the dashboard).
-            // DECIMAL(5,2) caps at 999.99 — clamp so extreme test rates still persist as "high".
-            var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
-            var liveRate = metrics.FirstOrDefault(m => m.ArtikelId == articleId)?.ReturnRatePercent;
-            var storedRate = liveRate.HasValue
-                ? Math.Min(liveRate.Value, 999.99m)
-                : (decimal?)null;
+            if (!AiRecommendationContentRules.IsUsable(aiResult))
+            {
+                return ArticleAnalysisResult.EmptyOrInvalidAiResult();
+            }
 
             // Antwort der KI in echte DB-Modelle umwandeln.
             var recommendation = new AiRecommendation
             {
                 ArtikelId = articleId,
                 CompanyId = companyId,
-                AiSummaryText = aiResult.Summary,
-                ReturnRate = storedRate,
+                AiSummaryText = aiResult!.Summary,
+                ReturnRate = returnRate,
                 IsFullyResolved = false,
             };
 
-            foreach (var proposal in aiResult.DescriptionProposals)
+            foreach (var proposal in aiResult.DescriptionProposals
+                         .Where(p => !string.IsNullOrWhiteSpace(p.ProposedText)))
             {
                 recommendation.DescriptionProposals.Add(new DescriptionProposal
                 {
@@ -83,7 +100,8 @@ namespace RevolvAPI.Services
                 });
             }
 
-            foreach (var action in aiResult.ActionRecommendations)
+            foreach (var action in aiResult.ActionRecommendations
+                         .Where(a => !string.IsNullOrWhiteSpace(a.ActionText)))
             {
                 recommendation.ActionRecommendations.Add(new ActionRecommendation
                 {
@@ -97,7 +115,7 @@ namespace RevolvAPI.Services
             _ctx.AiRecommendations.Add(recommendation);
             await _ctx.SaveChangesAsync();
 
-            return recommendation.Id;
+            return ArticleAnalysisResult.Ok(recommendation.Id);
         }
     }
 }

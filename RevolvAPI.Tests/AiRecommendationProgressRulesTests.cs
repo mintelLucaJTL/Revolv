@@ -79,6 +79,32 @@ public class AiRecommendationProgressRulesTests
     }
 
     [Fact]
+    public void SelectLatestPerArticle_ArticleWithTwoOrMoreRecommendations_ReturnsNewest()
+    {
+        // Integration-style: article with ≥2 recommendations → newest id wins (#242).
+        var rows = new (int ArticleId, int RecommendationId)[]
+        {
+            (4, 10), // ART-4 older empty shell
+            (4, 11), // ART-4 newer usable analysis
+            (5, 20),
+            (5, 22),
+            (5, 21),
+        };
+
+        var latest = AiRecommendationProgressRules.SelectLatestPerArticle(rows);
+        var ordered = AiRecommendationProgressRules.OrderNewestFirst(rows).ToList();
+
+        Assert.Equal(2, latest.Count);
+        Assert.Contains(latest, x => x.ArticleId == 4 && x.RecommendationId == 11);
+        Assert.Contains(latest, x => x.ArticleId == 5 && x.RecommendationId == 22);
+        Assert.Equal(22, ordered[0].RecommendationId);
+        Assert.Equal(21, ordered[1].RecommendationId);
+        Assert.Equal(20, ordered[2].RecommendationId);
+        Assert.Equal(11, ordered[3].RecommendationId);
+        Assert.Equal(10, ordered[4].RecommendationId);
+    }
+
+    [Fact]
     public void SelectLatestPerArticle_ArticleId1_KeepsNewestRecommendationId()
     {
         // Integration-style fixture: article id 1 with recommendation ids > 1 (diverging ID spaces).

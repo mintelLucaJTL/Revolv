@@ -41,20 +41,20 @@ namespace RevolvAPI.Controllers
                 .Include(r => r.ActionRecommendations)
                 .Where(r => artikelIds.Contains(r.ArtikelId) && r.CompanyId == companyId)
                 .ToListAsync();
-            var aiRecsByArticle = aiRecommendations
-                .GroupBy(r => r.ArtikelId)
-                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // Same active recommendation as detail modal / KI-Hub (#242) — not a merge of history.
+            var latestByArticle = AiRecommendationProgress.SelectLatestPerArticle(aiRecommendations)
+                .ToDictionary(r => r.ArtikelId);
 
             var dtos = metrics
                 .Select(m =>
                 {
-                    var recs = aiRecsByArticle.GetValueOrDefault(m.ArtikelId);
-
-                    var proposals = recs?.SelectMany(r => r.DescriptionProposals ?? new List<DescriptionProposal>()).ToList()
+                    latestByArticle.TryGetValue(m.ArtikelId, out var latest);
+                    var proposals = latest?.DescriptionProposals?.ToList()
                         ?? new List<DescriptionProposal>();
 
                     string status;
-                    if (recs == null || !recs.Any())
+                    if (latest == null)
                     {
                         status = "Keine Empfehlung";
                     }
@@ -69,7 +69,7 @@ namespace RevolvAPI.Controllers
                     }
                     else
                     {
-                        status = recs.All(r => r.IsFullyResolved) ? "Gelöst" : "Ausstehend";
+                        status = latest.IsFullyResolved ? "Gelöst" : "Ausstehend";
                     }
 
                     return new ArticleTableDTO

@@ -14,12 +14,6 @@ namespace RevolvAPI.Services
     {
         private const int MaxUntrustedFieldLength = 500;
 
-        private static readonly JsonSerializerOptions DeserializeOptions = new()
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        };
-
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
         private readonly AppDbContext _ctx;
@@ -63,27 +57,10 @@ namespace RevolvAPI.Services
             """;
 
         /// <inheritdoc />
-        public AiResponseDTO? ParseAiResponse(string? rawAiText)
-        {
-            if (string.IsNullOrWhiteSpace(rawAiText))
-            {
-                return null;
-            }
+        public AiResponseDTO? ParseAiResponse(string? rawAiText) =>
+            AiResponseParser.Parse(rawAiText);
 
-            var json = ExtractJsonPayload(rawAiText);
-
-            try
-            {
-                return JsonSerializer.Deserialize<AiResponseDTO>(json, DeserializeOptions);
-            }
-            catch (JsonException)
-            {
-                // Invalid AI output must not crash the API
-                return null;
-            }
-        }
-
-        public async Task<AiResponseDTO> AnalyzeArticleAsync(
+        public async Task<AiResponseDTO?> AnalyzeArticleAsync(
             string articleName,
             string? currentDescription,
             IEnumerable<string> returnReasons)
@@ -106,10 +83,14 @@ namespace RevolvAPI.Services
                 var raw = await GenerateAnalysisAsync(userPrompt, systemPrompt);
                 var parsed = ParseAiResponse(raw);
 
-                if (parsed != null)
+                // Provider answered but payload is empty/invalid → do not treat as success
+                // (no static fallback that would hide a bad response). Ticket #242.
+                if (!AiRecommendationContentRules.IsUsable(parsed))
                 {
-                    return parsed;
+                    return null;
                 }
+
+                return parsed;
             }
             catch
             {
@@ -263,32 +244,6 @@ namespace RevolvAPI.Services
                     new() { ActionText = "Produktfotos auf Konsistenz prüfen", ImpactBadge = "-4% Retouren", Priority = "Niedrig" },
                 },
             };
-        }
-
-        /// <summary>Strips optional markdown fences so Deserialize gets plain JSON.</summary>
-        private static string ExtractJsonPayload(string raw)
-        {
-            var trimmed = raw.Trim();
-            var fenceMatch = Regex.Match(
-                trimmed,
-                @"^```(?:json)?\s*(.*?)\s*```$",
-                RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
-            if (fenceMatch.Success)
-            {
-                return fenceMatch.Groups[1].Value.Trim();
-            }
-
-            // Fallback if the model wrapped JSON in prose
-            var start = trimmed.IndexOf('{');
-            var end = trimmed.LastIndexOf('}');
-
-            if (start >= 0 && end > start)
-            {
-                return trimmed[start..(end + 1)];
-            }
-
-            return trimmed;
         }
     }
 }

@@ -23,6 +23,9 @@
     <Compile Include="..\RevolvAPI\Services\ReturnRateBandRules.cs" Link="ReturnRateBandRules.cs" />
     <Compile Include="..\RevolvAPI\Services\AiRecommendationProgressRules.cs" Link="AiRecommendationProgressRules.cs" />
     <Compile Include="..\RevolvAPI\Services\ToneOfVoiceOptions.cs" Link="ToneOfVoiceOptions.cs" />
+    <Compile Include="..\RevolvAPI\Services\AiRecommendationContentRules.cs" Link="AiRecommendationContentRules.cs" />
+    <Compile Include="..\RevolvAPI\Services\AiResponseParser.cs" Link="AiResponseParser.cs" />
+    <Compile Include="..\RevolvAPI\DTOs\AiResponseDTO.cs" Link="AiResponseDTO.cs" />
   </ItemGroup>
 
 </Project>
