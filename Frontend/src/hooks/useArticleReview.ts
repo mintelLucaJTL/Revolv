@@ -19,12 +19,19 @@ export {
   PROPOSAL_STATUS_PENDING,
 };
 
+export type ReviewSectionTone = "good" | "warn" | "neutral";
+
+export interface ReviewSectionStatus {
+  label: string;
+  tone: ReviewSectionTone;
+}
+
 /**
  * Shared review state/logic for one article's active AI recommendation.
  * Prefers `preferredRecommendationId` when set (e.g. after analyze POST);
  * otherwise uses aiRecommendations[0] (backend returns newest first).
- * Used by both QualityReviewModal and ArticleDetailsPanel so
- * quality-issue/action/proposal persistence isn't implemented twice.
+ * Used by QualityReviewModal (Retouren-Analyse); kept separate from
+ * ArticleReviewSections so the persistence logic and the presentation stay decoupled.
  */
 export function useArticleReview(
   articleDetail: ArticleDetailDTO | null | undefined,
@@ -240,6 +247,30 @@ export function useArticleReview(
 
   const isProposalReviewed = isDescriptionProposalReviewed(proposalStatus);
 
+  // Per-section status for a compact, scannable checklist (ReviewStatusChecklist) instead of
+  // one opaque "X/Y bearbeitet" number — new users see at a glance what needs attention.
+  const resolvedIssueCount = issues.filter((iss) => completedQualityIssueIds.has(iss.id)).length;
+  const qualitySectionStatus: ReviewSectionStatus =
+    issues.length === 0
+      ? { label: "Keine Probleme", tone: "good" }
+      : resolvedIssueCount === issues.length
+        ? { label: `${resolvedIssueCount}/${issues.length} gelöst`, tone: "good" }
+        : { label: `${issues.length - resolvedIssueCount} offen`, tone: "warn" };
+
+  const descriptionSectionStatus: ReviewSectionStatus =
+    descriptionProposalId === undefined
+      ? { label: "Kein Vorschlag", tone: "neutral" }
+      : isProposalReviewed
+        ? { label: proposalStatus === PROPOSAL_STATUS_ACCEPTED ? "Übernommen" : "Abgelehnt", tone: "good" }
+        : { label: "Ausstehend", tone: "warn" };
+
+  const actionsSectionStatus: ReviewSectionStatus =
+    actionRecommendations.length === 0
+      ? { label: "Keine Empfehlungen", tone: "neutral" }
+      : completedActionCount === actionRecommendations.length
+        ? { label: `${completedActionCount}/${actionRecommendations.length} erledigt`, tone: "good" }
+        : { label: `${actionRecommendations.length - completedActionCount} offen`, tone: "warn" };
+
   // Mirror overview counting: every proposal/issue/action is one progress item.
   // Local proposalStatus overrides the first proposal so accept/reject updates the bar immediately.
   const proposalStatusesForProgress = descriptionProposals.map((p, index) =>
@@ -278,6 +309,11 @@ export function useArticleReview(
     proposalActionError,
     isProposalReviewed,
     reviewProgress,
+    sectionStatus: {
+      quality: qualitySectionStatus,
+      description: descriptionSectionStatus,
+      actions: actionsSectionStatus,
+    },
     toggleActionRecommendation,
     toggleQualityIssue,
     startEditingProposal,

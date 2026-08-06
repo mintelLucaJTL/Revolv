@@ -1,4 +1,4 @@
-﻿using MailKit.Net.Smtp;
+using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 
@@ -13,7 +13,19 @@ namespace RevolvAPI.Services
             _config = config;
         }
 
-        public async Task SendPasswordResetEmailAsync(string toEmail, string resetLink)
+        public Task SendPasswordResetEmailAsync(string toEmail, string resetLink) =>
+            SendAsync(
+                toEmail,
+                "Passwort zurücksetzen",
+                $"Hallo,\n\nklicke auf den folgenden Link, um dein Passwort zurückzusetzen (gültig für 1 Stunde):\n\n{resetLink}\n\nFalls du das nicht angefordert hast, ignoriere diese E-Mail.");
+
+        public Task SendTeamInviteEmailAsync(string toEmail, string companyName, string inviteLink) =>
+            SendAsync(
+                toEmail,
+                $"Einladung zu {companyName} auf Revolv",
+                $"Hallo,\n\ndu wurdest eingeladen, dem Team \"{companyName}\" auf Revolv beizutreten.\n\nKlicke auf den folgenden Link, um dein Passwort festzulegen und loszulegen (gültig für 7 Tage):\n\n{inviteLink}\n\nFalls du das nicht erwartet hast, ignoriere diese E-Mail.");
+
+        private async Task SendAsync(string toEmail, string subject, string bodyText)
         {
             var fromEmail = _config["Smtp:Email"];
             var appPassword = _config["Smtp:AppPassword"];
@@ -21,11 +33,8 @@ namespace RevolvAPI.Services
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress("Revolv Support", fromEmail));
             message.To.Add(MailboxAddress.Parse(toEmail));
-            message.Subject = "Passwort zurücksetzen";
-            message.Body = new TextPart("plain")
-            {
-                Text = $"Hallo,\n\nklicke auf den folgenden Link, um dein Passwort zurückzusetzen (gültig für 1 Stunde):\n\n{resetLink}\n\nFalls du das nicht angefordert hast, ignoriere diese E-Mail.",
-            };
+            message.Subject = subject;
+            message.Body = new TextPart("plain") { Text = bodyText };
 
             using var client = new SmtpClient();
 
