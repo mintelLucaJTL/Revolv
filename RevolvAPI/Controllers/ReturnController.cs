@@ -83,9 +83,9 @@ namespace RevolvAPI.Controllers
                         MostFrequentReason = m.MostFrequentReason,
                         // Folge-Ticket zu "KI-Lösungs-Hub in Retouren-Analyse zusammenlegen":
                         // dieselben drei Tags, die vorher nur der separate Hub zeigte.
-                        HasQualityBadge = recs?.Any(r => r.QualityIssues.Any()) ?? false,
-                        HasDescriptionBadge = recs?.Any(r => r.DescriptionProposals.Any()) ?? false,
-                        HasRecommendationBadge = recs?.Any(r => r.ActionRecommendations.Any()) ?? false,
+                        HasQualityBadge = latest?.QualityIssues.Any() ?? false,
+                        HasDescriptionBadge = latest?.DescriptionProposals.Any() ?? false,
+                        HasRecommendationBadge = latest?.ActionRecommendations.Any() ?? false,
                     };
                 })
                 .OrderByDescending(d => d.ReturnRate)
