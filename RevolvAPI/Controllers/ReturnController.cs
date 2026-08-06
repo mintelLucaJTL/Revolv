@@ -24,7 +24,7 @@ namespace RevolvAPI.Controllers
         }
 
         // band (optional): "red" | "yellow" | "green" — same thresholds as dashboard traffic lights.
-        // Do not filter to "has returns" only; green band includes 0% articles shared with the dashboard.
+        // Green is > 0% and below the yellow threshold; 0% articles are excluded (same as Ampel KPIs).
         [HttpGet("returns")]
         public async Task<IActionResult> GetArticleReturns([FromQuery] string? band = null)
         {

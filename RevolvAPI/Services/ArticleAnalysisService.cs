@@ -55,12 +55,21 @@ namespace RevolvAPI.Services
                 currentDescription,
                 returnReasons);
 
+            // Live return rate from WAWI sales/returns (same source as the dashboard).
+            // DECIMAL(5,2) caps at 999.99 — clamp so extreme test rates still persist as "high".
+            var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
+            var liveRate = metrics.FirstOrDefault(m => m.ArtikelId == articleId)?.ReturnRatePercent;
+            var storedRate = liveRate.HasValue
+                ? Math.Min(liveRate.Value, 999.99m)
+                : (decimal?)null;
+
             // Antwort der KI in echte DB-Modelle umwandeln.
             var recommendation = new AiRecommendation
             {
                 ArtikelId = articleId,
                 CompanyId = companyId,
                 AiSummaryText = aiResult.Summary,
+                ReturnRate = storedRate,
                 IsFullyResolved = false,
             };
 
