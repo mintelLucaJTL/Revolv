@@ -9,5 +9,8 @@
         public decimal ReturnRate { get; set; }
         public string? AiStatus { get; set; }
         public string? MostFrequentReason { get; set; }
+        public bool HasQualityBadge { get; set; }
+        public bool HasDescriptionBadge { get; set; }
+        public bool HasRecommendationBadge { get; set; }
     }
 }

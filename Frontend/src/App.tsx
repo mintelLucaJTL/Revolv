@@ -4,9 +4,9 @@ import Dashboard from "./pages/dashboard";
 import Login from "./pages/login";
 import Profile from "./pages/profile";
 import RetourenAnalyse from "./pages/Retouren-Analyse";
-import AIRecommendationView from "./pages/AIRecommendationview";
 import Registrieren from "./pages/register";
 import Settings from "./pages/settings";
+import Team from "./pages/team";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./components/Toast";
 import ForgotPassword from "./pages/forgot-password";
@@ -94,11 +94,13 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      {/* /ki-empfehlungen retired: its filters moved into /retouren-analyse; falls through to the
+          catch-all route below for old links/bookmarks. */}
       <Route
-        path="/ki-empfehlungen"
+        path="/team"
         element={
           <ProtectedRoute>
-            <AIRecommendationView />
+            <Team />
           </ProtectedRoute>
         }
       />

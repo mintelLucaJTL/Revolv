@@ -18,6 +18,24 @@ import type { ReturnItem, SettingsApiDto, ArticleDetailDTO } from "../types/api"
 const DEFAULT_YELLOW_THRESHOLD = 10;
 const DEFAULT_RED_THRESHOLD = 25;
 
+// Folge-Ticket: die drei Tags aus dem ehemaligen separaten KI-Lösungs-Hub sind jetzt
+// Filter direkt in dieser Tabelle statt einer zweiten, redundanten Seite.
+const TAG_FILTERS = ["Alle Artikel", "Qualität", "Beschreibung", "Empfehlungen"] as const;
+type TagFilter = (typeof TAG_FILTERS)[number];
+
+function matchesTagFilter(item: ReturnItem, filter: TagFilter): boolean {
+  switch (filter) {
+    case "Qualität":
+      return Boolean(item.hasQualityBadge);
+    case "Beschreibung":
+      return Boolean(item.hasDescriptionBadge);
+    case "Empfehlungen":
+      return Boolean(item.hasRecommendationBadge);
+    default:
+      return true;
+  }
+}
+
 type ArticlesState =
   | { status: "loading" }
   | { status: "ready"; data: ReturnItem[] }
@@ -109,6 +127,7 @@ export default function RetourenAnalyseView() {
   const activeBand = parseBand(searchParams.get("band"));
   const [query, setQuery] = useState("");
   const [desc, setDesc] = useState(true);
+  const [tagFilter, setTagFilter] = useState<TagFilter>("Alle Artikel");
 
   const [articlesState, setArticlesState] = useState<ArticlesState>({ status: "loading" });
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -254,15 +273,19 @@ export default function RetourenAnalyseView() {
 
     const filtered = articles.filter(
       (d) =>
-        d.name.toLowerCase().includes(q) ||
-        d.articleNumber.toLowerCase().includes(q) ||
-        d.category.toLowerCase().includes(q),
+        (d.name.toLowerCase().includes(q) ||
+          d.articleNumber.toLowerCase().includes(q) ||
+          d.category.toLowerCase().includes(q)) &&
+        matchesTagFilter(d, tagFilter),
     );
 
     return [...filtered].sort((a, b) =>
       desc ? b.returnRate - a.returnRate : a.returnRate - b.returnRate,
     );
-  }, [articles, query, desc]);
+  }, [articles, query, desc, tagFilter]);
+
+  const hasActiveQuery = query.trim().length > 0;
+  const hasActiveTagFilter = tagFilter !== "Alle Artikel";
 
   const emptyMessage = activeBand
     ? `Keine Artikel in der Risikoklasse „${BAND_LABELS[activeBand]}“.`
@@ -316,6 +339,18 @@ export default function RetourenAnalyseView() {
               )}
             </div>
             {activeBand && <Button label="Filter löschen" onClick={clearBandFilter} />}
+          </div>
+
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="text-sm text-slate-500 dark:text-slate-400">KI-Status:</span>
+            {TAG_FILTERS.map((tag) => (
+              <Button
+                key={tag}
+                label={tag}
+                variant={tagFilter === tag ? "default" : "secondary"}
+                onClick={() => setTagFilter(tag)}
+              />
+            ))}
           </div>
 
           <Card className="dark:bg-slate-900 dark:border-slate-700">
@@ -377,8 +412,18 @@ export default function RetourenAnalyseView() {
                     className="p-8 text-center text-sm text-slate-500 dark:text-slate-400"
                     data-testid="returns-empty-search-state"
                   >
-                    <p className="mb-3">Keine Treffer für den Suchbegriff „{query}“.</p>
-                    <Button label="Suche zurücksetzen" onClick={() => setQuery("")} />
+                    <p className="mb-3">
+                      {hasActiveQuery
+                        ? `Keine Treffer für den Suchbegriff „${query}“.`
+                        : "Keine Artikel für diesen Filter."}
+                    </p>
+                    <Button
+                      label={hasActiveQuery || hasActiveTagFilter ? "Filter zurücksetzen" : "Suche zurücksetzen"}
+                      onClick={() => {
+                        setQuery("");
+                        setTagFilter("Alle Artikel");
+                      }}
+                    />
                   </div>
                 ) : (
                   <table className="min-w-full divide-y divide-gray-100 dark:divide-slate-700">
