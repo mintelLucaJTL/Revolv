@@ -13,8 +13,11 @@ namespace RevolvAPI.Services
         /// </summary>
         AiResponseDTO? ParseAiResponse(string? rawAiText);
 
-        // Article name + description + return reasons in; structured AI analysis out.
-        Task<AiResponseDTO> AnalyzeArticleAsync(
+        /// <summary>
+        /// Article name + description + return reasons in; structured AI analysis out.
+        /// Returns null when the provider responded with empty or invalid content (Ticket #242).
+        /// </summary>
+        Task<AiResponseDTO?> AnalyzeArticleAsync(
             string articleName,
             string? currentDescription,
             IEnumerable<string> returnReasons);

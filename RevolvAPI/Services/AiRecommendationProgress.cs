@@ -4,6 +4,8 @@ namespace RevolvAPI.Services
 {
     /// <summary>
     /// Entity-aware wrappers around <see cref="AiRecommendationProgressRules"/>.
+    /// Active/newest recommendation = highest <see cref="AiRecommendation.Id"/>
+    /// (IDENTITY creation order, descending) — shared by article detail, KI-Hub, and table status.
     /// </summary>
     public static class AiRecommendationProgress
     {
@@ -20,6 +22,20 @@ namespace RevolvAPI.Services
             IEnumerable<AiRecommendation> recommendations) =>
             recommendations
                 .GroupBy(r => r.ArtikelId)
-                .Select(g => g.OrderByDescending(r => r.Id).First());
+                .Select(g => OrderNewestFirst(g).First());
+
+        /// <summary>
+        /// Canonical newest-first ordering for recommendation lists (e.g. GET /api/articles/{id}).
+        /// </summary>
+        public static IOrderedEnumerable<AiRecommendation> OrderNewestFirst(
+            IEnumerable<AiRecommendation> recommendations) =>
+            recommendations.OrderByDescending(r => r.Id);
+
+        /// <summary>
+        /// EF-translatable newest-first ordering (IDENTITY id descending).
+        /// </summary>
+        public static IOrderedQueryable<AiRecommendation> OrderNewestFirst(
+            IQueryable<AiRecommendation> recommendations) =>
+            recommendations.OrderByDescending(r => r.Id);
     }
 }
