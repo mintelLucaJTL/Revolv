@@ -8,7 +8,7 @@ import {
   Text,
 } from "@jtl-software/platform-ui-react";
 
-type ReturnRateLevel = "high" | "medium" | "low";
+type ReturnRateLevel = "high" | "medium" | "low" | "none";
 
 interface ArticleCardProps {
   name: string;
@@ -41,6 +41,11 @@ function getReturnRateConfig(level: ReturnRateLevel) {
       return {
         label: "Niedrig",
         className: "bg-green-100 text-green-700 border border-green-300",
+      };
+    case "none":
+      return {
+        label: "0%",
+        className: "bg-slate-100 text-slate-600 border border-slate-300",
       };
   }
 }

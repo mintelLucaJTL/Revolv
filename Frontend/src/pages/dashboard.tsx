@@ -137,7 +137,7 @@ function mapTrafficLightsToTiles(
     },
     {
       variant: "green",
-      badgeLabel: `UNTER ${yellow}%`,
+      badgeLabel: `> 0 – unter ${yellow}%`,
       smallLabel: "Niedrige Retourenquote",
       value: data.green?.count ?? 0,
       percent: formatPercent(Number(data.green?.averagePercent ?? 0)),
