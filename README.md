@@ -16,7 +16,7 @@ Revolv analysiert Retourenquoten aus einer laufenden JTL-WAWI-Datenbank und lief
 Revolv/
 ├── RevolvAPI/     # ASP.NET Core Web API
 ├── Frontend/      # React-App
-├── Database/      # Historische SQL-Referenz - Schema kommt jetzt aus RevolvAPI/Migrations
+├── Database/      # SQL-Setup (00_MasterSetup.sql ausführen)
 └── mockup/        # Figma-Prototyp als Referenz
 ```
 
@@ -38,30 +38,11 @@ npm install
 
 ### 2. Datenbank
 
-**EF-Migrations sind die Source of Truth fürs App-Schema** (Ticket #247/#271 – nicht mehr `00_MasterSetup.sql`). Einmal gegen die WAWI-Datenbank ausführen:
+`Database/00_MasterSetup.sql` einmal in SSMS gegen die WAWI-Datenbank ausführen. Legt Schema `revolv` und die App-Tabellen an – WAWI-Tabellen bleiben unberührt.
 
-```bash
-cd RevolvAPI
-dotnet ef database update
-```
+Artikel-, Retouren- und Verkaufsdaten kommen live aus der WAWI (`dbo` / `DAL`). Die `USE`-Zeile anpassen, falls die DB nicht `eazybusiness` heißt.
 
-Legt Schema `revolv`, `dbo.QualityIssues` und alle App-Tabellen inkl. Referenzdaten (Rollen `Admin`/`Mitarbeiter`) an – WAWI-Tabellen (`dbo`/`DAL`) bleiben unberührt, dafür sorgt `AppDbContext.ConfigureWawiViews` (`ToView`/`ExcludeFromMigrations`). Artikel-, Retouren- und Verkaufsdaten kommen weiterhin live aus der WAWI.
-
-Nach jeder Model-Änderung (neues Feld, neue Entity, Constraint …):
-
-```bash
-cd RevolvAPI
-dotnet ef migrations add <Name>
-dotnet ef database update
-```
-
-Migrationen einmal gegen eine frische DB verifizieren, bevor sie gemerged werden:
-
-```bash
-dotnet ef database update --connection "Server=localhost;Database=revolv_migration_test;Trusted_Connection=True;TrustServerCertificate=True;"
-```
-
-`Database/00_MasterSetup.sql` und `Database/Scripts/*.sql` sind seit der Umstellung nur noch **historische Referenz** (z. B. um nachzuvollziehen, wie eine Spalte früher aussah) – nicht mehr ausführen, sonst laufen sie der Migrationshistorie davon.
+Neue Schema-Änderungen kommen als eigenes, idempotentes Skript unter `Database/Scripts/` (Namensmuster `<schema>.<Tabelle>_<Änderung>.sql`, siehe bestehende Skripte dort) und werden zusätzlich in `00_MasterSetup.sql` nachgezogen, damit ein frisches Setup direkt den aktuellen Stand bekommt.
 
 ### 3. Backend
 

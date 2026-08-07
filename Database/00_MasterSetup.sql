@@ -1,8 +1,3 @@
--- HISTORICAL REFERENCE ONLY (Ticket #247/#271) - do not run against a DB managed by EF
--- Migrations, it will drift from the migration history. The app schema's source of truth is
--- now RevolvAPI/Migrations; set up/update a database via `dotnet ef database update` instead.
--- Kept here only to see how a column/table originally looked before later migrations.
---
 -- Revolv master setup: creates schema `revolv` and all app tables in the WAWI database.
 -- Prerequisite: an existing JTL-WAWI database (default name `eazybusiness`). Does not modify WAWI tables.
 -- Idempotent — safe to re-run. Change the USE line if your DB name differs.
@@ -241,6 +236,28 @@ BEGIN
     -- EXEC(...) statt eines direkten UPDATE: sonst kompiliert SQL Server den UPDATE-Teil des
     -- Batches bereits VOR Ausführung des ALTER und bricht mit "Ungültiger Spaltenname" ab.
     EXEC('UPDATE dbo.QualityIssues SET AutoAnalyzedAt = SYSUTCDATETIME() WHERE AutoAnalyzedAt IS NULL');
+END
+GO
+
+-- Ticket #271: Status-Werte vereinheitlicht (siehe auch
+-- Database/Scripts/dbo.QualityIssues_FixStatusDefault.sql). Bestandstabellen hatten hier noch
+-- den abweichenden Default 'Offen' - der Rest der App nutzt durchgehend 'Ausstehend'.
+IF EXISTS (
+    SELECT * FROM sys.default_constraints dc
+    JOIN sys.columns c ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'dbo.QualityIssues') AND c.name = 'Status'
+      AND dc.definition = N'(''Offen'')'
+)
+BEGIN
+    DECLARE @qiStatusDefaultConstraint sysname;
+    SELECT @qiStatusDefaultConstraint = dc.name FROM sys.default_constraints dc
+    JOIN sys.columns c ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'dbo.QualityIssues') AND c.name = 'Status';
+
+    EXEC('ALTER TABLE dbo.QualityIssues DROP CONSTRAINT ' + @qiStatusDefaultConstraint);
+    ALTER TABLE dbo.QualityIssues ADD DEFAULT ('Ausstehend') FOR Status;
+
+    UPDATE dbo.QualityIssues SET Status = 'Ausstehend' WHERE Status = 'Offen';
 END
 GO
 
