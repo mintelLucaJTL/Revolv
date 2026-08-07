@@ -42,13 +42,7 @@ npm install
 
 Artikel-, Retouren- und Verkaufsdaten kommen live aus der WAWI (`dbo` / `DAL`). Die `USE`-Zeile anpassen, falls die DB nicht `eazybusiness` heißt.
 
-Optionale EF-Migrationen für App-Schema-Änderungen:
-
-```bash
-cd RevolvAPI
-dotnet ef migrations add <Name>
-dotnet ef database update
-```
+Neue Schema-Änderungen kommen als eigenes, idempotentes Skript unter `Database/Scripts/` (Namensmuster `<schema>.<Tabelle>_<Änderung>.sql`, siehe bestehende Skripte dort) und werden zusätzlich in `00_MasterSetup.sql` nachgezogen, damit ein frisches Setup direkt den aktuellen Stand bekommt.
 
 ### 3. Backend
 

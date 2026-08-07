@@ -212,7 +212,7 @@ BEGIN
         Id INT IDENTITY(1,1) PRIMARY KEY,
         AiRecommendationId INT NOT NULL,
         IssueText NVARCHAR(MAX) NOT NULL,
-        Status NVARCHAR(50) NOT NULL DEFAULT 'Offen',
+        Status NVARCHAR(50) NOT NULL DEFAULT 'Ausstehend',
         AutoAnalyzedAt DATETIME2 NULL,
         CONSTRAINT FK_QualityIssues_AiRecommendations
             FOREIGN KEY (AiRecommendationId)
@@ -236,6 +236,28 @@ BEGIN
     -- EXEC(...) statt eines direkten UPDATE: sonst kompiliert SQL Server den UPDATE-Teil des
     -- Batches bereits VOR Ausführung des ALTER und bricht mit "Ungültiger Spaltenname" ab.
     EXEC('UPDATE dbo.QualityIssues SET AutoAnalyzedAt = SYSUTCDATETIME() WHERE AutoAnalyzedAt IS NULL');
+END
+GO
+
+-- Ticket #271: Status-Werte vereinheitlicht (siehe auch
+-- Database/Scripts/dbo.QualityIssues_FixStatusDefault.sql). Bestandstabellen hatten hier noch
+-- den abweichenden Default 'Offen' - der Rest der App nutzt durchgehend 'Ausstehend'.
+IF EXISTS (
+    SELECT * FROM sys.default_constraints dc
+    JOIN sys.columns c ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'dbo.QualityIssues') AND c.name = 'Status'
+      AND dc.definition = N'(''Offen'')'
+)
+BEGIN
+    DECLARE @qiStatusDefaultConstraint sysname;
+    SELECT @qiStatusDefaultConstraint = dc.name FROM sys.default_constraints dc
+    JOIN sys.columns c ON c.object_id = dc.parent_object_id AND c.column_id = dc.parent_column_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'dbo.QualityIssues') AND c.name = 'Status';
+
+    EXEC('ALTER TABLE dbo.QualityIssues DROP CONSTRAINT ' + @qiStatusDefaultConstraint);
+    ALTER TABLE dbo.QualityIssues ADD DEFAULT ('Ausstehend') FOR Status;
+
+    UPDATE dbo.QualityIssues SET Status = 'Ausstehend' WHERE Status = 'Offen';
 END
 GO
 

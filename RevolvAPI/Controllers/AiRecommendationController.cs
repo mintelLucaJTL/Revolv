@@ -31,6 +31,13 @@ namespace RevolvAPI.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
+            // Ticket #271: keine Magic Strings ohne Validierung mehr in die Spalte durchreichen.
+            if (!AiRecommendationStatuses.DescriptionProposalValues.Contains(dto.Status))
+            {
+                return BadRequest(
+                    $"status muss einer von: {string.Join(", ", AiRecommendationStatuses.DescriptionProposalValues)} sein.");
+            }
+
             var companyId = User.GetCompanyId();
 
             // Include(AiRecommendation) + CompanyId-Check: ohne das könnte jeder eingeloggte User
@@ -110,6 +117,12 @@ namespace RevolvAPI.Controllers
         public async Task<IActionResult> UpdateQualityStatus(int id, [FromBody] UpdateStatusDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            if (!AiRecommendationStatuses.QualityIssueValues.Contains(dto.Status))
+            {
+                return BadRequest(
+                    $"status muss einer von: {string.Join(", ", AiRecommendationStatuses.QualityIssueValues)} sein.");
+            }
 
             var companyId = User.GetCompanyId();
 

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using RevolvAPI.Services;
 
 namespace RevolvAPI.Models
 {
@@ -7,8 +8,14 @@ namespace RevolvAPI.Models
     {
         public int Id { get; set; }
         public int AiRecommendationId { get; set; }
-        public string? IssueText { get; set; }
-        public string? Status { get; set; } = "Ausstehend";
+
+        // Ticket #271: Spalte ist in der DB NOT NULL - Model war bisher nullable, obwohl im
+        // Code (AI-Analyse, s. ArticleAnalysisService) nie ein null-Text erzeugt wird.
+        public string IssueText { get; set; } = string.Empty;
+
+        // Ticket #271: kanonisch AiRecommendationStatuses.QualityIssuePending ("Ausstehend") -
+        // die DB hatte hier vorher den abweichenden Default 'Offen' (siehe Migration).
+        public string Status { get; set; } = AiRecommendationStatuses.QualityIssuePending;
 
         // Marks when the automatic-analysis background job (ShopSetting.AutoAnalyzeNewIssues,
         // see AutoAnalysisBackgroundService) claimed/handled this issue. NULL = not yet handled.

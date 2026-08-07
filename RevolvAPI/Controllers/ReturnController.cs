@@ -56,20 +56,20 @@ namespace RevolvAPI.Controllers
                     string status;
                     if (latest == null)
                     {
-                        status = "Keine Empfehlung";
+                        status = ArticleAiStatuses.NoRecommendation;
                     }
                     else if (proposals.Any())
                     {
-                        if (proposals.All(p => p.Status == "Akzeptiert"))
-                            status = "Angenommen";
-                        else if (proposals.All(p => p.Status == "Abgelehnt"))
-                            status = "Abgelehnt";
+                        if (proposals.All(p => p.Status == AiRecommendationStatuses.DescriptionProposalAccepted))
+                            status = ArticleAiStatuses.Accepted;
+                        else if (proposals.All(p => p.Status == AiRecommendationStatuses.DescriptionProposalRejected))
+                            status = ArticleAiStatuses.Rejected;
                         else
-                            status = "Ausstehend";
+                            status = ArticleAiStatuses.Pending;
                     }
                     else
                     {
-                        status = latest.IsFullyResolved ? "Gelöst" : "Ausstehend";
+                        status = latest.IsFullyResolved ? ArticleAiStatuses.Resolved : ArticleAiStatuses.Pending;
                     }
 
                     return new ArticleTableDTO
@@ -83,9 +83,9 @@ namespace RevolvAPI.Controllers
                         MostFrequentReason = m.MostFrequentReason,
                         // Folge-Ticket zu "KI-Lösungs-Hub in Retouren-Analyse zusammenlegen":
                         // dieselben drei Tags, die vorher nur der separate Hub zeigte.
-                        HasQualityBadge = recs?.Any(r => r.QualityIssues.Any()) ?? false,
-                        HasDescriptionBadge = recs?.Any(r => r.DescriptionProposals.Any()) ?? false,
-                        HasRecommendationBadge = recs?.Any(r => r.ActionRecommendations.Any()) ?? false,
+                        HasQualityBadge = latest?.QualityIssues.Any() ?? false,
+                        HasDescriptionBadge = latest?.DescriptionProposals.Any() ?? false,
+                        HasRecommendationBadge = latest?.ActionRecommendations.Any() ?? false,
                     };
                 })
                 .OrderByDescending(d => d.ReturnRate)
