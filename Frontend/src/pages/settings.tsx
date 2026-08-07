@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Box, Card, Button, Text } from "@jtl-software/platform-ui-react";
 import Sidebar from "../components/Sidebar";
 import TopNavigationBar from "../components/TopNavigationBar";
@@ -14,8 +14,20 @@ interface SettingsApiDto {
 
 type ThemeMode = "light" | "dark";
 
+type RoleName = "Admin" | "Mitarbeiter";
+
+interface TeamMember {
+  id: number;
+  email: string;
+  name: string | null;
+  roleName: RoleName;
+  createdAt: string;
+  isCurrentUser: boolean;
+}
+
 // API endpoint for the settings.
 const API_SETTINGS = "/api/settings";
+const API_TEAM = "/api/team";
 
 // Must match RevolvAPI ToneOfVoiceOptions.Allowed.
 const ALLOWED_TONES = ["Locker", "Formell und sachlich"] as const;
@@ -44,6 +56,31 @@ function applySettingsToForm(
   setters.setRedThreshold(Number(data.thresholdRed));
 }
 
+function formatJoinedDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("de-DE", { year: "numeric", month: "short", day: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
+async function extractErrorMessage(response: Response, fallback: string): Promise<string> {
+  const text = await response.text();
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    if (typeof parsed === "string") return parsed;
+    if (parsed && typeof parsed === "object") {
+      const obj = parsed as { message?: unknown; detail?: unknown; title?: unknown };
+      if (obj.message) return String(obj.message);
+      if (obj.detail) return String(obj.detail);
+      if (obj.title) return String(obj.title);
+    }
+  } catch {
+    // not JSON — fall through to raw text
+  }
+  return text || fallback;
+}
+
 export default function Settings() {
   const [tone, setTone] = useState("");
   const [autoAnalysis, setAutoAnalysis] = useState(false);
@@ -53,6 +90,17 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const savingRef = useRef(false);
+
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [teamLoading, setTeamLoading] = useState(true);
+  const [teamError, setTeamError] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<RoleName>("Mitarbeiter");
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [savingRoleForId, setSavingRoleForId] = useState<number | null>(null);
+  const [removingId, setRemovingId] = useState<number | null>(null);
+  const [teamActionMessage, setTeamActionMessage] = useState<string | null>(null);
 
   const [theme, setTheme] = useState<ThemeMode>(() => {
     if (typeof window === "undefined") {
@@ -95,6 +143,115 @@ export default function Settings() {
 
     void loadSettings();
   }, []);
+
+  const loadTeam = async () => {
+    try {
+      const response = await apiFetch(API_TEAM);
+      if (!response.ok) {
+        throw new Error(`Team konnte nicht geladen werden (${response.status}).`);
+      }
+      const data = (await response.json()) as TeamMember[];
+      setMembers(data);
+      setTeamError(null);
+    } catch (err) {
+      console.error("Fetch team error:", err);
+      setTeamError(
+        err instanceof TypeError
+          ? "Backend nicht erreichbar. Starte RevolvAPI (http://localhost:5215)."
+          : "Das Team konnte nicht geladen werden.",
+      );
+    } finally {
+      setTeamLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadTeam();
+  }, []);
+
+  const currentMember = members.find((m) => m.isCurrentUser);
+  const isAdmin = currentMember?.roleName === "Admin";
+
+  const handleInvite = async (e: FormEvent) => {
+    e.preventDefault();
+    const email = inviteEmail.trim();
+    if (!email) return;
+
+    setInviting(true);
+    setInviteError(null);
+    setTeamActionMessage(null);
+
+    try {
+      const response = await apiFetch("/api/team/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, roleName: inviteRole }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await extractErrorMessage(response, `Einladung fehlgeschlagen (${response.status}).`));
+      }
+
+      const created = (await response.json()) as TeamMember;
+      setMembers((prev) => [...prev, created]);
+      setInviteEmail("");
+      setTeamActionMessage(`Einladung an ${created.email} gesendet.`);
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : "Einladung fehlgeschlagen.");
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRoleChange = async (member: TeamMember, nextRole: RoleName) => {
+    if (nextRole === member.roleName) return;
+
+    setSavingRoleForId(member.id);
+    setTeamActionMessage(null);
+
+    try {
+      const response = await apiFetch(`/api/team/${member.id}/role`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roleName: nextRole }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await extractErrorMessage(response, "Rolle konnte nicht geändert werden."));
+      }
+
+      const updated = (await response.json()) as TeamMember;
+      setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+    } catch (err) {
+      setTeamActionMessage(err instanceof Error ? err.message : "Rolle konnte nicht geändert werden.");
+    } finally {
+      setSavingRoleForId(null);
+    }
+  };
+
+  const handleRemove = async (member: TeamMember) => {
+    if (!window.confirm(`${member.name ?? member.email} wirklich aus dem Team entfernen?`)) {
+      return;
+    }
+
+    setRemovingId(member.id);
+    setTeamActionMessage(null);
+
+    try {
+      const response = await apiFetch(`/api/team/${member.id}`, { method: "DELETE" });
+
+      if (!response.ok) {
+        throw new Error(await extractErrorMessage(response, "Mitglied konnte nicht entfernt werden."));
+      }
+
+      setMembers((prev) => prev.filter((m) => m.id !== member.id));
+      setTeamActionMessage(`${member.name ?? member.email} wurde entfernt.`);
+    } catch (err) {
+      setTeamActionMessage(err instanceof Error ? err.message : "Mitglied konnte nicht entfernt werden.");
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   const handleSave = async () => {
     if (savingRef.current || loading) return;
@@ -175,6 +332,8 @@ export default function Settings() {
     theme === "dark"
       ? "w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 outline-none"
       : "w-full rounded border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none";
+
+  const rowBorder = theme === "dark" ? "border-slate-700" : "border-slate-200";
 
   const themeButtonLabel = theme === "dark" ? "Zum White-Mode wechseln" : "Zum Dark-Mode wechseln";
 
@@ -285,6 +444,127 @@ export default function Settings() {
                   </Box>
                 </Card>
               </Box>
+
+              <Card className={`mt-6 p-6 ${cardBackground}`}>
+                <Text weight="bold">Team</Text>
+                <Box className="mt-1">
+                  <Text type="xs">
+                    {teamLoading
+                      ? "Lädt…"
+                      : `${members.length} Mitglied${members.length === 1 ? "" : "er"}`}
+                  </Text>
+                </Box>
+
+                {teamError && (
+                  <Box className="mt-3">
+                    <Text type="xs" color="danger">
+                      {teamError}
+                    </Text>
+                  </Box>
+                )}
+
+                {!teamLoading && !teamError && (
+                  <>
+                    {isAdmin && (
+                      <form onSubmit={handleInvite} className="mt-4 flex flex-wrap items-end gap-3">
+                        <label className="flex min-w-[220px] flex-1 flex-col gap-1.5">
+                          <span className="text-xs">E-Mail-Adresse</span>
+                          <input
+                            type="email"
+                            required
+                            placeholder="kolleg:in@firma.de"
+                            value={inviteEmail}
+                            onChange={(e) => setInviteEmail(e.target.value)}
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="flex flex-col gap-1.5">
+                          <span className="text-xs">Rolle</span>
+                          <select
+                            value={inviteRole}
+                            onChange={(e) => setInviteRole(e.target.value as RoleName)}
+                            className={inputClass}
+                          >
+                            <option value="Mitarbeiter">Mitarbeiter</option>
+                            <option value="Admin">Admin</option>
+                          </select>
+                        </label>
+
+                        <Button
+                          label={inviting ? "Sendet…" : "Einladen"}
+                          variant="highlight"
+                          disabled={inviting}
+                        />
+                      </form>
+                    )}
+
+                    {inviteError && (
+                      <Box className="mt-2">
+                        <Text type="xs" color="danger">
+                          {inviteError}
+                        </Text>
+                      </Box>
+                    )}
+
+                    {teamActionMessage && (
+                      <Box className="mt-2">
+                        <Text type="xs">{teamActionMessage}</Text>
+                      </Box>
+                    )}
+
+                    <Box className={`mt-4 divide-y ${rowBorder}`}>
+                      {members.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex flex-wrap items-center justify-between gap-3 py-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Text weight="semibold">{member.name ?? member.email}</Text>
+                              {member.isCurrentUser && (
+                                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                                  Du
+                                </span>
+                              )}
+                            </div>
+                            <Text type="xs">
+                              {member.email} · seit {formatJoinedDate(member.createdAt)}
+                            </Text>
+                          </div>
+
+                          <div className="flex flex-shrink-0 items-center gap-2">
+                            {isAdmin ? (
+                              <select
+                                value={member.roleName}
+                                disabled={savingRoleForId === member.id}
+                                onChange={(e) => handleRoleChange(member, e.target.value as RoleName)}
+                                className="rounded border border-gray-200 bg-white px-2 py-1.5 text-sm text-slate-900 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100"
+                              >
+                                <option value="Mitarbeiter">Mitarbeiter</option>
+                                <option value="Admin">Admin</option>
+                              </select>
+                            ) : (
+                              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                {member.roleName}
+                              </span>
+                            )}
+
+                            {isAdmin && !member.isCurrentUser && (
+                              <Button
+                                label={removingId === member.id ? "Entfernt…" : "Entfernen"}
+                                variant="ghost"
+                                disabled={removingId === member.id}
+                                onClick={() => handleRemove(member)}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </Box>
+                  </>
+                )}
+              </Card>
 
               <Box className="mt-6 flex flex-col gap-3">
                 {message && (

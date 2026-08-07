@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 const navItems = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Retourenanalyse", path: "/retouren-analyse" },
-  { label: "Team", path: "/team" },
+  { label: "Erfolgsmessung", path: "/erfolgsmessung" },
 ];
 
 export default function Sidebar() {
