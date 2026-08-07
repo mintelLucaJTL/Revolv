@@ -1,3 +1,8 @@
+-- HISTORICAL REFERENCE ONLY (Ticket #247/#271) - do not run against a DB managed by EF
+-- Migrations, it will drift from the migration history. The app schema's source of truth is
+-- now RevolvAPI/Migrations; set up/update a database via `dotnet ef database update` instead.
+-- Kept here only to see how a column/table originally looked before later migrations.
+--
 -- Revolv master setup: creates schema `revolv` and all app tables in the WAWI database.
 -- Prerequisite: an existing JTL-WAWI database (default name `eazybusiness`). Does not modify WAWI tables.
 -- Idempotent — safe to re-run. Change the USE line if your DB name differs.
@@ -212,7 +217,7 @@ BEGIN
         Id INT IDENTITY(1,1) PRIMARY KEY,
         AiRecommendationId INT NOT NULL,
         IssueText NVARCHAR(MAX) NOT NULL,
-        Status NVARCHAR(50) NOT NULL DEFAULT 'Offen',
+        Status NVARCHAR(50) NOT NULL DEFAULT 'Ausstehend',
         AutoAnalyzedAt DATETIME2 NULL,
         CONSTRAINT FK_QualityIssues_AiRecommendations
             FOREIGN KEY (AiRecommendationId)

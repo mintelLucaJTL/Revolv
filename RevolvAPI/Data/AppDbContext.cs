@@ -88,9 +88,38 @@ namespace RevolvAPI.Data
                 .HasForeignKey(u => u.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Ticket #271: Laengen/Defaults explizit, damit Modell/Migration-Snapshot/DB
+            // uebereinstimmen statt sich auf EF-Konventionen (nvarchar(max), kein DB-Default)
+            // zu verlassen, die vom real gewachsenen Schema abweichen.
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.Property(u => u.Email).HasMaxLength(256);
+                entity.Property(u => u.Name).HasMaxLength(256);
+                entity.Property(u => u.PasswordResetToken).HasMaxLength(256);
+                entity.Property(u => u.CreatedAt).HasDefaultValueSql("GETDATE()");
+            });
+
+            modelBuilder.Entity<Company>(entity =>
+            {
+                entity.Property(c => c.Name).HasMaxLength(255);
+                entity.Property(c => c.CreatedAt).HasDefaultValueSql("GETDATE()");
+            });
+
             modelBuilder.Entity<Role>()
                 .HasIndex(r => r.RoleName)
                 .IsUnique();
+
+            modelBuilder.Entity<Role>()
+                .Property(r => r.RoleName)
+                .HasMaxLength(50);
+
+            // AuthController.Register braucht die Admin-Rolle und schlaegt sonst laut fehl - ein
+            // rein migrations-basiertes frisches Setup muss diese Referenzdaten mitbringen statt
+            // zusaetzlich ein separates revolv.Roles.sql zu erfordern. Ids fix (nicht IDENTITY-
+            // generiert) und decken sich mit den bereits produktiv vergebenen Ids 1/2.
+            modelBuilder.Entity<Role>().HasData(
+                new Role { Id = 1, RoleName = RoleNames.Admin },
+                new Role { Id = 2, RoleName = RoleNames.Mitarbeiter });
 
             // Folge-Ticket zu #190: AiRecommendations/ShopSettings gehören jeweils zu genau
             // einer Company. Restrict statt Cascade, wie bei User - eine Company darf nicht
@@ -100,6 +129,50 @@ namespace RevolvAPI.Data
                 .WithMany()
                 .HasForeignKey(r => r.CompanyId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<AiRecommendation>()
+                .Property(r => r.IsFullyResolved)
+                .HasDefaultValue(false);
+
+            // Explizit statt EF-Konvention: eine AiRecommendation "besitzt" ihre QualityIssues/
+            // DescriptionProposals/ActionRecommendations - ohne die Empfehlung sind sie bedeutungslos.
+            modelBuilder.Entity<QualityIssue>()
+                .HasOne(q => q.AiRecommendation)
+                .WithMany(r => r.QualityIssues)
+                .HasForeignKey(q => q.AiRecommendationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DescriptionProposal>()
+                .HasOne(d => d.AiRecommendation)
+                .WithMany(r => r.DescriptionProposals)
+                .HasForeignKey(d => d.AiRecommendationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ActionRecommendation>()
+                .HasOne(a => a.AiRecommendation)
+                .WithMany(r => r.ActionRecommendations)
+                .HasForeignKey(a => a.AiRecommendationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<QualityIssue>(entity =>
+            {
+                entity.Property(q => q.Status)
+                    .HasMaxLength(50)
+                    .HasDefaultValue(AiRecommendationStatuses.QualityIssuePending);
+            });
+
+            modelBuilder.Entity<DescriptionProposal>()
+                .Property(d => d.Status)
+                .HasMaxLength(50)
+                .HasDefaultValue(AiRecommendationStatuses.DescriptionProposalPending);
+
+            modelBuilder.Entity<ActionRecommendation>(entity =>
+            {
+                entity.Property(a => a.ActionText).HasMaxLength(255);
+                entity.Property(a => a.ImpactBadge).HasMaxLength(255);
+                entity.Property(a => a.Priority).HasMaxLength(50);
+                entity.Property(a => a.IsCompleted).HasDefaultValue(false);
+            });
 
             modelBuilder.Entity<ShopSetting>()
                 .HasOne(s => s.Company)
@@ -111,6 +184,16 @@ namespace RevolvAPI.Data
             modelBuilder.Entity<ShopSetting>()
                 .HasIndex(s => s.CompanyId)
                 .IsUnique();
+
+            modelBuilder.Entity<ShopSetting>(entity =>
+            {
+                entity.Property(s => s.ToneOfVoice)
+                    .HasMaxLength(255)
+                    .HasDefaultValue("Formell und sachlich");
+                entity.Property(s => s.ThresholdYellow).HasDefaultValue(10.0m);
+                entity.Property(s => s.ThresholdRed).HasDefaultValue(25.0m);
+                entity.Property(s => s.AutoAnalyzeNewIssues).HasDefaultValue(false);
+            });
 
             modelBuilder.Entity<RefreshToken>(entity =>
             {
@@ -141,8 +224,10 @@ namespace RevolvAPI.Data
 
             modelBuilder.Entity<WawiItemDescription>(e =>
             {
-                // Real table, still read-only from Revolv's perspective.
-                e.ToTable("tArtikelBeschreibung", schema: "dbo");
+                // Real table (unlike the other Wawi* entities, which map to DAL views) - unless
+                // explicitly excluded, EF would otherwise generate migrations trying to manage
+                // this WAWI-owned table, which Revolv must never create/alter/drop.
+                e.ToTable("tArtikelBeschreibung", schema: "dbo", tb => tb.ExcludeFromMigrations());
                 e.HasKey(x => new { x.ArtikelId, x.SpracheId, x.PlattformId, x.ShopId });
                 e.Property(x => x.ArtikelId).HasColumnName("kArtikel");
                 e.Property(x => x.SpracheId).HasColumnName("kSprache");
