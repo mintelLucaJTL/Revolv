@@ -56,20 +56,20 @@ namespace RevolvAPI.Controllers
                     string status;
                     if (latest == null)
                     {
-                        status = "Keine Empfehlung";
+                        status = ArticleAiStatuses.NoRecommendation;
                     }
                     else if (proposals.Any())
                     {
-                        if (proposals.All(p => p.Status == "Akzeptiert"))
-                            status = "Angenommen";
-                        else if (proposals.All(p => p.Status == "Abgelehnt"))
-                            status = "Abgelehnt";
+                        if (proposals.All(p => p.Status == AiRecommendationStatuses.DescriptionProposalAccepted))
+                            status = ArticleAiStatuses.Accepted;
+                        else if (proposals.All(p => p.Status == AiRecommendationStatuses.DescriptionProposalRejected))
+                            status = ArticleAiStatuses.Rejected;
                         else
-                            status = "Ausstehend";
+                            status = ArticleAiStatuses.Pending;
                     }
                     else
                     {
-                        status = latest.IsFullyResolved ? "Gelöst" : "Ausstehend";
+                        status = latest.IsFullyResolved ? ArticleAiStatuses.Resolved : ArticleAiStatuses.Pending;
                     }
 
                     return new ArticleTableDTO

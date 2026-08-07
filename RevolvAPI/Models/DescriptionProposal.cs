@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using RevolvAPI.Services;
 
 namespace RevolvAPI.Models
 {
@@ -10,7 +11,7 @@ namespace RevolvAPI.Models
         public int AiRecommendationId { get; set; }
         public string? CurrentText { get; set; }
         public string? ProposedText { get; set; }
-        public string Status { get; set; } = "Ausstehend";
+        public string Status { get; set; } = AiRecommendationStatuses.DescriptionProposalPending;
 
         // Navigation properties
         public AiRecommendation AiRecommendation { get; set; } = null!;

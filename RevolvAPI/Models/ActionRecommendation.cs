@@ -9,8 +9,11 @@ namespace RevolvAPI.Models
         public int Id { get; set; }
         public int AiRecommendationId { get; set; }
         public string ActionText { get; set; } = string.Empty; // eg. Check measurement table
-        public string ImpactBadge { get; set; } = string.Empty; // eg. -10% Return Rate
-        public string Priority { get; set; } = string.Empty; // eg. High, Medium, Low
+
+        // Ticket #271: DB erlaubt hier NULL (KI liefert nicht immer beides) - Model verlangte
+        // bisher fälschlich einen nicht-nullbaren String.
+        public string? ImpactBadge { get; set; } // eg. -10% Return Rate
+        public string? Priority { get; set; } // eg. Hoch, Mittel, Niedrig (von der KI vergeben)
         public bool IsCompleted { get; set; } = false;
 
         // Navigation property

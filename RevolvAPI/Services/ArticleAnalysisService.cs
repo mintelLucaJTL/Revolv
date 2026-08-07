@@ -96,7 +96,7 @@ namespace RevolvAPI.Services
                 {
                     CurrentText = proposal.CurrentText ?? currentDescription,
                     ProposedText = proposal.ProposedText,
-                    Status = "Ausstehend",
+                    Status = AiRecommendationStatuses.DescriptionProposalPending,
                 });
             }
 

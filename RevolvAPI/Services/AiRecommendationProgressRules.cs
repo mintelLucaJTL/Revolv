@@ -12,6 +12,25 @@ namespace RevolvAPI.Services
         public const string DescriptionProposalAccepted = "Akzeptiert";
         public const string DescriptionProposalRejected = "Abgelehnt";
         public const string DescriptionProposalPending = "Ausstehend";
+
+        public static readonly IReadOnlyCollection<string> QualityIssueValues =
+            [QualityIssueResolved, QualityIssuePending];
+
+        public static readonly IReadOnlyCollection<string> DescriptionProposalValues =
+            [DescriptionProposalAccepted, DescriptionProposalRejected, DescriptionProposalPending];
+    }
+
+    // Ticket #271: die pro-Artikel "Sammel-Status"-Badge in der Retourenanalyse-Tabelle
+    // (GET /api/articles/returns) - ein eigener Werteraum, abgeleitet aus den
+    // AiRecommendationStatuses-Werten der zugehörigen DescriptionProposals, nicht deren
+    // 1:1-Abbild. Muss mit Frontend/src/types/api.ts AIStatus übereinstimmen.
+    public static class ArticleAiStatuses
+    {
+        public const string NoRecommendation = "Keine Empfehlung";
+        public const string Pending = "Ausstehend";
+        public const string Accepted = "Angenommen";
+        public const string Rejected = "Abgelehnt";
+        public const string Resolved = "Gelöst";
     }
 
     public readonly record struct AiRecommendationProgressCounts(int OpenCount, int ResolvedCount)

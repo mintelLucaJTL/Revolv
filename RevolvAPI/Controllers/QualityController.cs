@@ -24,11 +24,9 @@ namespace RevolvAPI.Controllers
         [HttpGet("open")]
         public async Task<IActionResult> GetOpenQualityIssues()
         {
-            var openStatuses = new[] { "Ausstehend", "Offen" };
-
             var issues = await _ctx.QualityIssues
                 .AsNoTracking()
-                .Where(q => q.Status != null && openStatuses.Contains(q.Status))
+                .Where(q => q.Status != AiRecommendationStatuses.QualityIssueResolved)
                 .Include(q => q.AiRecommendation)
                 .ToListAsync();
 
@@ -45,12 +43,12 @@ namespace RevolvAPI.Controllers
                 return new QualityIssueOpenDto
                 {
                     Id = q.Id,
-                    IssueText = q.IssueText ?? string.Empty,
+                    IssueText = q.IssueText,
                     AiRecommendationId = q.AiRecommendationId,
                     ArticleId = artikelId,
                     ArticleNumber = info?.Sku,
                     ArticleName = info?.Name,
-                    Status = q.Status ?? string.Empty
+                    Status = q.Status
                 };
             }).ToList();
 

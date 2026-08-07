@@ -1,8 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-
-using System.ComponentModel.DataAnnotations;
-
 namespace RevolvAPI.DTOs
 {
     public class UpdateCompletionDto
