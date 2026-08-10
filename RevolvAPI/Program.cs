@@ -37,13 +37,19 @@ var connectionString = builder.Configuration.GetConnectionString("WawiConnection
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+// Ticket: Origins kommen aus der Config statt hartcodiert, damit Production keine
+// Localhost-Origin (oder schlimmer: ein Wildcard) mitschleppt. Ohne konfigurierte Origins
+// außerhalb von Development wird bewusst nichts erlaubt, statt still offen zu sein.
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? (builder.Environment.IsDevelopment() ? new[] { "http://localhost:5173" } : Array.Empty<string>());
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactFrontend", policy =>
     {
-        // Explicit origin required: AllowCredentials (for the HttpOnly refresh cookie) can't be
-        // combined with AllowAnyOrigin.
-        policy.WithOrigins("http://localhost:5173")
+        // Explicit origin(s) required: AllowCredentials (for the HttpOnly refresh cookie) can't
+        // be combined with AllowAnyOrigin.
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -67,7 +73,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+// Ticket: geschlossene Standard-Policy statt Opt-in-[Authorize] pro Controller - ein neuer
+// Controller ohne Attribut ist damit automatisch geschützt statt automatisch offen.
+// Öffentliche Endpunkte (Login/Register/Refresh/...) müssen sich explizit mit
+// [AllowAnonymous] freischalten.
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
@@ -99,38 +114,43 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-app.MapGet("/test-db", async (AppDbContext db) =>
+// Diagnose-Endpunkte: nur in Development registriert (existieren in Production gar nicht,
+// dadurch auch kein Exception-/Provider-Detail-Leak nach außen) und explizit anonym erreichbar,
+// da sie sonst durch die neue Auth-Fallback-Policy blockiert wären.
+if (app.Environment.IsDevelopment())
 {
-    try
+    app.MapGet("/test-db", async (AppDbContext db) =>
     {
-        bool isConnected = await db.Database.CanConnectAsync();
+        try
+        {
+            bool isConnected = await db.Database.CanConnectAsync();
 
-        if (isConnected)
-            return Results.Ok("Successfully connected to DB! C:");
-        else
-            return Results.Problem("Couldnt connecto to DB! :C");
-    }
-    catch (Exception ex)
-    {
-        return Results.Problem($"Error while connecting: {ex.Message}");
-    }
-});
+            if (isConnected)
+                return Results.Ok("Successfully connected to DB! C:");
+            else
+                return Results.Problem("Couldnt connecto to DB! :C");
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem($"Error while connecting: {ex.Message}");
+        }
+    }).AllowAnonymous();
 
-// Dev helper to verify AI provider wiring
-app.MapGet("/test-ai", async (IAiService ai) =>
-{
-    try
+    app.MapGet("/test-ai", async (IAiService ai) =>
     {
-        var reply = await ai.GenerateAnalysisAsync("Hallo KI");
-        Console.WriteLine($"[AI Test] Antwort: {reply}");
-        return Results.Ok(reply);
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[AI Test] Fehler: {ex.Message}");
-        return Results.Problem(ex.Message);
-    }
-});
+        try
+        {
+            var reply = await ai.GenerateAnalysisAsync("Hallo KI");
+            Console.WriteLine($"[AI Test] Antwort: {reply}");
+            return Results.Ok(reply);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AI Test] Fehler: {ex.Message}");
+            return Results.Problem(ex.Message);
+        }
+    }).AllowAnonymous();
+}
 
 DbSeeder.Seed(app.Services.CreateScope().ServiceProvider.GetRequiredService<AppDbContext>());
 
