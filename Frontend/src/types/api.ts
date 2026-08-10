@@ -33,6 +33,7 @@ export interface DescriptionProposal {
   currentText?: string;
   proposedText?: string;
   status?: string;
+  pushedToWawiAt?: string | null;
 }
 
 export interface ActionRecommendation {

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, Button, Text, Box } from "@jtl-software/platform-ui-react";
 import { CheckCircle2, FileText, ListChecks, ShieldAlert, Sparkles } from "lucide-react";
 import QualityWarningCard from "./QualityWarningCard";
+import PushDescriptionToWawiModal from "./PushDescriptionToWawiModal";
 import {
   PROPOSAL_STATUS_ACCEPTED,
   PROPOSAL_STATUS_PENDING,
@@ -9,6 +10,20 @@ import {
   type ArticleReview,
   type ReviewSectionTone,
 } from "../hooks/useArticleReview";
+
+function formatPushedAt(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
 
 function getPriorityBadgeClasses(priority?: string): string {
   const normalized = priority?.toLowerCase() ?? "";
@@ -117,6 +132,9 @@ export default function ArticleReviewSections({ review, isAnalyzing, onStartAnal
     savingProposalAction,
     proposalActionError,
     isProposalReviewed,
+    pushedToWawiAt,
+    isPushingToWawi,
+    pushToWawiError,
     sectionStatus,
     toggleActionRecommendation,
     toggleQualityIssue,
@@ -124,7 +142,10 @@ export default function ArticleReviewSections({ review, isAnalyzing, onStartAnal
     cancelEditingProposal,
     saveProposedText,
     updateProposalStatus,
+    pushDescriptionToWawi,
   } = review;
+
+  const [isPushModalOpen, setIsPushModalOpen] = useState(false);
 
   // Land on whichever tab still needs attention, so the first click isn't wasted on "all clear".
   const defaultTab: TabKey =
@@ -191,24 +212,53 @@ export default function ArticleReviewSections({ review, isAnalyzing, onStartAnal
         ) : null}
 
         {isProposalReviewed ? (
-          <div className="flex items-center gap-3">
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                proposalStatus === PROPOSAL_STATUS_ACCEPTED
-                  ? "bg-green-50 text-green-700 dark:bg-green-950/60 dark:text-green-300"
-                  : "bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-300"
-              }`}
-            >
-              {proposalStatus === PROPOSAL_STATUS_ACCEPTED
-                ? "Vorschlag übernommen"
-                : "Vorschlag abgelehnt"}
-            </span>
-            <Button
-              label={savingProposalAction === "undo" ? "Setzt zurück…" : "Rückgängig"}
-              variant="ghost"
-              onClick={() => updateProposalStatus(PROPOSAL_STATUS_PENDING, "undo")}
-              disabled={savingProposalAction !== null}
-            />
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-3">
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  proposalStatus === PROPOSAL_STATUS_ACCEPTED
+                    ? "bg-green-50 text-green-700 dark:bg-green-950/60 dark:text-green-300"
+                    : "bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-300"
+                }`}
+              >
+                {proposalStatus === PROPOSAL_STATUS_ACCEPTED
+                  ? "Vorschlag übernommen"
+                  : "Vorschlag abgelehnt"}
+              </span>
+              {/* Sobald live in WAWI übernommen, würde "Rückgängig" nur noch Revolvs eigenen
+                  Status zurücksetzen, nicht die bereits geänderte WAWI-Beschreibung - das wäre
+                  irreführend, also ausgeblendet statt falsche Erwartungen zu wecken. */}
+              {!pushedToWawiAt && (
+                <Button
+                  label={savingProposalAction === "undo" ? "Setzt zurück…" : "Rückgängig"}
+                  variant="ghost"
+                  onClick={() => updateProposalStatus(PROPOSAL_STATUS_PENDING, "undo")}
+                  disabled={savingProposalAction !== null}
+                />
+              )}
+            </div>
+
+            {proposalStatus === PROPOSAL_STATUS_ACCEPTED && (
+              <div className="flex flex-col items-end gap-2">
+                {pushedToWawiAt ? (
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                    In WAWI übernommen am {formatPushedAt(pushedToWawiAt)}
+                  </span>
+                ) : (
+                  <>
+                    {pushToWawiError && (
+                      <p className="text-xs text-red-600 dark:text-red-400">{pushToWawiError}</p>
+                    )}
+                    <Button
+                      label="In WAWI übernehmen"
+                      variant="highlight"
+                      onClick={() => setIsPushModalOpen(true)}
+                      disabled={isPushingToWawi}
+                    />
+                  </>
+                )}
+              </div>
+            )}
           </div>
         ) : isEditingProposal ? (
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -392,6 +442,17 @@ export default function ArticleReviewSections({ review, isAnalyzing, onStartAnal
           </div>
         )}
       </div>
+
+      <PushDescriptionToWawiModal
+        isOpen={isPushModalOpen}
+        onClose={() => setIsPushModalOpen(false)}
+        isSubmitting={isPushingToWawi}
+        error={pushToWawiError}
+        onConfirm={async () => {
+          const succeeded = await pushDescriptionToWawi();
+          if (succeeded) setIsPushModalOpen(false);
+        }}
+      />
     </>
   );
 }

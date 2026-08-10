@@ -67,6 +67,12 @@ export function useArticleReview(
   >(null);
   const [proposalActionError, setProposalActionError] = useState<string | null>(null);
 
+  // "In WAWI übernehmen" - separat vom Akzeptieren/Ablehnen, da das die live, kundensichtbare
+  // Artikelbeschreibung überschreibt und nicht automatisch rückgängig gemacht werden kann.
+  const [pushedToWawiAt, setPushedToWawiAt] = useState<string | null>(null);
+  const [isPushingToWawi, setIsPushingToWawi] = useState(false);
+  const [pushToWawiError, setPushToWawiError] = useState<string | null>(null);
+
   useEffect(() => {
     const initiallyCompleted = actionRecommendations
       .filter((rec) => rec.isCompleted)
@@ -84,6 +90,8 @@ export function useArticleReview(
     setProposedTextValue(descriptionProposal?.proposedText?.trim() ?? "");
     setIsEditingProposal(false);
     setProposalActionError(null);
+    setPushedToWawiAt(descriptionProposal?.pushedToWawiAt ?? null);
+    setPushToWawiError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiRec?.id]);
 
@@ -241,6 +249,50 @@ export function useArticleReview(
     }
   };
 
+  // POST statt PATCH: das ist eine einmalige Aktion (schreibt in eine externe DB), keine
+  // Zustandsänderung, die beliebig wiederholt werden kann. Gibt zurück, ob es geklappt hat, damit
+  // der Aufrufer (das Bestätigungsmodal) bei einem Fehler offen bleiben und die Meldung zeigen
+  // kann, statt sich zu schließen, bevor der Nutzer sie liest.
+  const pushDescriptionToWawi = async (): Promise<boolean> => {
+    if (descriptionProposalId === undefined) return false;
+
+    setIsPushingToWawi(true);
+    setPushToWawiError(null);
+
+    try {
+      const response = await apiFetch(`/api/ai/description/${descriptionProposalId}/push-to-wawi`, {
+        method: "POST",
+      });
+
+      // 409 = bereits übernommen (z. B. durch einen zweiten Tab) - kein Fehler, nur ein anderer
+      // Zeitpunkt als der, den wir hier grade ausgelöst haben.
+      if (response.ok || response.status === 409) {
+        const data = (await response.json()) as { pushedAt?: string | null };
+        setPushedToWawiAt(data.pushedAt ?? new Date().toISOString());
+        onArticleUpdated?.();
+        return true;
+      }
+
+      if (response.status === 422) {
+        const data = (await response.json().catch(() => null)) as { message?: string } | null;
+        setPushToWawiError(
+          data?.message ?? "Der Vorschlag muss erst akzeptiert werden.",
+        );
+        return false;
+      }
+
+      throw new Error(`HTTP ${response.status}`);
+    } catch (err) {
+      console.error("Failed to push description to WAWI:", err);
+      setPushToWawiError(
+        "Die Übernahme in WAWI ist fehlgeschlagen. Bitte erneut versuchen oder das Team informieren.",
+      );
+      return false;
+    } finally {
+      setIsPushingToWawi(false);
+    }
+  };
+
   const completedActionCount = actionRecommendations.filter((rec) =>
     completedActionIds.has(rec.id),
   ).length;
@@ -308,6 +360,9 @@ export function useArticleReview(
     savingProposalAction,
     proposalActionError,
     isProposalReviewed,
+    pushedToWawiAt,
+    isPushingToWawi,
+    pushToWawiError,
     reviewProgress,
     sectionStatus: {
       quality: qualitySectionStatus,
@@ -320,6 +375,7 @@ export function useArticleReview(
     cancelEditingProposal,
     saveProposedText,
     updateProposalStatus,
+    pushDescriptionToWawi,
   };
 }
 
