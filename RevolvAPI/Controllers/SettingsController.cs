@@ -18,6 +18,7 @@ namespace RevolvAPI.Controllers
 
         public SettingsController(AppDbContext ctx) => _ctx = ctx;
 
+        // GET stays authenticated-only: dashboard / Retouren-Analyse read thresholds for all roles.
         [HttpGet]
         public async Task<ActionResult<ShopSettingDto>> GetSettings()
         {
@@ -25,7 +26,10 @@ namespace RevolvAPI.Controllers
             return Ok(ToDto(settings));
         }
 
+        // Settings page is Admin-only in the UI; enforce the same on write so demoted users
+        // cannot change ToneOfVoice / thresholds / AutoAnalyze via the API.
         [HttpPut]
+        [Authorize(Roles = RoleNames.Admin)]
         public async Task<ActionResult<ShopSettingDto>> UpdateSettings([FromBody] ShopSettingDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);

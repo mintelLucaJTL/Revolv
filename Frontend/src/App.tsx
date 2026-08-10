@@ -6,6 +6,7 @@ import Profile from "./pages/profile";
 import RetourenAnalyse from "./pages/Retouren-Analyse";
 import Registrieren from "./pages/register";
 import Settings from "./pages/settings";
+import Team from "./pages/team";
 import Erfolgsmessung from "./pages/erfolgsmessung";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./components/Toast";
@@ -18,6 +19,22 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+}
+
+/** Authenticated Admin-only routes (Settings, Mein Team). */
+function AdminRoute({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const { isAuthenticated, isAdmin } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
@@ -96,7 +113,6 @@ function AppRoutes() {
       />
       {/* /ki-empfehlungen retired: its filters moved into /retouren-analyse; falls through to the
           catch-all route below for old links/bookmarks. */}
-      {/* /team retired: team management moved into /settings instead of its own page. */}
       <Route
         path="/erfolgsmessung"
         element={
@@ -114,11 +130,19 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/team"
+        element={
+          <AdminRoute>
+            <Team />
+          </AdminRoute>
+        }
+      />
+      <Route
         path="/settings"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <Settings />
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />
