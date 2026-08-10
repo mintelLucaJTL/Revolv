@@ -271,7 +271,8 @@ BEGIN
         [AiRecommendationId] INT NOT NULL,
         [CurrentText] NVARCHAR(MAX) NULL,
         [ProposedText] NVARCHAR(MAX) NULL,
-        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Ausstehend'
+        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Ausstehend',
+        [PushedToWawiAt] DATETIME2 NULL
     );
 END
 GO
@@ -283,6 +284,56 @@ BEGIN
     ALTER TABLE [revolv].[DescriptionProposals]
     ADD CONSTRAINT FK_DescriptionProposals_AiRecommendations
     FOREIGN KEY ([AiRecommendationId]) REFERENCES [revolv].[AiRecommendations]([Id]);
+END
+GO
+
+-- Feature: KI-Beschreibung per Knopfdruck in WAWI uebernehmen. Siehe auch
+-- Database/Scripts/revolv.DescriptionProposals_AddPushedToWawiAt.sql.
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'revolv.DescriptionProposals') AND name = 'PushedToWawiAt'
+)
+BEGIN
+    ALTER TABLE revolv.DescriptionProposals ADD PushedToWawiAt DATETIME2 NULL;
+END
+GO
+
+-- Audit-Log fuer jeden Versuch, einen Vorschlag in die live WAWI-DB zu uebernehmen. Siehe auch
+-- Database/Scripts/revolv.DescriptionPushLog.sql.
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.DescriptionPushLog') AND type IN (N'U'))
+BEGIN
+    CREATE TABLE [revolv].[DescriptionPushLog] (
+        [Id] INT IDENTITY(1,1) PRIMARY KEY,
+        [DescriptionProposalId] INT NOT NULL,
+        [ArtikelId] INT NOT NULL,
+        [PushedAt] DATETIME2 NOT NULL,
+        [PushedByUserId] INT NOT NULL,
+        [PreviousTextSnapshot] NVARCHAR(MAX) NULL,
+        [NewText] NVARCHAR(MAX) NOT NULL,
+        [RowsAffected] INT NOT NULL,
+        [Status] NVARCHAR(20) NOT NULL,
+        [ErrorMessage] NVARCHAR(2000) NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_DescriptionPushLog_DescriptionProposals')
+BEGIN
+    ALTER TABLE [revolv].[DescriptionPushLog]
+    ADD CONSTRAINT FK_DescriptionPushLog_DescriptionProposals
+    FOREIGN KEY ([DescriptionProposalId]) REFERENCES [revolv].[DescriptionProposals]([Id]);
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DescriptionPushLog_DescriptionProposalId')
+BEGIN
+    CREATE INDEX IX_DescriptionPushLog_DescriptionProposalId ON [revolv].[DescriptionPushLog] ([DescriptionProposalId]);
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DescriptionPushLog_ArtikelId')
+BEGIN
+    CREATE INDEX IX_DescriptionPushLog_ArtikelId ON [revolv].[DescriptionPushLog] ([ArtikelId]);
 END
 GO
 

@@ -29,6 +29,7 @@
         public string? CurrentText { get; set; }
         public string? ProposedText { get; set; }
         public string? Status { get; set; }
+        public DateTime? PushedToWawiAt { get; set; }
     }
 
     public class ActionRecommendationDetailDto
