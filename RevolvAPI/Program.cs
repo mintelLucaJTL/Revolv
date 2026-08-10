@@ -85,6 +85,8 @@ builder.Services.AddHostedService<AutoAnalysisBackgroundService>();
 
 var app = builder.Build();
 
+await DatabaseSetup.RunMasterSetupAsync(connectionString!, app.Logger);
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
