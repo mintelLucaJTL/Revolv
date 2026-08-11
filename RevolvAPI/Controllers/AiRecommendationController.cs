@@ -18,12 +18,18 @@ namespace RevolvAPI.Controllers
         private readonly AppDbContext _ctx;
         private readonly IArticleAnalysisService _articleAnalysisService;
         private readonly IReturnAnalyticsService _returnAnalytics;
+        private readonly IWawiDescriptionPushService _wawiDescriptionPushService;
 
-        public AiRecommendationController(AppDbContext ctx, IArticleAnalysisService articleAnalysisService, IReturnAnalyticsService returnAnalytics)
+        public AiRecommendationController(
+            AppDbContext ctx,
+            IArticleAnalysisService articleAnalysisService,
+            IReturnAnalyticsService returnAnalytics,
+            IWawiDescriptionPushService wawiDescriptionPushService)
         {
             _ctx = ctx;
             _articleAnalysisService = articleAnalysisService;
             _returnAnalytics = returnAnalytics;
+            _wawiDescriptionPushService = wawiDescriptionPushService;
         }
 
         [HttpPatch("description/{id}/status")]
@@ -48,6 +54,12 @@ namespace RevolvAPI.Controllers
             if (proposal == null || proposal.AiRecommendation.CompanyId != companyId) return NotFound();
 
             proposal.Status = dto.Status;
+            // Erfolgsmessung-Feature: AcceptedAt markiert, wann der Vorschlag zuletzt akzeptiert
+            // wurde - beim Zurücknehmen (Status wechselt weg von "Akzeptiert") wieder null, sonst
+            // würde ein abgelehnter/zurückgesetzter Vorschlag fälschlich als "Änderung" auftauchen.
+            proposal.AcceptedAt = dto.Status == AiRecommendationStatuses.DescriptionProposalAccepted
+                ? proposal.AcceptedAt ?? DateTime.UtcNow
+                : null;
 
             var recommendation = await _ctx.AiRecommendations
                 .Include(r => r.QualityIssues)
@@ -63,6 +75,50 @@ namespace RevolvAPI.Controllers
             await _ctx.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // POST api/ai/description/{id}/push-to-wawi
+        // Übernimmt den (bereits akzeptierten) KI-Beschreibungsvorschlag in die live WAWI-
+        // Artikelbeschreibung - der einzige Schreibzugriff dieser App auf eine sonst rein
+        // lesend genutzte externe Datenbank, daher Admin-only (wie andere folgenreiche Aktionen,
+        // siehe TeamController) und mit voller Absicherung in WawiDescriptionPushService
+        // (Transaktion, Idempotenz-Claim, Audit-Log). Absichtlich ein eigener, zusätzlich
+        // bestätigter Schritt nach dem Akzeptieren, nicht Teil davon.
+        [HttpPost("description/{id}/push-to-wawi")]
+        [Authorize(Roles = RoleNames.Admin)]
+        public async Task<IActionResult> PushDescriptionToWawi(int id)
+        {
+            var companyId = User.GetCompanyId();
+            var userId = User.GetUserId();
+
+            var result = await _wawiDescriptionPushService.PushAsync(id, companyId, userId);
+
+            return result.Outcome switch
+            {
+                PushDescriptionOutcome.Success => Ok(new PushDescriptionResultDto
+                {
+                    RowsAffected = result.RowsAffected,
+                    PushedAt = result.PushedAt,
+                }),
+                PushDescriptionOutcome.AlreadyPushed => Conflict(new PushDescriptionResultDto
+                {
+                    PushedAt = result.PushedAt,
+                }),
+                PushDescriptionOutcome.NotAccepted => UnprocessableEntity(new
+                {
+                    message = result.ErrorMessage
+                        ?? "Der Vorschlag muss erst akzeptiert werden, bevor er in WAWI übernommen werden kann.",
+                }),
+                PushDescriptionOutcome.NotFound => NotFound(),
+                PushDescriptionOutcome.NoWawiRows => NotFound(new
+                {
+                    message = "Für diesen Artikel wurden keine WAWI-Beschreibungszeilen gefunden.",
+                }),
+                _ => StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = result.ErrorMessage ?? "Die Übernahme in WAWI ist fehlgeschlagen.",
+                }),
+            };
         }
 
         [HttpPatch("description/{id}/text")]
@@ -96,6 +152,7 @@ namespace RevolvAPI.Controllers
             if (action == null || action.AiRecommendation?.CompanyId != companyId) return NotFound();
 
             action.IsCompleted = dto.IsCompleted;
+            action.CompletedAt = dto.IsCompleted ? action.CompletedAt ?? DateTime.UtcNow : null;
 
             var recommendation = await _ctx.AiRecommendations
                 .Include(r => r.QualityIssues)
@@ -132,6 +189,9 @@ namespace RevolvAPI.Controllers
             if (issue == null || issue.AiRecommendation.CompanyId != companyId) return NotFound();
 
             issue.Status = dto.Status;
+            issue.ResolvedAt = dto.Status == AiRecommendationStatuses.QualityIssueResolved
+                ? issue.ResolvedAt ?? DateTime.UtcNow
+                : null;
 
             var recommendation = await _ctx.AiRecommendations
                 .Include(r => r.QualityIssues)
@@ -258,7 +318,8 @@ namespace RevolvAPI.Controllers
                         Id = d.Id,
                         CurrentText = d.CurrentText,
                         ProposedText = d.ProposedText,
-                        Status = d.Status
+                        Status = d.Status,
+                        PushedToWawiAt = d.PushedToWawiAt
                     })
                     .ToList(),
                 ActionRecommendations = recommendation.ActionRecommendations

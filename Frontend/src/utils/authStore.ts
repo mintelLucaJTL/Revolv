@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "./apiBase";
+import { decodeRoleFromAccessToken, type RoleName } from "./roles";
 
 // Framework-agnostic auth singleton, so both `AuthContext` (React state) and plain functions
 // like `apiFetch` can read/trigger the same session.
@@ -31,6 +32,11 @@ export function getAccessToken(): string | null {
 
 export function getSessionExpiresAt(): number | null {
   return currentSession?.sessionExpiresAt ?? null;
+}
+
+/** Role from the in-memory access token (UI gating only; API enforces auth). */
+export function getRole(): RoleName | null {
+  return decodeRoleFromAccessToken(currentSession?.accessToken);
 }
 
 export function isSessionActive(): boolean {

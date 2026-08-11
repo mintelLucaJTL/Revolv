@@ -176,5 +176,38 @@ namespace RevolvAPI.Controllers
 
             return Ok(dto);
         }
+
+        // GET api/dashboard/success-metrics?months=8
+        // Erfolgsmessung-Feature: Retourenquote-Trend pro Artikel rund um den frühesten
+        // angenommenen/erledigten KI-Vorschlag. Nur Artikel mit mindestens einer solchen
+        // Änderung sind enthalten.
+        [HttpGet("success-metrics")]
+        public async Task<IActionResult> GetSuccessMetrics([FromQuery] int months = 8)
+        {
+            if (months < 3 || months > 24)
+            {
+                return BadRequest("months muss zwischen 3 und 24 liegen.");
+            }
+
+            var trends = await _returnAnalytics.GetArticleSuccessTrendsAsync(User.GetCompanyId(), months);
+
+            var dtos = trends.Select(t => new ArticleSuccessTrendDto
+            {
+                ArticleId = t.ArtikelId,
+                ArticleNumber = t.Sku,
+                Name = t.Name ?? "Unbekannt",
+                ChangeMonth = $"{t.ChangeMonth.Year:D4}-{t.ChangeMonth.Month:D2}",
+                ChangeLabel = t.ChangeLabel,
+                Points = t.Points
+                    .Select(p => new SuccessMetricPointDto
+                    {
+                        Month = $"{p.Month.Year:D4}-{p.Month.Month:D2}",
+                        ReturnRate = p.ReturnRatePercent
+                    })
+                    .ToList()
+            }).ToList();
+
+            return Ok(dtos);
+        }
     }
 }

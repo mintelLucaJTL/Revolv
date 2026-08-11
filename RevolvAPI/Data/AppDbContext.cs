@@ -26,6 +26,7 @@ namespace RevolvAPI.Data
         public DbSet<QualityIssue> QualityIssues { get; set; }
         public DbSet<ShopSetting> ShopSettings { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<DescriptionPushLog> DescriptionPushLogs { get; set; }
 
         // Read-only WAWI views/tables — never written by this app.
         public DbSet<WawiItem> WawiItems { get; set; }
@@ -37,6 +38,7 @@ namespace RevolvAPI.Data
         public DbSet<WawiReturnReasonTranslation> WawiReturnReasonTranslations { get; set; }
         public DbSet<WawiReturnStatus> WawiReturnStatuses { get; set; }
         public DbSet<WawiSalesInvoiceLineItem> WawiSalesInvoiceLineItems { get; set; }
+        public DbSet<WawiSalesInvoice> WawiSalesInvoices { get; set; }
 
         // Ticket #252: sobald neue QualityIssues erfolgreich gespeichert wurden, für jedes davon
         // IAutoAnalysisQueue.QueueQualityIssue aufrufen - unabhängig davon, welcher Code-Pfad
@@ -166,6 +168,22 @@ namespace RevolvAPI.Data
                 .HasMaxLength(50)
                 .HasDefaultValue(AiRecommendationStatuses.DescriptionProposalPending);
 
+            modelBuilder.Entity<DescriptionPushLog>(entity =>
+            {
+                entity.HasOne(l => l.DescriptionProposal)
+                    .WithMany()
+                    .HasForeignKey(l => l.DescriptionProposalId)
+                    // Restrict, nicht Cascade: das Audit-Log muss auch dann erhalten bleiben,
+                    // wenn der zugehoerige Vorschlag irgendwann geloescht wird.
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(l => l.DescriptionProposalId);
+                entity.HasIndex(l => l.ArtikelId);
+
+                entity.Property(l => l.Status).HasMaxLength(20);
+                entity.Property(l => l.ErrorMessage).HasMaxLength(2000);
+            });
+
             modelBuilder.Entity<ActionRecommendation>(entity =>
             {
                 entity.Property(a => a.ActionText).HasMaxLength(255);
@@ -234,6 +252,10 @@ namespace RevolvAPI.Data
                 e.Property(x => x.PlattformId).HasColumnName("kPlattform");
                 e.Property(x => x.ShopId).HasColumnName("kShop");
                 e.Property(x => x.Name).HasColumnName("cName");
+                // The one field Revolv writes back to WAWI (WawiDescriptionPushService) -
+                // ExcludeFromMigrations above still applies, so this never generates a migration
+                // trying to create/alter the WAWI-owned column itself.
+                e.Property(x => x.Beschreibung).HasColumnName("cBeschreibung");
             });
 
             modelBuilder.Entity<WawiProductGroup>(e =>
@@ -275,6 +297,12 @@ namespace RevolvAPI.Data
             modelBuilder.Entity<WawiSalesInvoiceLineItem>(e =>
             {
                 e.ToView("SalesInvoiceLineItems", schema: "DAL");
+                e.HasKey(x => x.Id);
+            });
+
+            modelBuilder.Entity<WawiSalesInvoice>(e =>
+            {
+                e.ToView("SalesInvoices", schema: "DAL");
                 e.HasKey(x => x.Id);
             });
         }

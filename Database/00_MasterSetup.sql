@@ -261,6 +261,17 @@ BEGIN
 END
 GO
 
+-- Erfolgsmessung-Feature: wann wurde dieses Quality-Issue als "Erledigt" markiert. Siehe auch
+-- Database/Scripts/revolv.AiRecommendationItems_AddAcceptedTimestamps.sql.
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.QualityIssues') AND name = 'ResolvedAt'
+)
+BEGIN
+    ALTER TABLE dbo.QualityIssues ADD ResolvedAt DATETIME2 NULL;
+END
+GO
+
 -- -----------------------------------------------------------------------------
 -- 5) revolv.DescriptionProposals (FK -> revolv.AiRecommendations)
 -- -----------------------------------------------------------------------------
@@ -271,7 +282,8 @@ BEGIN
         [AiRecommendationId] INT NOT NULL,
         [CurrentText] NVARCHAR(MAX) NULL,
         [ProposedText] NVARCHAR(MAX) NULL,
-        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Ausstehend'
+        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Ausstehend',
+        [PushedToWawiAt] DATETIME2 NULL
     );
 END
 GO
@@ -283,6 +295,16 @@ BEGIN
     ALTER TABLE [revolv].[DescriptionProposals]
     ADD CONSTRAINT FK_DescriptionProposals_AiRecommendations
     FOREIGN KEY ([AiRecommendationId]) REFERENCES [revolv].[AiRecommendations]([Id]);
+END
+GO
+
+-- Erfolgsmessung-Feature: wann wurde dieser Vorschlag "Akzeptiert".
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'revolv.DescriptionProposals') AND name = 'AcceptedAt'
+)
+BEGIN
+    ALTER TABLE revolv.DescriptionProposals ADD AcceptedAt DATETIME2 NULL;
 END
 GO
 
@@ -300,6 +322,16 @@ BEGIN
         CONSTRAINT FK_ActionRecommendations_AiRecommendations
             FOREIGN KEY (AiRecommendationId) REFERENCES revolv.AiRecommendations(Id)
     );
+END
+GO
+
+-- Erfolgsmessung-Feature: wann wurde diese Aktion abgeschlossen (IsCompleted = 1).
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'revolv.ActionRecommendations') AND name = 'CompletedAt'
+)
+BEGIN
+    ALTER TABLE revolv.ActionRecommendations ADD CompletedAt DATETIME2 NULL;
 END
 GO
 

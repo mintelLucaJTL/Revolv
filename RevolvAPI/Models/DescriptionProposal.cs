@@ -13,6 +13,9 @@ namespace RevolvAPI.Models
         public string? ProposedText { get; set; }
         public string Status { get; set; } = AiRecommendationStatuses.DescriptionProposalPending;
 
+        // Wann Status zuletzt "Akzeptiert" wurde (Erfolgsmessung-Feature). NULL = nie akzeptiert.
+        public DateTime? AcceptedAt { get; set; }
+
         // Navigation properties
         public AiRecommendation AiRecommendation { get; set; } = null!;
     }

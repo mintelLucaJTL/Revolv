@@ -16,5 +16,9 @@ namespace RevolvAPI.Services
         Task<List<MonthlyReturnCost>> GetMonthlyReturnCostsAsync(int months);
 
         Task<Dictionary<int, ArticleDisplayInfo>> GetArticleDisplayInfoAsync(IEnumerable<int> artikelIds);
+
+        // Retourenquote-Trend pro Artikel für die letzten `months` Monate, nur für Artikel mit
+        // mindestens einem angenommenen/erledigten KI-Vorschlag (Erfolgsmessung-Feature).
+        Task<List<ArticleSuccessTrend>> GetArticleSuccessTrendsAsync(int companyId, int months = 8);
     }
 }
