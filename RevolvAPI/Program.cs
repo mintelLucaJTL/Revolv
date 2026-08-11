@@ -119,44 +119,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Diagnose-Endpunkte: nur in Development registriert (existieren in Production gar nicht,
-// dadurch auch kein Exception-/Provider-Detail-Leak nach außen) und explizit anonym erreichbar,
-// da sie sonst durch die neue Auth-Fallback-Policy blockiert wären.
-if (app.Environment.IsDevelopment())
-{
-    app.MapGet("/test-db", async (AppDbContext db) =>
-    {
-        try
-        {
-            bool isConnected = await db.Database.CanConnectAsync();
-
-            if (isConnected)
-                return Results.Ok("Successfully connected to DB! C:");
-            else
-                return Results.Problem("Couldnt connecto to DB! :C");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem($"Error while connecting: {ex.Message}");
-        }
-    }).AllowAnonymous();
-
-    app.MapGet("/test-ai", async (IAiService ai) =>
-    {
-        try
-        {
-            var reply = await ai.GenerateAnalysisAsync("Hallo KI");
-            Console.WriteLine($"[AI Test] Antwort: {reply}");
-            return Results.Ok(reply);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[AI Test] Fehler: {ex.Message}");
-            return Results.Problem(ex.Message);
-        }
-    }).AllowAnonymous();
-}
-
 DbSeeder.Seed(app.Services.CreateScope().ServiceProvider.GetRequiredService<AppDbContext>());
 
 app.Run();

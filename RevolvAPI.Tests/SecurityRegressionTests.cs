@@ -19,7 +19,7 @@ using RevolvAPI.Services;
 namespace RevolvAPI.Tests;
 
 /// <summary>
-/// Host factory for #244 security ACs: JWT + FallbackPolicy, CORS, Dev-only diagnostics.
+/// Host factory for #244 security ACs: JWT + FallbackPolicy, CORS.
 /// Uses InMemory EF and a stub analytics service so auth/CORS checks do not need SQL Server.
 /// </summary>
 public sealed class SecurityWebApplicationFactory : WebApplicationFactory<Program>
@@ -195,22 +195,15 @@ public class SecurityRegressionTests : IClassFixture<SecurityWebApplicationFacto
     }
 
     [Fact]
-    public async Task TestDb_is_available_in_Development()
+    public async Task TestDb_and_TestAi_are_absent_in_Development()
     {
         var client = _factory.CreateClient();
-        var response = await client.GetAsync("/test-db");
-        // Endpoint is registered; connection may fail, but must not be missing (404).
-        Assert.NotEqual(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
+        // Authenticated: proves routes are unregistered (404), not merely blocked by FallbackPolicy (401).
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", _factory.CreateAccessToken());
 
-    [Fact]
-    public async Task TestAi_is_available_in_Development()
-    {
-        var client = _factory.CreateClient();
-        var response = await client.GetAsync("/test-ai");
-        Assert.NotEqual(HttpStatusCode.NotFound, response.StatusCode);
-        Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/test-db")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/test-ai")).StatusCode);
     }
 
     [Fact]
