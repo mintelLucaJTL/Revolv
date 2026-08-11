@@ -33,11 +33,9 @@ namespace RevolvAPI.Services
             var returnRate = metrics.FirstOrDefault(m => m.ArtikelId == articleId)?.ReturnRatePercent;
 
             // Nur die eigenen bisherigen Analysen als Kontext nutzen - sonst würden Rückgabegründe
-            // oder Beschreibungstexte einer anderen Firma in die eigene KI-Anfrage einfließen.
-            // DescriptionProposals müssen geladen sein, sonst bleibt currentDescription leer (#242).
+            // einer anderen Firma in die eigene KI-Anfrage einfließen.
             var existingRecommendations = await _ctx.AiRecommendations
                 .Include(r => r.QualityIssues)
-                .Include(r => r.DescriptionProposals)
                 .Where(r => r.ArtikelId == articleId && r.CompanyId == companyId)
                 .OrderByDescending(r => r.Id)
                 .ToListAsync();
@@ -58,16 +56,19 @@ namespace RevolvAPI.Services
                 returnReasons.Add(mostFrequentReason);
             }
 
-            // Neueste Recommendation zuerst (bereits OrderByDescending Id) — CurrentText der
-            // aktiven Analyse an die KI übergeben, nicht eine ältere/leere Zeile.
-            var currentDescription = existingRecommendations
-                .SelectMany(r => r.DescriptionProposals)
-                .Select(d => d.CurrentText)
-                .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t))
-                ?? existingRecommendations
-                    .SelectMany(r => r.DescriptionProposals)
-                    .Select(d => d.ProposedText)
-                    .FirstOrDefault(t => !string.IsNullOrWhiteSpace(t));
+            // Echte WAWI-Beschreibung als Grundlage für die KI - vorher wurde hier nur eine
+            // frühere DescriptionProposal.CurrentText/ProposedText aus unserer eigenen DB
+            // wiederverwendet, die bei der allerersten Analyse eines Artikels immer leer ist.
+            // Die KI bekam dadurch nie den echten WAWI-Text zu sehen, selbst wenn eine
+            // ausführliche Beschreibung existierte - Ergebnis waren inhaltsleere Vorschläge
+            // ("Details zu Material, Passform ..." statt echtem Fließtext) und "Aktuelle
+            // Produktbeschreibung" (das Platzhalter-Beispiel aus dem Prompt) als currentText.
+            // Bevorzugt die Zeile mit dem längsten Text (meist die Haupt-/Standardsprache).
+            var currentDescription = await _ctx.WawiItemDescriptions
+                .Where(d => d.ArtikelId == articleId && d.ShopId == 0 && d.Beschreibung != null && d.Beschreibung != "")
+                .OrderByDescending(d => d.Beschreibung!.Length)
+                .Select(d => d.Beschreibung)
+                .FirstOrDefaultAsync();
 
             var aiResult = await _aiService.AnalyzeArticleAsync(
                 articleInfo.Name ?? "Unbekannter Artikel",
@@ -94,7 +95,11 @@ namespace RevolvAPI.Services
             {
                 recommendation.DescriptionProposals.Add(new DescriptionProposal
                 {
-                    CurrentText = proposal.CurrentText ?? currentDescription,
+                    // Immer die echte WAWI-Beschreibung, nie das KI-Echo: der an die KI
+                    // gesendete Text ist auf 500 Zeichen gekürzt (SanitizeUntrusted) und bei
+                    // fehlendem Kontext hat die KI schon den Platzhalter aus dem Prompt-Beispiel
+                    // ("Aktuelle Produktbeschreibung") zurückgegeben statt echten Text.
+                    CurrentText = currentDescription,
                     ProposedText = proposal.ProposedText,
                     Status = AiRecommendationStatuses.DescriptionProposalPending,
                 });
