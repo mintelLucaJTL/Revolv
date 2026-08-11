@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, Button, Text, Box } from "@jtl-software/platform-ui-react";
 import { CheckCircle2, FileText, ListChecks, ShieldAlert, Sparkles } from "lucide-react";
 import QualityWarningCard from "./QualityWarningCard";
-import PushDescriptionToWawiModal from "./PushDescriptionToWawiModal";
 import {
   PROPOSAL_STATUS_ACCEPTED,
   PROPOSAL_STATUS_PENDING,
@@ -145,8 +144,6 @@ export default function ArticleReviewSections({ review, isAnalyzing, onStartAnal
     pushDescriptionToWawi,
   } = review;
 
-  const [isPushModalOpen, setIsPushModalOpen] = useState(false);
-
   // Land on whichever tab still needs attention, so the first click isn't wasted on "all clear".
   const defaultTab: TabKey =
     sectionStatus.quality.tone === "warn"
@@ -250,9 +247,18 @@ export default function ArticleReviewSections({ review, isAnalyzing, onStartAnal
                       <p className="text-xs text-red-600 dark:text-red-400">{pushToWawiError}</p>
                     )}
                     <Button
-                      label="In WAWI übernehmen"
+                      label={isPushingToWawi ? "Übernimmt…" : "In WAWI übernehmen"}
                       variant="highlight"
-                      onClick={() => setIsPushModalOpen(true)}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            "Diesen Beschreibungstext jetzt live in WAWI übernehmen? " +
+                              "Das überschreibt die aktuelle Artikelbeschreibung sofort.",
+                          )
+                        ) {
+                          void pushDescriptionToWawi();
+                        }
+                      }}
                       disabled={isPushingToWawi}
                     />
                   </>
@@ -442,17 +448,6 @@ export default function ArticleReviewSections({ review, isAnalyzing, onStartAnal
           </div>
         )}
       </div>
-
-      <PushDescriptionToWawiModal
-        isOpen={isPushModalOpen}
-        onClose={() => setIsPushModalOpen(false)}
-        isSubmitting={isPushingToWawi}
-        error={pushToWawiError}
-        onConfirm={async () => {
-          const succeeded = await pushDescriptionToWawi();
-          if (succeeded) setIsPushModalOpen(false);
-        }}
-      />
     </>
   );
 }
