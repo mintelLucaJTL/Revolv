@@ -5,6 +5,7 @@ using Microsoft.OpenApi;
 using RevolvAPI.Data;
 using RevolvAPI.Data.Seeder;
 using RevolvAPI.Services;
+using RevolvAPI.Swagger;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +31,9 @@ builder.Services.AddSwaggerGen(c =>
             new List<string>()
         }
     });
+
+    // Document-level Bearer applies to all ops; this filter clears it for [AllowAnonymous].
+    c.OperationFilter<AllowAnonymousOperationFilter>();
 });
 
 var connectionString = builder.Configuration.GetConnectionString("WawiConnection");
@@ -156,3 +160,6 @@ if (app.Environment.IsDevelopment())
 DbSeeder.Seed(app.Services.CreateScope().ServiceProvider.GetRequiredService<AppDbContext>());
 
 app.Run();
+
+// Exposes the entry assembly to WebApplicationFactory for integration tests.
+public partial class Program { }
