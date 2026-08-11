@@ -16,6 +16,11 @@ namespace RevolvAPI.Models
         // Wann Status zuletzt "Akzeptiert" wurde (Erfolgsmessung-Feature). NULL = nie akzeptiert.
         public DateTime? AcceptedAt { get; set; }
 
+        // Wann dieser Vorschlag in die live WAWI-Artikelbeschreibung übernommen wurde (siehe
+        // WawiDescriptionPushService). NULL = noch nicht übernommen; dient als Idempotenz-
+        // Schlüssel, damit ein Klick auf "In WAWI übernehmen" nie zweimal schreibt.
+        public DateTime? PushedToWawiAt { get; set; }
+
         // Navigation properties
         public AiRecommendation AiRecommendation { get; set; } = null!;
     }

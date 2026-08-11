@@ -298,6 +298,17 @@ BEGIN
 END
 GO
 
+-- Wawi-Push (#305): wann der Beschreibungsvorschlag live uebernommen wurde.
+-- Bestehende DBs haben die Tabelle oft schon ohne diese Spalte (CREATE oben greift dann nicht).
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'revolv.DescriptionProposals') AND name = 'PushedToWawiAt'
+)
+BEGIN
+    ALTER TABLE revolv.DescriptionProposals ADD PushedToWawiAt DATETIME2 NULL;
+END
+GO
+
 -- Erfolgsmessung-Feature: wann wurde dieser Vorschlag "Akzeptiert".
 IF NOT EXISTS (
     SELECT * FROM sys.columns

@@ -24,11 +24,11 @@ public static class DatabaseSetup
         // GO ist ein SSMS-/sqlcmd-Batch-Trenner, kein gültiges T-SQL - das Skript muss dafür
         // manuell in Batches zerlegt werden, bevor es per SqlCommand ausgeführt wird.
         var batches = Regex.Split(script, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase)
-            .Select(b => b.Trim())
+            // USE-Statement entfernen (nicht nur am Batch-Anfang, das Skript beginnt mit
+            // Kommentarzeilen davor): die Ziel-DB kommt schon aus der Connection String, nicht
+            // aus dem im Skript hartcodierten Namen (z. B. wenn die WAWI-DB anders heißt).
+            .Select(b => Regex.Replace(b, @"^\s*USE\s+.*;?\s*$", "", RegexOptions.Multiline | RegexOptions.IgnoreCase).Trim())
             .Where(b => b.Length > 0)
-            // USE-Statement überspringen: die Ziel-DB kommt schon aus der Connection String,
-            // nicht aus dem im Skript hartcodierten Namen (z. B. wenn die WAWI-DB anders heißt).
-            .Where(b => !b.StartsWith("USE ", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         try
