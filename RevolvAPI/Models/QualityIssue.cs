@@ -23,6 +23,9 @@ namespace RevolvAPI.Models
         // same issue (e.g. on redelivery after a restart).
         public DateTime? AutoAnalyzedAt { get; set; }
 
+        // Wann Status zuletzt "Erledigt" wurde (Erfolgsmessung-Feature). NULL = nie erledigt.
+        public DateTime? ResolvedAt { get; set; }
+
         // Navigation property
         public AiRecommendation AiRecommendation { get; set; } = null!;
     }

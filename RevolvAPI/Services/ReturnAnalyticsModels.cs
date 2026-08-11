@@ -43,4 +43,20 @@ namespace RevolvAPI.Services
         string Sku,
         string? Name,
         string? Category);
+
+    // Ein Monat der Retourenquote-Zeitreihe für Erfolgsmessung.
+    public record MonthlyReturnRatePoint(
+        DateOnly Month,
+        decimal ReturnRatePercent);
+
+    // Retourenquote-Trend eines Artikels rund um den frühesten angenommenen/erledigten
+    // KI-Vorschlag (Erfolgsmessung-Feature). Nur Artikel mit mindestens einer solchen Änderung
+    // tauchen hier auf - sonst gäbe es keine sinnvolle vorher/nachher-Grenze.
+    public record ArticleSuccessTrend(
+        int ArtikelId,
+        string Sku,
+        string? Name,
+        DateOnly ChangeMonth,
+        string ChangeLabel,
+        List<MonthlyReturnRatePoint> Points);
 }

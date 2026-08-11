@@ -16,6 +16,9 @@ namespace RevolvAPI.Models
         public string? Priority { get; set; } // eg. Hoch, Mittel, Niedrig (von der KI vergeben)
         public bool IsCompleted { get; set; } = false;
 
+        // Wann IsCompleted zuletzt auf true gesetzt wurde (Erfolgsmessung-Feature). NULL = nie abgeschlossen.
+        public DateTime? CompletedAt { get; set; }
+
         // Navigation property
         public AiRecommendation? AiRecommendation { get; set; }
     }

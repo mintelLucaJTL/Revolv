@@ -261,6 +261,17 @@ BEGIN
 END
 GO
 
+-- Erfolgsmessung-Feature: wann wurde dieses Quality-Issue als "Erledigt" markiert. Siehe auch
+-- Database/Scripts/revolv.AiRecommendationItems_AddAcceptedTimestamps.sql.
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'dbo.QualityIssues') AND name = 'ResolvedAt'
+)
+BEGIN
+    ALTER TABLE dbo.QualityIssues ADD ResolvedAt DATETIME2 NULL;
+END
+GO
+
 -- -----------------------------------------------------------------------------
 -- 5) revolv.DescriptionProposals (FK -> revolv.AiRecommendations)
 -- -----------------------------------------------------------------------------
@@ -287,53 +298,13 @@ BEGIN
 END
 GO
 
--- Feature: KI-Beschreibung per Knopfdruck in WAWI uebernehmen. Siehe auch
--- Database/Scripts/revolv.DescriptionProposals_AddPushedToWawiAt.sql.
+-- Erfolgsmessung-Feature: wann wurde dieser Vorschlag "Akzeptiert".
 IF NOT EXISTS (
     SELECT * FROM sys.columns
-    WHERE object_id = OBJECT_ID(N'revolv.DescriptionProposals') AND name = 'PushedToWawiAt'
+    WHERE object_id = OBJECT_ID(N'revolv.DescriptionProposals') AND name = 'AcceptedAt'
 )
 BEGIN
-    ALTER TABLE revolv.DescriptionProposals ADD PushedToWawiAt DATETIME2 NULL;
-END
-GO
-
--- Audit-Log fuer jeden Versuch, einen Vorschlag in die live WAWI-DB zu uebernehmen. Siehe auch
--- Database/Scripts/revolv.DescriptionPushLog.sql.
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.DescriptionPushLog') AND type IN (N'U'))
-BEGIN
-    CREATE TABLE [revolv].[DescriptionPushLog] (
-        [Id] INT IDENTITY(1,1) PRIMARY KEY,
-        [DescriptionProposalId] INT NOT NULL,
-        [ArtikelId] INT NOT NULL,
-        [PushedAt] DATETIME2 NOT NULL,
-        [PushedByUserId] INT NOT NULL,
-        [PreviousTextSnapshot] NVARCHAR(MAX) NULL,
-        [NewText] NVARCHAR(MAX) NOT NULL,
-        [RowsAffected] INT NOT NULL,
-        [Status] NVARCHAR(20) NOT NULL,
-        [ErrorMessage] NVARCHAR(2000) NULL
-    );
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_DescriptionPushLog_DescriptionProposals')
-BEGIN
-    ALTER TABLE [revolv].[DescriptionPushLog]
-    ADD CONSTRAINT FK_DescriptionPushLog_DescriptionProposals
-    FOREIGN KEY ([DescriptionProposalId]) REFERENCES [revolv].[DescriptionProposals]([Id]);
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DescriptionPushLog_DescriptionProposalId')
-BEGIN
-    CREATE INDEX IX_DescriptionPushLog_DescriptionProposalId ON [revolv].[DescriptionPushLog] ([DescriptionProposalId]);
-END
-GO
-
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DescriptionPushLog_ArtikelId')
-BEGIN
-    CREATE INDEX IX_DescriptionPushLog_ArtikelId ON [revolv].[DescriptionPushLog] ([ArtikelId]);
+    ALTER TABLE revolv.DescriptionProposals ADD AcceptedAt DATETIME2 NULL;
 END
 GO
 
@@ -351,6 +322,16 @@ BEGIN
         CONSTRAINT FK_ActionRecommendations_AiRecommendations
             FOREIGN KEY (AiRecommendationId) REFERENCES revolv.AiRecommendations(Id)
     );
+END
+GO
+
+-- Erfolgsmessung-Feature: wann wurde diese Aktion abgeschlossen (IsCompleted = 1).
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'revolv.ActionRecommendations') AND name = 'CompletedAt'
+)
+BEGIN
+    ALTER TABLE revolv.ActionRecommendations ADD CompletedAt DATETIME2 NULL;
 END
 GO
 
