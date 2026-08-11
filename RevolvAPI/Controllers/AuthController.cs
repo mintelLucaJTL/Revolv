@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
@@ -7,6 +8,9 @@ using RevolvAPI.Services;
 
 namespace RevolvAPI.Controllers
 {
+    // Alle Endpunkte hier sind bewusst einzeln mit [AllowAnonymous] markiert (statt der Klasse),
+    // damit ein neuer Endpunkt in diesem Controller per Default über die globale
+    // Auth-Fallback-Policy geschützt ist und man Anonym-Zugriff explizit anfordern muss.
     [ApiController]
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
@@ -37,6 +41,7 @@ namespace RevolvAPI.Controllers
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest r)
         {
             // Include Role so TokenService can put the real role name in the JWT.
@@ -59,6 +64,7 @@ namespace RevolvAPI.Controllers
         // Rotates the refresh cookie and issues a new access token. No [Authorize]: the access
         // token may already be expired when this is called.
         [HttpPost("refresh")]
+        [AllowAnonymous]
         public async Task<IActionResult> Refresh()
         {
             if (!Request.Cookies.TryGetValue(RefreshCookieName, out var rawToken) || string.IsNullOrEmpty(rawToken))
@@ -83,6 +89,7 @@ namespace RevolvAPI.Controllers
 
         // Revokes the current refresh token so it can't be used again.
         [HttpPost("logout")]
+        [AllowAnonymous]
         public async Task<IActionResult> Logout()
         {
             if (Request.Cookies.TryGetValue(RefreshCookieName, out var rawToken) && !string.IsNullOrEmpty(rawToken))
@@ -115,6 +122,7 @@ namespace RevolvAPI.Controllers
         };
 
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterRequest r)
         {
             if (await _ctx.Users.AnyAsync(u => u.Email == r.Email))
@@ -164,10 +172,18 @@ namespace RevolvAPI.Controllers
             return Ok();
         }
 
-        // One-time helper: re-hash legacy plaintext passwords still stored in the DB.
+        // One-time helper: re-hash legacy plaintext passwords still stored in the DB. Admin-only
+        // and Development-only - this rewrites every user's password hash in the company, so it
+        // has no business being reachable (anonymously or otherwise) in production.
         [HttpPost("migrate-passwords")]
+        [Authorize(Roles = RoleNames.Admin)]
         public async Task<IActionResult> MigratePasswords()
         {
+            if (!_env.IsDevelopment())
+            {
+                return NotFound();
+            }
+
             var users = await _ctx.Users
                 .Where(u => u.PasswordHash != null && u.PasswordHash != "" && !u.PasswordHash.StartsWith("$2"))
                 .ToListAsync();
@@ -182,6 +198,7 @@ namespace RevolvAPI.Controllers
         }
 
         [HttpPost("forgot-password")]
+        [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest r)
         {
             var user = await _ctx.Users.FirstOrDefaultAsync(u => u.Email == r.Email);
@@ -202,6 +219,7 @@ namespace RevolvAPI.Controllers
         }
 
         [HttpPost("reset-password")]
+        [AllowAnonymous]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest r)
         {
             var user = await _ctx.Users.FirstOrDefaultAsync(u => u.PasswordResetToken == r.Token);
