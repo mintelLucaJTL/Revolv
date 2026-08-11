@@ -73,11 +73,13 @@ namespace RevolvAPI.Services
             // Wörtliche Kundenkommentare zur Retoure (nicht jeder Kunde schreibt einen - dann
             // bleibt die Liste einfach leer und AiService fällt auf die reinen return_reasons
             // zurück). Neueste zuerst, da die aussagekräftigsten für die aktuelle Analyse.
+            // CompanyId on WawiReturn scopes multi-tenant shared WAWI DBs (same as AiRecommendations).
             var customerComments = await (
                 from li in _ctx.WawiReturnLineItems
                     .Where(x => x.ItemId == articleId && x.ReturnId != null
-                        && x.ReasonComment != null && x.ReasonComment != "")
+                        && !string.IsNullOrWhiteSpace(x.ReasonComment))
                 join r in _ctx.WawiReturns on li.ReturnId!.Value equals r.Id
+                where r.CompanyId == companyId
                 orderby r.ReturnDate descending
                 select li.ReasonComment!)
                 .Take(15)

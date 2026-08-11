@@ -223,6 +223,8 @@ namespace RevolvAPI.Services
 
         /// <summary>
         /// Truncates and strips control characters from fields that may contain user- or shop-controlled text.
+        /// Also neutralizes angle brackets so values cannot break out of XML-like prompt tags
+        /// (e.g. close <c>&lt;/customer_comments&gt;</c> and inject sibling markup).
         /// </summary>
         internal static string? SanitizeUntrusted(string? value)
         {
@@ -234,7 +236,19 @@ namespace RevolvAPI.Services
             var builder = new StringBuilder(value.Length);
             foreach (var ch in value)
             {
-                builder.Append(char.IsControl(ch) ? ' ' : ch);
+                if (char.IsControl(ch))
+                {
+                    builder.Append(' ');
+                    continue;
+                }
+
+                // Fullwidth substitutes keep intent readable for the model but cannot close prompt tags.
+                builder.Append(ch switch
+                {
+                    '<' => '＜',
+                    '>' => '＞',
+                    _ => ch,
+                });
             }
 
             var cleaned = Regex.Replace(builder.ToString(), @"\s+", " ").Trim();
