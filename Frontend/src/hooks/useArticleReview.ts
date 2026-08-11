@@ -222,8 +222,11 @@ export function useArticleReview(
     }
   };
 
-  const updateProposalStatus = async (status: string, action: "accept" | "reject" | "undo") => {
-    if (descriptionProposalId === undefined) return;
+  const updateProposalStatus = async (
+    status: string,
+    action: "accept" | "reject" | "undo",
+  ): Promise<boolean> => {
+    if (descriptionProposalId === undefined) return false;
 
     setSavingProposalAction(action);
     setProposalActionError(null);
@@ -241,9 +244,11 @@ export function useArticleReview(
 
       setProposalStatus(status);
       onArticleUpdated?.();
+      return true;
     } catch (err) {
       console.error("Failed to update description proposal status:", err);
       setProposalActionError("Die Aktion konnte nicht gespeichert werden. Bitte erneut versuchen.");
+      return false;
     } finally {
       setSavingProposalAction(null);
     }
@@ -291,6 +296,19 @@ export function useArticleReview(
     } finally {
       setIsPushingToWawi(false);
     }
+  };
+
+  // Ein Klick, ein Ergebnis: akzeptiert den Vorschlag (falls noch nicht geschehen - z. B. nach
+  // einem vorherigen fehlgeschlagenen Push) und übernimmt ihn direkt live in WAWI. Vorher zwei
+  // getrennte Buttons ("Übernehmen" -> "In WAWI übernehmen"), was in der Praxis dazu geführt hat,
+  // dass Nutzer nach dem ersten Klick die WAWI-Bestätigung vermisst haben.
+  const acceptAndPushToWawi = async (): Promise<boolean> => {
+    if (proposalStatus !== PROPOSAL_STATUS_ACCEPTED) {
+      const accepted = await updateProposalStatus(PROPOSAL_STATUS_ACCEPTED, "accept");
+      if (!accepted) return false;
+    }
+
+    return pushDescriptionToWawi();
   };
 
   const completedActionCount = actionRecommendations.filter((rec) =>
@@ -376,6 +394,7 @@ export function useArticleReview(
     saveProposedText,
     updateProposalStatus,
     pushDescriptionToWawi,
+    acceptAndPushToWawi,
   };
 }
 
