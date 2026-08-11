@@ -161,13 +161,20 @@ namespace RevolvAPI.Services
                 .ToList();
         }
 
+        // Kalendermonat-Fenster endend im aktuellen Monat, `months` Monate lang (inkl. aktuellem
+        // Monat) - gemeinsam von GetMonthlyReturnCostsAsync und GetArticleSuccessTrendsAsync
+        // genutzt, damit beide dieselbe Definition von "die letzten n Monate" haben.
+        private static DateTimeOffset GetTrailingRangeStart(int months)
+        {
+            var now = DateTimeOffset.UtcNow;
+            var currentMonthStart = new DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero);
+            return currentMonthStart.AddMonths(-(months - 1));
+        }
+
         public async Task<List<MonthlyReturnCost>> GetMonthlyReturnCostsAsync(int months)
         {
             months = Math.Clamp(months, 1, 24);
-
-            var now = DateTimeOffset.UtcNow;
-            var currentMonthStart = new DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero);
-            var rangeStart = currentMonthStart.AddMonths(-(months - 1));
+            var rangeStart = GetTrailingRangeStart(months);
 
             var returnRows = await (
                 from li in _ctx.WawiReturnLineItems.AsNoTracking().Where(x => x.ItemId != null && x.ReturnId != null)
@@ -263,6 +270,112 @@ namespace RevolvAPI.Services
                 i.Sku ?? string.Empty,
                 nameByArticle.GetValueOrDefault(i.Id),
                 i.ProductGroupId.HasValue ? categoryById.GetValueOrDefault(i.ProductGroupId.Value) : null));
+        }
+
+        public async Task<List<ArticleSuccessTrend>> GetArticleSuccessTrendsAsync(int companyId, int months = 8)
+        {
+            months = Math.Clamp(months, 3, 24);
+
+            var aiRows = await _ctx.AiRecommendations
+                .AsNoTracking()
+                .Include(r => r.QualityIssues)
+                .Include(r => r.DescriptionProposals)
+                .Include(r => r.ActionRecommendations)
+                .Where(r => r.CompanyId == companyId)
+                .ToListAsync();
+
+            // Frühester angenommener/erledigter Zeitpunkt je Artikel über ALLE (auch ältere)
+            // Analysen - das markiert, wann zum ersten Mal wirklich etwas am Artikel geändert
+            // wurde, unabhängig davon, ob später noch eine neuere Analyse angelegt wurde.
+            var changeByArticle = new Dictionary<int, (DateTime At, string Label)>();
+
+            void Consider(int articleId, DateTime? at, string label)
+            {
+                if (at == null) return;
+                if (!changeByArticle.TryGetValue(articleId, out var existing) || at.Value < existing.At)
+                {
+                    changeByArticle[articleId] = (at.Value, label);
+                }
+            }
+
+            foreach (var rec in aiRows)
+            {
+                foreach (var p in rec.DescriptionProposals)
+                    Consider(rec.ArtikelId, p.AcceptedAt, "Beschreibung angepasst");
+
+                foreach (var q in rec.QualityIssues)
+                    Consider(rec.ArtikelId, q.ResolvedAt, q.IssueText);
+
+                foreach (var a in rec.ActionRecommendations)
+                    Consider(rec.ArtikelId, a.CompletedAt, a.ActionText);
+            }
+
+            if (changeByArticle.Count == 0) return new List<ArticleSuccessTrend>();
+
+            var articleIds = changeByArticle.Keys.ToList();
+
+            // Fixes Fenster endend im aktuellen Monat (wie GetMonthlyReturnCostsAsync) - ein
+            // Artikel, dessen Änderung älter als `months` Monate zurückliegt, zeigt dann nur noch
+            // den "nachher"-Teil ohne "vorher"-Vergleich (Frontend zeigt dafür "–" statt eines
+            // irreführenden 0%-Werts). Akzeptierter Trade-off fürs erste Release statt eines pro-
+            // Artikel unterschiedlich breiten Fensters.
+            var rangeStart = GetTrailingRangeStart(months);
+
+            var returnRows = await (
+                from li in _ctx.WawiReturnLineItems.AsNoTracking()
+                    .Where(x => x.ItemId != null && x.ReturnId != null && articleIds.Contains(x.ItemId!.Value))
+                join r in _ctx.WawiReturns.AsNoTracking() on li.ReturnId!.Value equals r.Id
+                where r.ReturnDate >= rangeStart
+                select new { ItemId = li.ItemId!.Value, li.Quantity, r.ReturnDate })
+                .ToListAsync();
+
+            var soldRows = await (
+                from si in _ctx.WawiSalesInvoiceLineItems.AsNoTracking()
+                    .Where(x => x.ItemId != null && articleIds.Contains(x.ItemId!.Value))
+                join inv in _ctx.WawiSalesInvoices.AsNoTracking() on si.SalesInvoiceId equals inv.Id
+                where inv.ValueDate >= rangeStart
+                select new { ItemId = si.ItemId!.Value, si.Quantity, inv.ValueDate })
+                .ToListAsync();
+
+            var returnedByArticleMonth = returnRows
+                .GroupBy(x => (x.ItemId, Month: new DateOnly(x.ReturnDate.Year, x.ReturnDate.Month, 1)))
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+
+            var soldByArticleMonth = soldRows
+                .GroupBy(x => (x.ItemId, Month: new DateOnly(x.ValueDate.Year, x.ValueDate.Month, 1)))
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+
+            var displayInfo = await GetArticleDisplayInfoAsync(articleIds);
+
+            var result = new List<ArticleSuccessTrend>();
+            foreach (var articleId in articleIds)
+            {
+                var info = displayInfo.GetValueOrDefault(articleId);
+                // Artikel ohne Katalogdaten (z. B. inzwischen gelöscht/deaktiviert) überspringen -
+                // ohne Name/Sku kein sinnvoller Chart.
+                if (info == null) continue;
+
+                var points = new List<MonthlyReturnRatePoint>(months);
+                for (var i = 0; i < months; i++)
+                {
+                    var month = DateOnly.FromDateTime(rangeStart.AddMonths(i).Date);
+                    var sold = soldByArticleMonth.GetValueOrDefault((articleId, month));
+                    var returned = returnedByArticleMonth.GetValueOrDefault((articleId, month));
+                    var rate = sold > 0 ? Math.Round(returned / sold * 100m, 2) : 0m;
+                    points.Add(new MonthlyReturnRatePoint(month, rate));
+                }
+
+                var (changeAt, changeLabel) = changeByArticle[articleId];
+                result.Add(new ArticleSuccessTrend(
+                    articleId,
+                    info.Sku,
+                    info.Name,
+                    new DateOnly(changeAt.Year, changeAt.Month, 1),
+                    changeLabel,
+                    points));
+            }
+
+            return result.OrderByDescending(r => r.ChangeMonth).ToList();
         }
 
         // First translation by LanguageId (fine for single-language tenants).

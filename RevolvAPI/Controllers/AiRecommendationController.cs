@@ -48,6 +48,12 @@ namespace RevolvAPI.Controllers
             if (proposal == null || proposal.AiRecommendation.CompanyId != companyId) return NotFound();
 
             proposal.Status = dto.Status;
+            // Erfolgsmessung-Feature: AcceptedAt markiert, wann der Vorschlag zuletzt akzeptiert
+            // wurde - beim Zurücknehmen (Status wechselt weg von "Akzeptiert") wieder null, sonst
+            // würde ein abgelehnter/zurückgesetzter Vorschlag fälschlich als "Änderung" auftauchen.
+            proposal.AcceptedAt = dto.Status == AiRecommendationStatuses.DescriptionProposalAccepted
+                ? proposal.AcceptedAt ?? DateTime.UtcNow
+                : null;
 
             var recommendation = await _ctx.AiRecommendations
                 .Include(r => r.QualityIssues)
@@ -96,6 +102,7 @@ namespace RevolvAPI.Controllers
             if (action == null || action.AiRecommendation?.CompanyId != companyId) return NotFound();
 
             action.IsCompleted = dto.IsCompleted;
+            action.CompletedAt = dto.IsCompleted ? action.CompletedAt ?? DateTime.UtcNow : null;
 
             var recommendation = await _ctx.AiRecommendations
                 .Include(r => r.QualityIssues)
@@ -132,6 +139,9 @@ namespace RevolvAPI.Controllers
             if (issue == null || issue.AiRecommendation.CompanyId != companyId) return NotFound();
 
             issue.Status = dto.Status;
+            issue.ResolvedAt = dto.Status == AiRecommendationStatuses.QualityIssueResolved
+                ? issue.ResolvedAt ?? DateTime.UtcNow
+                : null;
 
             var recommendation = await _ctx.AiRecommendations
                 .Include(r => r.QualityIssues)

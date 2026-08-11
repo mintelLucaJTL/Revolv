@@ -37,6 +37,7 @@ namespace RevolvAPI.Data
         public DbSet<WawiReturnReasonTranslation> WawiReturnReasonTranslations { get; set; }
         public DbSet<WawiReturnStatus> WawiReturnStatuses { get; set; }
         public DbSet<WawiSalesInvoiceLineItem> WawiSalesInvoiceLineItems { get; set; }
+        public DbSet<WawiSalesInvoice> WawiSalesInvoices { get; set; }
 
         // Ticket #252: sobald neue QualityIssues erfolgreich gespeichert wurden, für jedes davon
         // IAutoAnalysisQueue.QueueQualityIssue aufrufen - unabhängig davon, welcher Code-Pfad
@@ -275,6 +276,12 @@ namespace RevolvAPI.Data
             modelBuilder.Entity<WawiSalesInvoiceLineItem>(e =>
             {
                 e.ToView("SalesInvoiceLineItems", schema: "DAL");
+                e.HasKey(x => x.Id);
+            });
+
+            modelBuilder.Entity<WawiSalesInvoice>(e =>
+            {
+                e.ToView("SalesInvoices", schema: "DAL");
                 e.HasKey(x => x.Id);
             });
         }
