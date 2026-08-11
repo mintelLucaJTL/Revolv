@@ -20,7 +20,7 @@ export default function TopNavigationBar() {
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [needsName, setNeedsName] = useState(false);
-  const { logout: authLogout } = useAuth();
+  const { logout: authLogout, isAdmin } = useAuth();
 
   useEffect(() => {
     let isMounted = true;
@@ -109,12 +109,16 @@ export default function TopNavigationBar() {
               icon: <Edit size={16} />,
               onClick: () => navigate("/profile"),
             },
-            {
-              type: DropdownItem.Default,
-              label: "Settings",
-              icon: <Settings size={16} />,
-              onClick: () => navigate("/settings"),
-            },
+            ...(isAdmin
+              ? [
+                  {
+                    type: DropdownItem.Default,
+                    label: "Settings",
+                    icon: <Settings size={16} />,
+                    onClick: () => navigate("/settings"),
+                  },
+                ]
+              : []),
             { type: DropdownItem.Separator },
             {
               type: DropdownItem.Danger,
