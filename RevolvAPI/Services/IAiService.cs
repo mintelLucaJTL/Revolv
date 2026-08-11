@@ -14,13 +14,15 @@ namespace RevolvAPI.Services
         AiResponseDTO? ParseAiResponse(string? rawAiText);
 
         /// <summary>
-        /// Article name + description + return reasons in; structured AI analysis out.
-        /// Returns null when the provider responded with empty or invalid content (Ticket #242).
+        /// Article name + description + return reasons (+ optional raw customer return comments)
+        /// in; structured AI analysis out. Returns null when the provider responded with empty
+        /// or invalid content (Ticket #242).
         /// </summary>
         Task<AiResponseDTO?> AnalyzeArticleAsync(
             string articleName,
             string? currentDescription,
-            IEnumerable<string> returnReasons);
+            IEnumerable<string> returnReasons,
+            IEnumerable<string>? customerComments = null);
 
         // User prompt (+ optional system prompt) in, raw text out (OpenRouter chat completions).
         Task<string> GenerateAnalysisAsync(string userPrompt, string? systemPrompt = null);
