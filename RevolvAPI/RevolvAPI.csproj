@@ -30,4 +30,8 @@
     <None Include="..\Database\00_MasterSetup.sql" Link="Database\00_MasterSetup.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="RevolvAPI.Tests" />
+  </ItemGroup>
+
 </Project>
