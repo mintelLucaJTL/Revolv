@@ -10,6 +10,20 @@ import {
   type ReviewSectionTone,
 } from "../hooks/useArticleReview";
 
+function formatPushedAt(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 function getPriorityBadgeClasses(priority?: string): string {
   const normalized = priority?.toLowerCase() ?? "";
   if (normalized.includes("hoch") || normalized.includes("high")) {
@@ -116,7 +130,9 @@ export default function ArticleReviewSections({ review, isAnalyzing, onStartAnal
     isSavingProposalText,
     savingProposalAction,
     proposalActionError,
-    isProposalReviewed,
+    pushedToWawiAt,
+    isPushingToWawi,
+    pushToWawiError,
     sectionStatus,
     toggleActionRecommendation,
     toggleQualityIssue,
@@ -124,6 +140,7 @@ export default function ArticleReviewSections({ review, isAnalyzing, onStartAnal
     cancelEditingProposal,
     saveProposedText,
     updateProposalStatus,
+    acceptAndPushToWawi,
   } = review;
 
   // Land on whichever tab still needs attention, so the first click isn't wasted on "all clear".
@@ -183,31 +200,46 @@ export default function ArticleReviewSections({ review, isAnalyzing, onStartAnal
     </div>
   );
 
+  // Ein Klick: "Übernehmen" fragt direkt per Popup nach der WAWI-Übernahme und macht beides in
+  // einem Schritt (akzeptieren + live schreiben) - vorher zwei Buttons hintereinander, was dazu
+  // führte, dass Nutzer nach dem ersten Klick die WAWI-Bestätigung vermissten.
+  const isBusyWithProposal = savingProposalAction !== null || isPushingToWawi;
+
+  const handleAcceptAndPush = () => {
+    if (
+      window.confirm(
+        "Diesen Beschreibungstext jetzt live in WAWI übernehmen? " +
+          "Das überschreibt die aktuelle Artikelbeschreibung sofort.",
+      )
+    ) {
+      void acceptAndPushToWawi();
+    }
+  };
+
   const proposalActionsFooter =
     descriptionProposalId === undefined ? null : (
       <div className="mt-4 flex flex-col items-end gap-2 border-t border-slate-200 dark:border-slate-800 pt-4">
         {proposalActionError ? (
           <p className="text-xs text-red-600 dark:text-red-400">{proposalActionError}</p>
         ) : null}
+        {pushToWawiError ? (
+          <p className="text-xs text-red-600 dark:text-red-400">{pushToWawiError}</p>
+        ) : null}
 
-        {isProposalReviewed ? (
+        {pushedToWawiAt ? (
+          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+            In WAWI übernommen am {formatPushedAt(pushedToWawiAt)}
+          </span>
+        ) : proposalStatus === PROPOSAL_STATUS_REJECTED ? (
           <div className="flex items-center gap-3">
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                proposalStatus === PROPOSAL_STATUS_ACCEPTED
-                  ? "bg-green-50 text-green-700 dark:bg-green-950/60 dark:text-green-300"
-                  : "bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-300"
-              }`}
-            >
-              {proposalStatus === PROPOSAL_STATUS_ACCEPTED
-                ? "Vorschlag übernommen"
-                : "Vorschlag abgelehnt"}
+            <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 dark:bg-red-950/60 dark:text-red-300">
+              Vorschlag abgelehnt
             </span>
             <Button
               label={savingProposalAction === "undo" ? "Setzt zurück…" : "Rückgängig"}
               variant="ghost"
               onClick={() => updateProposalStatus(PROPOSAL_STATUS_PENDING, "undo")}
-              disabled={savingProposalAction !== null}
+              disabled={isBusyWithProposal}
             />
           </div>
         ) : isEditingProposal ? (
@@ -227,23 +259,30 @@ export default function ArticleReviewSections({ review, isAnalyzing, onStartAnal
           </div>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            {/* proposalStatus kann hier bereits "Akzeptiert" sein, wenn ein vorheriger Versuch
+                beim WAWI-Schreibzugriff fehlgeschlagen ist - acceptAndPushToWawi überspringt das
+                erneute Akzeptieren dann automatisch und versucht nur den Push erneut. */}
+            {proposalStatus !== PROPOSAL_STATUS_ACCEPTED && (
+              <>
+                <Button
+                  label={savingProposalAction === "reject" ? "Speichert…" : "Ablehnen"}
+                  variant="ghost"
+                  onClick={() => updateProposalStatus(PROPOSAL_STATUS_REJECTED, "reject")}
+                  disabled={isBusyWithProposal}
+                />
+                <Button
+                  label="Bearbeiten"
+                  variant="secondary"
+                  onClick={startEditingProposal}
+                  disabled={isBusyWithProposal}
+                />
+              </>
+            )}
             <Button
-              label={savingProposalAction === "reject" ? "Speichert…" : "Ablehnen"}
-              variant="ghost"
-              onClick={() => updateProposalStatus(PROPOSAL_STATUS_REJECTED, "reject")}
-              disabled={savingProposalAction !== null}
-            />
-            <Button
-              label="Bearbeiten"
-              variant="secondary"
-              onClick={startEditingProposal}
-              disabled={savingProposalAction !== null}
-            />
-            <Button
-              label={savingProposalAction === "accept" ? "Speichert…" : "Übernehmen"}
+              label={isBusyWithProposal ? "Übernimmt…" : "Übernehmen"}
               variant="highlight"
-              onClick={() => updateProposalStatus(PROPOSAL_STATUS_ACCEPTED, "accept")}
-              disabled={savingProposalAction !== null}
+              onClick={handleAcceptAndPush}
+              disabled={isBusyWithProposal}
             />
           </div>
         )}

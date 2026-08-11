@@ -282,7 +282,8 @@ BEGIN
         [AiRecommendationId] INT NOT NULL,
         [CurrentText] NVARCHAR(MAX) NULL,
         [ProposedText] NVARCHAR(MAX) NULL,
-        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Ausstehend'
+        [Status] NVARCHAR(50) NOT NULL DEFAULT 'Ausstehend',
+        [PushedToWawiAt] DATETIME2 NULL
     );
 END
 GO

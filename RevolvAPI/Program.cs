@@ -76,6 +76,7 @@ builder.Services.AddScoped<IReturnAnalyticsService, ReturnAnalyticsService>();
 builder.Services.AddHttpClient<IAiService, AiService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IArticleAnalysisService, ArticleAnalysisService>();
+builder.Services.AddScoped<IWawiDescriptionPushService, WawiDescriptionPushService>();
 
 // Ticket #252: automatische KI-Analyse bei neuen QualityIssues (ShopSetting.AutoAnalyzeNewIssues).
 // Singleton, da AppDbContext (scoped, pro Request) und der Background-Service denselben
