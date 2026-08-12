@@ -103,7 +103,7 @@ namespace RevolvAPI.Controllers
                 return Conflict(new { message = "Diese E-Mail-Adresse wird bereits verwendet." });
             }
 
-            var inviteLink = $"http://localhost:5173/reset-password?token={invitedUser.PasswordResetToken}";
+            var inviteLink = $"http://localhost:5173/accept-invite?token={invitedUser.PasswordResetToken}";
 
             try
             {

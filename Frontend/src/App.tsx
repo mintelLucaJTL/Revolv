@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./components/Toast";
 import ForgotPassword from "./pages/forgot-password";
 import ResetPassword from "./pages/reset-password";
+import AcceptInvite from "./pages/accept-invite";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -92,6 +93,14 @@ function AppRoutes() {
         element={
           <PublicOnlyRoute>
             <ResetPassword />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/accept-invite"
+        element={
+          <PublicOnlyRoute>
+            <AcceptInvite />
           </PublicOnlyRoute>
         }
       />
