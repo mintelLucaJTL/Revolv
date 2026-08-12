@@ -21,7 +21,7 @@ const DEFAULT_RED_THRESHOLD = 25;
 // Statt der drei einzelnen Bereichs-Tags (Qualität/Beschreibung/Empfehlungen) jetzt direkt nach
 // dem kombinierten Offen/Abgeschlossen-Status filtern (siehe ArticleStatusToggle) - der ist die
 // eigentlich relevante Frage: "was muss ich mir noch anschauen?".
-const TAG_FILTERS = ["Alle Artikel", "Offen", "Abgeschlossen"] as const;
+const TAG_FILTERS = ["Alle Artikel", "Offen", "Abgeschlossen", "Keine Empfehlung"] as const;
 type TagFilter = (typeof TAG_FILTERS)[number];
 
 function matchesTagFilter(item: ReturnItem, filter: TagFilter): boolean {
@@ -30,6 +30,8 @@ function matchesTagFilter(item: ReturnItem, filter: TagFilter): boolean {
       return item.aiStatus !== "Keine Empfehlung" && !item.isFullyResolved;
     case "Abgeschlossen":
       return Boolean(item.isFullyResolved);
+    case "Keine Empfehlung":
+      return item.aiStatus === "Keine Empfehlung";
     default:
       return true;
   }
