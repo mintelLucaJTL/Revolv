@@ -261,6 +261,7 @@ export default function QualityReviewModal({
                 review={review}
                 isAnalyzing={isAnalyzing}
                 onStartAnalysis={handleAnalyze}
+                canReanalyze={articleDetail.canReanalyze}
               />
             )}
 

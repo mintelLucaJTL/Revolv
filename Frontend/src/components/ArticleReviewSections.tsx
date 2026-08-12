@@ -101,6 +101,10 @@ interface Props {
   review: ArticleReview;
   isAnalyzing?: boolean;
   onStartAnalysis?: () => void;
+  // false = seit der letzten WAWI-Übernahme hat sich noch nicht genug verändert für eine neue
+  // Analyse (siehe QualityReviewModal/ArticleDetailDTO.CanReanalyze). Blendet den veralteten
+  // "Aktuell"-Text aus, statt einen Stand zu zeigen, der seit dem Push ohnehin überholt ist.
+  canReanalyze?: boolean;
 }
 
 /**
@@ -110,7 +114,12 @@ interface Props {
  * Tabbed: one section visible at a time, so a first-time user isn't faced with three dense
  * blocks at once. The tabs double as the status overview (colored dot = done/open/n.a.).
  */
-export default function ArticleReviewSections({ review, isAnalyzing, onStartAnalysis }: Props) {
+export default function ArticleReviewSections({
+  review,
+  isAnalyzing,
+  onStartAnalysis,
+  canReanalyze,
+}: Props) {
   const {
     aiRec,
     issues,
@@ -330,14 +339,21 @@ export default function ArticleReviewSections({ review, isAnalyzing, onStartAnal
           <div>
             <Card className="border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
               <CardContent className="p-4">
-                <Text weight="bold">Aktuell</Text>
-                <Box className="mt-2 mb-4">
-                  {currentText ? (
-                    <Text>{currentText}</Text>
-                  ) : (
-                    <Text color="muted">Keine Beschreibung vorhanden</Text>
-                  )}
-                </Box>
+                {/* Nach der WAWI-Übernahme zeigt "Aktuell" den Stand von VOR dem Push - sobald
+                    sich seither nichts mehr verändert hat, das eine neue Analyse rechtfertigen
+                    würde, ist dieser alte Stand nur noch verwirrend und wird ausgeblendet. */}
+                {!(pushedToWawiAt && canReanalyze === false) && (
+                  <>
+                    <Text weight="bold">Aktuell</Text>
+                    <Box className="mt-2 mb-4">
+                      {currentText ? (
+                        <Text>{currentText}</Text>
+                      ) : (
+                        <Text color="muted">Keine Beschreibung vorhanden</Text>
+                      )}
+                    </Box>
+                  </>
+                )}
 
                 <Text weight="bold">KI-VORSCHLAG</Text>
                 <Box className="mt-2">
