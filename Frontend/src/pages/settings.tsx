@@ -91,16 +91,33 @@ function SliderField({
           <option key={t} value={t} />
         ))}
       </datalist>
-      <Box className="mt-1.5 flex justify-between">
-        <Text type="xs" color="muted">
-          {min}
-          {unit}
-        </Text>
-        <Text type="xs" color="muted">
-          {max}
-          {unit}
-        </Text>
-      </Box>
+      {/* Zahl unter jedem Punkt auf der Spur, nicht nur an den Enden - zeigt direkt, welcher
+          Wert an welcher Stelle liegt, statt dass man sich zwischen Min und Max selbst orientieren muss. */}
+      <div className="relative mt-1.5 h-4">
+        {ticks.map((t, index) => {
+          const pct = ((t - min) / (max - min)) * 100;
+          const isFirst = index === 0;
+          const isLast = index === ticks.length - 1;
+          const isActive = Math.abs(t - display) < (step ?? 1) / 2;
+          return (
+            <span
+              key={t}
+              className={`absolute top-0 whitespace-nowrap text-[11px] ${
+                isActive
+                  ? "font-bold text-blue-700 dark:text-blue-300"
+                  : "text-slate-400 dark:text-slate-500"
+              }`}
+              style={{
+                left: `${pct}%`,
+                transform: isFirst ? "none" : isLast ? "translateX(-100%)" : "translateX(-50%)",
+              }}
+            >
+              {t}
+              {unit}
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 }
