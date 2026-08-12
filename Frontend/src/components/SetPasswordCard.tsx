@@ -9,6 +9,7 @@ import {
 } from "@jtl-software/platform-ui-react";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { KeyRound } from "lucide-react";
 import { apiFetch } from "../utils/api";
 
 const inputClassName =
@@ -79,6 +80,9 @@ export default function SetPasswordCard({
     <Box className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-900 p-12 dark:bg-slate-950 dark:text-slate-100">
       <Card className="max-w-[450px] w-full dark:bg-slate-900 dark:border-slate-700">
         <CardHeader className="items-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+            <KeyRound size={24} strokeWidth={1.5} />
+          </span>
           <CardTitle className="dark:text-slate-100">{title}</CardTitle>
         </CardHeader>
 
@@ -109,7 +113,7 @@ export default function SetPasswordCard({
 
           {error ? <div className="text-sm text-red-600 dark:text-red-400">{error}</div> : null}
 
-          <Button label={submitLabel} variant="default" onClick={handleSubmit} />
+          <Button label={submitLabel} variant="highlight" onClick={handleSubmit} />
         </CardContent>
       </Card>
     </Box>

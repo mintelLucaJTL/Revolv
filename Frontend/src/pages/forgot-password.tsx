@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
 
               {error ? <div className="text-sm text-red-600 dark:text-red-400">{error}</div> : null}
 
-              <Button label="Link anfordern" variant="default" onClick={handleSubmit} />
+              <Button label="Link anfordern" variant="highlight" onClick={handleSubmit} />
             </>
           )}
         </CardContent>

@@ -338,12 +338,12 @@ export default function RetourenAnalyseView() {
           </div>
 
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            <span className="text-sm text-slate-500 dark:text-slate-400">KI-Status:</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">Filter:</span>
             {TAG_FILTERS.map((tag) => (
               <Button
                 key={tag}
                 label={tag}
-                variant={tagFilter === tag ? "default" : "secondary"}
+                variant={tagFilter === tag ? "highlight" : "ghost"}
                 onClick={() => setTagFilter(tag)}
               />
             ))}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, Box, Button, Card, Text } from "@jtl-software/platform-ui-react";
+import { UserRound } from "lucide-react";
 import DeleteAccountModal from "../components/DeleteAccountModal";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -114,7 +115,12 @@ export default function Profile() {
 
               {/* Persönliche Daten bearbeiten */}
               <Card className="p-6 bg-white border border-slate-200 dark:bg-slate-900 dark:border-slate-700">
-                <Text weight="bold">Persönliche Daten</Text>
+                <Box className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                    <UserRound size={18} aria-hidden="true" />
+                  </span>
+                  <Text weight="bold">Persönliche Daten</Text>
+                </Box>
 
                 <Box className="mt-4 space-y-4">
                   <label className="block">
@@ -155,6 +161,7 @@ export default function Profile() {
                   <Box className="flex justify-end">
                     <Button
                       label={isSavingName ? "Speichert…" : "Änderungen speichern"}
+                      variant="highlight"
                       onClick={handleSaveName}
                       disabled={!hasNameChanges || isSavingName}
                     />

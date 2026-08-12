@@ -20,9 +20,10 @@ interface TopReturnedArticleChartItem {
   isPlaceholder: boolean;
 }
 
-// Colors by rank: highest return rate (index 0, most critical) in signal red,
-// descending to green for the lowest of the top 5.
-const CHART_COLORS = ["#EF4444", "#F97316", "#F59E0B", "#84CC16", "#10B981"];
+// Colors by rank: highest return rate (index 0, most critical) in the darkest blue, lightening
+// towards the lowest of the top 5 - JTL-Blau-Palette statt Rot/Orange/Grün, das der Ampel
+// vorbehalten bleibt. Der Rang bleibt trotzdem sofort erkennbar, nur ueber Saettigung statt Farbton.
+const CHART_COLORS = ["#1E3A8A", "#1D4ED8", "#2563EB", "#3B82F6", "#93C5FD"];
 
 const REQUIRED_SLOTS = 5;
 

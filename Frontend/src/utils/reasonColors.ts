@@ -2,7 +2,11 @@
 // the same color everywhere on the dashboard, even though each component fetches from a
 // different endpoint with its own ordering (previously: color-by-array-index per component,
 // which meant the same reason could show up blue in one card and orange in the other).
-const REASON_COLORS = ["#3B82F6", "#EF4444", "#F59E0B", "#10B981", "#8B5CF6", "#64748B"];
+//
+// JTL-Blau-Palette: reine Blau-/Indigo-/Cyan-Töne statt bunt gemischter Farben - Rot/Gelb/Grün
+// bleiben allein der Retouren-Ampel vorbehalten (siehe KpiCard-Varianten), damit deren
+// Signalfarben nicht durch dieselben Farben anderswo auf dem Dashboard verwässert werden.
+const REASON_COLORS = ["#1D4ED8", "#0EA5E9", "#6366F1", "#0891B2", "#93C5FD", "#1E3A8A"];
 
 // DJB2 - simple sum-based hashing collided on our actual reason strings (two different
 // reasons landed on the same color); DJB2's bit-shift mixing spreads short strings better.

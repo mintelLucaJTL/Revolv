@@ -67,7 +67,7 @@ export default function SetNameModal({ isOpen, onSaved }: Props) {
 
           <Button
             label={isSaving ? "Speichert…" : "Speichern"}
-            variant="default"
+            variant="highlight"
             onClick={handleSave}
             disabled={isSaving}
           />

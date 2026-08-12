@@ -1,6 +1,7 @@
 import { Box, Card, CardContent, Text } from "@jtl-software/platform-ui-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Percent, PackageSearch, Sparkles, TrendingUp, type LucideIcon } from "lucide-react";
 import KpiCard from "../components/KpiCard";
 import ReturnReasonsChart from "../components/ReturnReasonsChar";
 import TopReturnsChart from "../components/TopReturnsChart";
@@ -43,6 +44,7 @@ interface KpiNavCard {
   content: string;
   value: string;
   extra?: string;
+  icon: LucideIcon;
 }
 
 type AmpelVariant = "red" | "yellow" | "green";
@@ -59,18 +61,22 @@ const KPI_CARD_META: Omit<KpiNavCard, "value" | "extra">[] = [
   {
     title: "Gesamte Retourenquote",
     content: "Gesamtquote aller Retouren in diesem Monat.",
+    icon: Percent,
   },
   {
     title: "Betroffene Artikel",
     content: "Artikel mit aktuellen Rücksendungen.",
+    icon: PackageSearch,
   },
   {
     title: "KI-Empfehlungen offen",
     content: "Offene Vorschläge, die noch geprüft werden müssen.",
+    icon: Sparkles,
   },
   {
     title: "Verbesserte Produkte",
     content: "Produkte, die bereits verbessert wurden.",
+    icon: TrendingUp,
   },
 ];
 
@@ -272,6 +278,7 @@ export default function Dashboard() {
                   const extraText = card.extra ?? "";
                   const isNegative =
                     extraText.trim().startsWith("-") || extraText.trim().startsWith("−");
+                  const Icon = card.icon;
 
                   return (
                     <Card
@@ -281,6 +288,9 @@ export default function Dashboard() {
                       <CardContent className="p-0">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-start gap-4">
+                            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                              <Icon size={18} aria-hidden="true" />
+                            </span>
                             <div>
                               <div className="text-3xl font-bold leading-tight">{card.value}</div>
                               <div className="text-sm text-slate-600 mt-1 dark:text-slate-300">
@@ -308,16 +318,9 @@ export default function Dashboard() {
           </div>
 
           <div className="grid gap-4 mt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 rounded-full bg-slate-900 px-2.5 py-1.5 shadow-sm dark:bg-slate-950 dark:ring-1 dark:ring-white/10">
-                <span className="h-2 w-2 rounded-full bg-red-500" aria-hidden="true" />
-                <span className="h-2 w-2 rounded-full bg-yellow-400" aria-hidden="true" />
-                <span className="h-2 w-2 rounded-full bg-green-500" aria-hidden="true" />
-              </div>
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-                Deine Retouren-Ampel
-              </h2>
-            </div>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              Deine Retouren-Ampel
+            </h2>
 
             <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
               {isLoading
