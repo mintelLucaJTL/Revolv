@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Box, Card, Button, Text } from "@jtl-software/platform-ui-react";
-import Sidebar from "../components/Sidebar";
-import TopNavigationBar from "../components/TopNavigationBar";
 import { apiFetch } from "../utils/api";
 
 // DTO for the settings API.
@@ -189,9 +187,6 @@ export default function Settings() {
     setTheme((current) => (current === "dark" ? "light" : "dark"));
   };
 
-  const pageBackground =
-    theme === "dark" ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900";
-
   const cardBackground =
     theme === "dark" ? "bg-slate-900 border border-slate-700" : "bg-white border border-slate-200";
 
@@ -203,14 +198,8 @@ export default function Settings() {
   const themeButtonLabel = theme === "dark" ? "Zum White-Mode wechseln" : "Zum Dark-Mode wechseln";
 
   return (
-    <Box className={`min-h-screen ${pageBackground}`}>
-      <TopNavigationBar />
-
-      <Box className="flex">
-        <Sidebar />
-
-        <Box className="flex-1 p-6">
-          <Text weight="bold">Einstellungen</Text>
+    <>
+      <Text weight="bold">Einstellungen</Text>
 
           {loading ? (
             <Box className="mt-6">
@@ -377,8 +366,6 @@ export default function Settings() {
               </Box>
             </>
           )}
-        </Box>
-      </Box>
-    </Box>
+    </>
   );
 }

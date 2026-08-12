@@ -18,7 +18,7 @@ export default function Sidebar() {
   const items = isAdmin ? [...navItems, ...adminNavItems] : navItems;
 
   return (
-    <Box className="w-72 shrink-0 sticky top-[72px] h-[calc(100vh-72px)] self-start overflow-y-auto bg-white border-r border-slate-200 p-4 space-y-3 dark:bg-slate-900 dark:border-slate-700">
+    <Box className="w-72 shrink-0 h-full overflow-y-auto bg-white border-r border-slate-200 p-4 space-y-3 dark:bg-slate-900 dark:border-slate-700">
       <Box className="dark:text-slate-100">
         <Text weight="bold">Navigation</Text>
       </Box>
