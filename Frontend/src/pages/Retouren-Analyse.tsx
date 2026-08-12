@@ -127,9 +127,6 @@ function TableRowSkeleton() {
         <div className="h-7 w-16 rounded-full bg-slate-200 dark:bg-slate-700" />
       </td>
       <td className="px-4 py-4">
-        <div className="h-4 w-28 rounded bg-slate-100 dark:bg-slate-800" />
-      </td>
-      <td className="px-4 py-4">
         <div className="h-6 w-24 rounded-full bg-slate-200 dark:bg-slate-700" />
       </td>
     </tr>
@@ -456,9 +453,6 @@ export default function RetourenAnalyseView() {
                           Retourenquote
                         </th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-slate-300">
-                          Häufigster Grund
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-slate-300">
                           KI-Status
                         </th>
                       </tr>
@@ -512,9 +506,6 @@ export default function RetourenAnalyseView() {
                                   {row.returnRate.toFixed(1)}%
                                 </span>
                               </span>
-                            </td>
-                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                              {row.mostFrequentReason ?? "—"}
                             </td>
                             <td className="px-4 py-4 text-sm">
                               {row.aiStatus === "Keine Empfehlung" ? (
