@@ -226,7 +226,7 @@ export default function ReturnCostsChart() {
                         strokeWidth={1.5}
                       />
                     ) : (
-                      <Cell key={entry.id} fill="#3B82F6" />
+                      <Cell key={entry.id} fill="#2563EB" />
                     ),
                   )}
                 </Bar>

@@ -91,7 +91,7 @@ export default function LatestReturnsList() {
                     key={`${item.articleNumber}-${index}`}
                     className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60"
                   >
-                    <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400">
+                    <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
                       <RotateCcw size={15} aria-hidden="true" />
                     </span>
 
