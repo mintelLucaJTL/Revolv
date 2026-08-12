@@ -57,7 +57,7 @@ export default function LoginPage() {
       {/* Abgewandelte Version der Welcome-Splash-Animation (welcome.tsx): R-Logo + ausgeschriebener
           Schriftzug spielen einmal ein, die Ringe pulsieren danach endlos weiter (animate-revolv-
           ring-pulse ist bereits als Endlosschleife definiert) statt wie beim Splash zu verschwinden. */}
-      <div className="relative z-10 mb-10 flex flex-col items-center gap-4">
+      <div className="relative z-10 mb-10 flex items-center gap-4">
         <div className="relative flex h-20 w-20 items-center justify-center">
           <span className="absolute h-20 w-20 rounded-2xl border-2 border-blue-400/60 animate-revolv-ring-pulse" />
           <span
@@ -79,18 +79,18 @@ export default function LoginPage() {
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600">
             <LogIn size={26} strokeWidth={1.5} />
           </span>
-          <CardTitle>Willkommen zurück</CardTitle>
+          <CardTitle className="text-black">Willkommen zurück</CardTitle>
           <Badge label="Anmeldung" variant="info"></Badge>
         </CardHeader>
 
-        <Separator />
+     
 
         <CardContent className="flex flex-col gap-4 mt-4">
-          <Text type="small" color="muted">
+          <p className="text-black text-sm">
             Bitte melde dich an, um fortzufahren.
-          </Text>
+          </p>
 
-          <Text type="small">E-Mail</Text>
+          <label className="text-black text-sm font-medium">E-Mail</label>
           <input
             className={inputClassName}
             placeholder="du@beispiel.de"
@@ -99,20 +99,19 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          <Text type="small">Passwort</Text>
-          <input
-            className={inputClassName}
-            placeholder="••••••••"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <div className="text-right text-sm">
+          <label className="text-black text-sm font-medium">Passwort</label>
+          <div className="relative">
+            <input
+              className={`${inputClassName} pr-32`}
+              placeholder="••••••••"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
             <button
               type="button"
               onClick={() => navigate("/forgot-password")}
-              className="text-blue-600 hover:underline"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"
             >
               Passwort vergessen?
             </button>
@@ -121,7 +120,7 @@ export default function LoginPage() {
           {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
           <Button label="Anmelden" variant="highlight" onClick={handleLogin} />
-          <div className="text-center text-sm text-slate-500">
+          <div className="text-center text-sm text-black">
             Noch kein Konto? Registriere dich unten.
           </div>
           <Button
@@ -129,7 +128,7 @@ export default function LoginPage() {
             variant="outline"
             onClick={() => navigate("/register")}
           />
-          <Separator />
+         
         </CardContent>
       </Card>
     </Box>
