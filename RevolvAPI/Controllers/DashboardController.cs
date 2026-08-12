@@ -178,16 +178,41 @@ namespace RevolvAPI.Controllers
             return Ok(dto);
         }
 
+        // GET api/dashboard/action-plan
+        // Priorisierte To-Do-Liste: ein Eintrag pro Artikel mit offenen KI-Empfehlungen, sortiert
+        // nach geschätztem Einsparpotenzial (Retourenmenge × Verkaufspreis) - beantwortet "was
+        // lohnt sich am meisten, als nächstes anzugehen?" statt die komplette Artikelliste
+        // durchsuchen zu müssen.
+        [HttpGet("action-plan")]
+        public async Task<IActionResult> GetActionPlan()
+        {
+            var items = await _returnAnalytics.GetActionPlanAsync(User.GetCompanyId());
+
+            var dtos = items.Select(i => new ActionPlanItemDto
+            {
+                ArticleId = i.ArtikelId,
+                ArticleNumber = i.Sku,
+                Name = i.Name ?? "Unbekannt",
+                ReturnRatePercent = i.ReturnRatePercent,
+                EstimatedReturnCost = i.EstimatedReturnCost,
+                OpenItemCount = i.OpenItemCount,
+                NextStepText = i.NextStepText,
+                RecommendationId = i.RecommendationId,
+            }).ToList();
+
+            return Ok(dtos);
+        }
+
         // GET api/dashboard/success-metrics?months=8
-        // Erfolgsmessung-Feature: Retourenquote-Trend pro Artikel rund um den frühesten
-        // angenommenen/erledigten KI-Vorschlag. Nur Artikel mit mindestens einer solchen
-        // Änderung sind enthalten.
+        // Erfolgsmessung: Retourenquote-Trend pro Artikel für die letzten `months` Monate,
+        // nur für Artikel mit mindestens einem angenommenen/erledigten KI-Vorschlag - beantwortet
+        // "wie gut funktionieren die bereits umgesetzten Verbesserungen?"
         [HttpGet("success-metrics")]
         public async Task<IActionResult> GetSuccessMetrics([FromQuery] int months = 8)
         {
-            if (months < 3 || months > 24)
+            if (months < 1 || months > 24)
             {
-                return BadRequest("months muss zwischen 3 und 24 liegen.");
+                return BadRequest("months muss zwischen 1 und 24 liegen.");
             }
 
             var trends = await _returnAnalytics.GetArticleSuccessTrendsAsync(User.GetCompanyId(), months);

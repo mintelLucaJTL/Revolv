@@ -7,6 +7,7 @@ import RetourenAnalyse from "./pages/Retouren-Analyse";
 import Registrieren from "./pages/register";
 import Settings from "./pages/settings";
 import Team from "./pages/team";
+import Aktionsplan from "./pages/aktionsplan";
 import Erfolgsmessung from "./pages/erfolgsmessung";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./components/Toast";
@@ -135,6 +136,7 @@ function AppRoutes() {
         {/* /ki-empfehlungen retired: its filters moved into /retouren-analyse; falls through to
             the catch-all route below for old links/bookmarks. */}
         <Route path="/erfolgsmessung" element={<Erfolgsmessung />} />
+        <Route path="/aktionsplan" element={<Aktionsplan />} />
         <Route path="/profile" element={<Profile />} />
         <Route element={<AdminOutlet />}>
           <Route path="/team" element={<Team />} />

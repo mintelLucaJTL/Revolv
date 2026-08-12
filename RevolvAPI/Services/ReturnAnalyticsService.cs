@@ -279,10 +279,8 @@ namespace RevolvAPI.Services
                 i.ProductGroupId.HasValue ? categoryById.GetValueOrDefault(i.ProductGroupId.Value) : null));
         }
 
-        public async Task<List<ArticleSuccessTrend>> GetArticleSuccessTrendsAsync(int companyId, int months = 8)
+        public async Task<List<ActionPlanItem>> GetActionPlanAsync(int companyId)
         {
-            months = Math.Clamp(months, 3, 24);
-
             var aiRows = await _ctx.AiRecommendations
                 .AsNoTracking()
                 .Include(r => r.QualityIssues)
@@ -291,98 +289,64 @@ namespace RevolvAPI.Services
                 .Where(r => r.CompanyId == companyId)
                 .ToListAsync();
 
-            // Frühester angenommener/erledigter Zeitpunkt je Artikel über ALLE (auch ältere)
-            // Analysen - das markiert, wann zum ersten Mal wirklich etwas am Artikel geändert
-            // wurde, unabhängig davon, ob später noch eine neuere Analyse angelegt wurde.
-            var changeByArticle = new Dictionary<int, (DateTime At, string Label)>();
+            // Nur die jeweils neueste Analyse pro Artikel, und davon nur die mit noch offenen
+            // Punkten - der Aktionsplan ist eine To-Do-Liste, kein Archiv erledigter Analysen.
+            var openRecommendations = AiRecommendationProgress.SelectLatestPerArticle(aiRows)
+                .Select(r => (Recommendation: r, Progress: AiRecommendationProgress.Count(r)))
+                .Where(x => x.Progress.OpenCount > 0)
+                .ToList();
 
-            void Consider(int articleId, DateTime? at, string label)
+            if (openRecommendations.Count == 0) return new List<ActionPlanItem>();
+
+            var articleIds = openRecommendations.Select(x => x.Recommendation.ArtikelId).ToList();
+
+            var metricsByArticle = (await GetArticleReturnMetricsAsync())
+                .ToDictionary(m => m.ArtikelId);
+            var priceByItem = await GetAverageSalesPriceByItemAsync(articleIds);
+
+            var result = new List<ActionPlanItem>();
+            foreach (var (recommendation, progress) in openRecommendations)
             {
-                if (at == null) return;
-                if (!changeByArticle.TryGetValue(articleId, out var existing) || at.Value < existing.At)
-                {
-                    changeByArticle[articleId] = (at.Value, label);
-                }
+                // Artikel ohne Verkaufs-/Retourendaten (z. B. inzwischen inaktiv) überspringen -
+                // ohne Grundlage kein sinnvoller Prioritäts-Score.
+                if (!metricsByArticle.TryGetValue(recommendation.ArtikelId, out var metric)) continue;
+
+                var estimatedCost = metric.ReturnedQuantity * priceByItem.GetValueOrDefault(recommendation.ArtikelId, 0m);
+
+                result.Add(new ActionPlanItem(
+                    recommendation.ArtikelId,
+                    metric.Sku,
+                    metric.Name,
+                    metric.ReturnRatePercent,
+                    Math.Round(estimatedCost, 2),
+                    progress.OpenCount,
+                    DetermineNextStep(recommendation),
+                    recommendation.Id));
             }
 
-            foreach (var rec in aiRows)
-            {
-                foreach (var p in rec.DescriptionProposals)
-                    Consider(rec.ArtikelId, p.AcceptedAt, "Beschreibung angepasst");
+            return result
+                .OrderByDescending(x => x.EstimatedReturnCost)
+                .ThenByDescending(x => x.ReturnRatePercent)
+                .ToList();
+        }
 
-                foreach (var q in rec.QualityIssues)
-                    Consider(rec.ArtikelId, q.ResolvedAt, q.IssueText);
+        // Erster noch offener Punkt der Empfehlung, in der Reihenfolge Qualität → Beschreibung →
+        // Handlungsempfehlung - das ist auch die Reihenfolge, in der die Review-Tabs im Modal
+        // angezeigt werden, also die natürliche Bearbeitungsreihenfolge.
+        private static string DetermineNextStep(AiRecommendation recommendation)
+        {
+            var openIssue = recommendation.QualityIssues
+                .FirstOrDefault(q => !AiRecommendationProgressRules.IsQualityIssueResolved(q.Status));
+            if (openIssue != null) return openIssue.IssueText;
 
-                foreach (var a in rec.ActionRecommendations)
-                    Consider(rec.ArtikelId, a.CompletedAt, a.ActionText);
-            }
+            var openProposal = recommendation.DescriptionProposals
+                .FirstOrDefault(d => !AiRecommendationProgressRules.IsDescriptionProposalCompleted(d.Status));
+            if (openProposal != null) return "Beschreibungsvorschlag prüfen";
 
-            if (changeByArticle.Count == 0) return new List<ArticleSuccessTrend>();
+            var openAction = recommendation.ActionRecommendations.FirstOrDefault(a => !a.IsCompleted);
+            if (openAction != null) return openAction.ActionText;
 
-            var articleIds = changeByArticle.Keys.ToList();
-
-            // Fixes Fenster endend im aktuellen Monat (wie GetMonthlyReturnCostsAsync) - ein
-            // Artikel, dessen Änderung älter als `months` Monate zurückliegt, zeigt dann nur noch
-            // den "nachher"-Teil ohne "vorher"-Vergleich (Frontend zeigt dafür "–" statt eines
-            // irreführenden 0%-Werts). Akzeptierter Trade-off fürs erste Release statt eines pro-
-            // Artikel unterschiedlich breiten Fensters.
-            var rangeStart = GetTrailingRangeStart(months);
-
-            var returnRows = await (
-                from li in _ctx.WawiReturnLineItems.AsNoTracking()
-                    .Where(x => x.ItemId != null && x.ReturnId != null && articleIds.Contains(x.ItemId!.Value))
-                join r in _ctx.WawiReturns.AsNoTracking() on li.ReturnId!.Value equals r.Id
-                where r.ReturnDate >= rangeStart
-                select new { ItemId = li.ItemId!.Value, li.Quantity, r.ReturnDate })
-                .ToListAsync();
-
-            var soldRows = await (
-                from si in _ctx.WawiSalesInvoiceLineItems.AsNoTracking()
-                    .Where(x => x.ItemId != null && articleIds.Contains(x.ItemId!.Value))
-                join inv in _ctx.WawiSalesInvoices.AsNoTracking() on si.SalesInvoiceId equals inv.Id
-                where inv.ValueDate >= rangeStart
-                select new { ItemId = si.ItemId!.Value, si.Quantity, inv.ValueDate })
-                .ToListAsync();
-
-            var returnedByArticleMonth = returnRows
-                .GroupBy(x => (x.ItemId, Month: new DateOnly(x.ReturnDate.Year, x.ReturnDate.Month, 1)))
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
-
-            var soldByArticleMonth = soldRows
-                .GroupBy(x => (x.ItemId, Month: new DateOnly(x.ValueDate.Year, x.ValueDate.Month, 1)))
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
-
-            var displayInfo = await GetArticleDisplayInfoAsync(articleIds);
-
-            var result = new List<ArticleSuccessTrend>();
-            foreach (var articleId in articleIds)
-            {
-                var info = displayInfo.GetValueOrDefault(articleId);
-                // Artikel ohne Katalogdaten (z. B. inzwischen gelöscht/deaktiviert) überspringen -
-                // ohne Name/Sku kein sinnvoller Chart.
-                if (info == null) continue;
-
-                var points = new List<MonthlyReturnRatePoint>(months);
-                for (var i = 0; i < months; i++)
-                {
-                    var month = DateOnly.FromDateTime(rangeStart.AddMonths(i).Date);
-                    var sold = soldByArticleMonth.GetValueOrDefault((articleId, month));
-                    var returned = returnedByArticleMonth.GetValueOrDefault((articleId, month));
-                    var rate = sold > 0 ? Math.Round(returned / sold * 100m, 2) : 0m;
-                    points.Add(new MonthlyReturnRatePoint(month, rate));
-                }
-
-                var (changeAt, changeLabel) = changeByArticle[articleId];
-                result.Add(new ArticleSuccessTrend(
-                    articleId,
-                    info.Sku,
-                    info.Name,
-                    new DateOnly(changeAt.Year, changeAt.Month, 1),
-                    changeLabel,
-                    points));
-            }
-
-            return result.OrderByDescending(r => r.ChangeMonth).ToList();
+            return "Offene Punkte prüfen";
         }
 
         public async Task<ReanalyzeGate> GetReanalyzeGateAsync(int articleId, int companyId)
@@ -479,6 +443,110 @@ namespace RevolvAPI.Services
             return translations
                 .GroupBy(t => t.ReturnReasonId)
                 .ToDictionary(g => g.Key, g => g.OrderBy(t => t.LanguageId).First().Name ?? "Unbekannt");
+        }
+
+        // Retourenquote-Trend pro Artikel für die letzten `months` Monate, nur für Artikel mit
+        // mindestens einem angenommenen/erledigten KI-Vorschlag (Erfolgsmessung-Feature).
+        public async Task<List<ArticleSuccessTrend>> GetArticleSuccessTrendsAsync(int companyId, int months = 8)
+        {
+            // Artikel mit mindestens einer angenommenen Empfehlung.
+            var articlesWithProgressByCompany = await _ctx.AiRecommendations
+                .AsNoTracking()
+                .Where(r => r.CompanyId == companyId)
+                .SelectMany(r => r.DescriptionProposals)
+                .Where(d => d.Status == AiRecommendationStatuses.DescriptionProposalAccepted
+                    && d.AcceptedAt.HasValue)
+                .GroupBy(d => d.AiRecommendation!.ArtikelId)
+                .Select(g => new
+                {
+                    ArtikelId = g.Key,
+                    EarliestAcceptedAt = g.Min(d => d.AcceptedAt!.Value)
+                })
+                .ToListAsync();
+
+            if (articlesWithProgressByCompany.Count == 0) return new List<ArticleSuccessTrend>();
+
+            var articleIds = articlesWithProgressByCompany.Select(x => x.ArtikelId).ToList();
+            var startDate = DateTime.UtcNow.AddMonths(-months);
+
+            // Monatlich aggregierte Rückgaben und Verkäufe pro Artikel (letzte `months` Monate).
+            var returnsByArticleAndMonth = await _ctx.WawiReturnLineItems
+                .AsNoTracking()
+                .Where(li => articleIds.Contains(li.ItemId!.Value) && li.ItemId != null)
+                .Join(_ctx.WawiReturns.AsNoTracking(), li => li.ReturnId!.Value, r => r.Id, (li, r) => new { li, r })
+                .Where(x => x.r.ReturnDate >= startDate)
+                .GroupBy(x => new { x.li.ItemId, Month = x.r.ReturnDate.Month, x.r.ReturnDate.Year })
+                .Select(g => new
+                {
+                    ArtikelId = g.Key.ItemId!.Value,
+                    Month = new DateOnly(g.Key.Year, g.Key.Month, 1),
+                    ReturnCount = g.Sum(x => x.li.Quantity)
+                })
+                .ToListAsync();
+
+            var salesByArticleAndMonth = await _ctx.WawiSalesInvoiceLineItems
+                .AsNoTracking()
+                .Where(si => articleIds.Contains(si.ItemId!.Value) && si.ItemId != null)
+                .Join(_ctx.WawiSalesInvoices.AsNoTracking(), si => si.SalesInvoiceId, inv => inv.Id, (si, inv) => new { si, inv })
+                .Where(x => x.inv.ValueDate >= startDate)
+                .GroupBy(x => new { x.si.ItemId, Month = x.inv.ValueDate.Month, x.inv.ValueDate.Year })
+                .Select(g => new
+                {
+                    ArtikelId = g.Key.ItemId!.Value,
+                    Month = new DateOnly(g.Key.Year, g.Key.Month, 1),
+                    SalesCount = g.Sum(x => x.si.Quantity)
+                })
+                .ToListAsync();
+
+            // Artikel-Displayinfos abrufen.
+            var displayInfos = await GetArticleDisplayInfoAsync(articleIds);
+
+            // Pro Artikel einen ArticleSuccessTrend bauen.
+            var trends = new List<ArticleSuccessTrend>();
+            foreach (var item in articlesWithProgressByCompany)
+            {
+                var changeMonth = new DateOnly(
+                    item.EarliestAcceptedAt.Year,
+                    item.EarliestAcceptedAt.Month,
+                    1);
+                var changeLabel = $"Umsetzung: {changeMonth:yyyy-MM}";
+
+                var points = new List<MonthlyReturnRatePoint>();
+                for (int i = -months; i < 1; i++)
+                {
+                    var month = new DateOnly(
+                        DateTime.UtcNow.Year,
+                        DateTime.UtcNow.Month,
+                        1).AddMonths(i);
+
+                    var returns = returnsByArticleAndMonth
+                        .Where(x => x.ArtikelId == item.ArtikelId && x.Month == month)
+                        .Sum(x => x.ReturnCount);
+
+                    var sales = salesByArticleAndMonth
+                        .Where(x => x.ArtikelId == item.ArtikelId && x.Month == month)
+                        .Sum(x => x.SalesCount);
+
+                    var rate = sales > 0 ? (decimal)returns / (decimal)sales * 100m : 0m;
+                    points.Add(new MonthlyReturnRatePoint(month, Math.Round(rate, 1)));
+                }
+
+                var displayInfo = displayInfos.GetValueOrDefault(item.ArtikelId);
+                if (displayInfo != null)
+                {
+                    trends.Add(new ArticleSuccessTrend(
+                        ArtikelId: item.ArtikelId,
+                        Sku: displayInfo.Sku,
+                        Name: displayInfo.Name,
+                        ChangeMonth: changeMonth,
+                        ChangeLabel: changeLabel,
+                        Points: points));
+                }
+            }
+
+            return trends
+                .OrderByDescending(t => t.ChangeMonth)
+                .ToList();
         }
     }
 }

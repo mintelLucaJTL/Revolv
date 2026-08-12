@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 const navItems = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Retourenanalyse", path: "/retouren-analyse" },
+  { label: "Aktionsplan", path: "/aktionsplan" },
   { label: "Erfolgsmessung", path: "/erfolgsmessung" },
 ];
 
