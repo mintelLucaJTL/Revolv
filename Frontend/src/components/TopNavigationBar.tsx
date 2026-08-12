@@ -3,20 +3,19 @@ import {
   Box,
   Button,
   DropdownItem,
-  Input,
   JTLDropdown,
   Text,
 } from "@jtl-software/platform-ui-react";
 
-import { Bell, Search, Settings, LogOut, Edit } from "lucide-react";
+import { Settings, LogOut, Edit } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SetNameModal from "./SetNameModal";
+import NotificationsBell from "./NotificationsBell";
 import { fetchCurrentUser, getInitials, updateCurrentUserName } from "../utils/user";
 import { useAuth } from "../context/AuthContext";
 
 export default function TopNavigationBar() {
-  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [needsName, setNeedsName] = useState(false);
@@ -52,12 +51,6 @@ export default function TopNavigationBar() {
     setNeedsName(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchTerm.trim() !== "") {
-      navigate(`/retouren-analyse?search=${encodeURIComponent(searchTerm.trim())}`);
-    }
-  };
-
   const logout = () => {
     void authLogout().finally(() => navigate("/login"));
   };
@@ -74,29 +67,9 @@ export default function TopNavigationBar() {
         </Box>
       </Box>
 
-      {/* 2. Search mit JTL-Input Integration */}
-      <Box className="flex-1 flex justify-center px-4">
-        <div className="w-full max-w-lg">
-          <Input
-            type="text"
-            placeholder="Search..."
-            leftIcon={<Search size={18} />}
-            value={searchTerm}
-            onChange={(newValue) => setSearchTerm(newValue)}
-            onKeyDown={handleKeyDown}
-          />
-        </div>
-      </Box>
-
-      {/* 3. Notifications + Profile */}
+      {/* 2. Notifications + Profile */}
       <Box className="flex items-center justify-end gap-4 w-64">
-        <Button
-          variant="secondary"
-          size="icon"
-          icon={<Bell size={20} />}
-          badgeNum={1}
-          aria-label="Notifications"
-        />
+        <NotificationsBell />
 
         {/* Profile dropdown */}
         <JTLDropdown
