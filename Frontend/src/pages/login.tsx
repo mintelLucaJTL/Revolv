@@ -1,5 +1,4 @@
 import {
-  AppHeader,
   Badge,
   Box,
   Button,
@@ -51,17 +50,6 @@ export default function LoginPage() {
 
   return (
     <Box className="min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <AppHeader
-        title="Revolve Login"
-        subtitle="Please sign in to continue."
-        actions={
-          <Box className="flex items-center gap-3">
-            <Button label="Settings" variant="secondary" />
-          </Box>
-        }
-        className="bg-white shadow-sm dark:bg-slate-900 dark:border-b dark:border-slate-700"
-      />
-
       <Box className="flex flex-col items-center justify-center flex-1 p-12">
         <Card className="max-w-[450px] w-full dark:bg-slate-900 dark:border-slate-700">
           <CardHeader className="items-center">
