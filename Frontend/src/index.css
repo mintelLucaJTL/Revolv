@@ -80,3 +80,63 @@
 .animate-revolv-fade-out {
   animation: revolv-fade-out 0.45s ease-in forwards;
 }
+
+/* Settings-Slider (settings.tsx SliderField) - groesser und deutlich sichtbarer als der
+   Browser-Default, mit Zwischenstufen-Punkten via <datalist>/list (native Tick-Marks). */
+.revolv-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 9999px;
+  background: #e2e8f0; /* slate-200 */
+  cursor: pointer;
+}
+
+:where(.dark, .dark *) .revolv-slider {
+  background: #334155; /* slate-700 */
+}
+
+.revolv-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: #2563eb; /* blue-600 */
+  border: 3px solid white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+:where(.dark, .dark *) .revolv-slider::-webkit-slider-thumb {
+  border-color: #0f172a; /* slate-900 */
+}
+
+.revolv-slider::-moz-range-track {
+  height: 10px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+}
+
+:where(.dark, .dark *) .revolv-slider::-moz-range-track {
+  background: #334155;
+}
+
+.revolv-slider::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: #2563eb;
+  border: 3px solid white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+:where(.dark, .dark *) .revolv-slider::-moz-range-thumb {
+  border-color: #0f172a;
+}
+
+/* Zwischenstufen-Punkte: Chrome/Edge/Firefox rendern hierueber automatisch Tick-Marks auf der
+   Spur, sobald das <input> per list="..." auf ein <datalist> zeigt. */
+.revolv-slider::-webkit-slider-container {
+  overflow: visible;
+}

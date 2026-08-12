@@ -29,13 +29,17 @@ function normalizeTone(tone: string | undefined): string {
 }
 
 // Slider statt Zahlenfeld für alle numerischen Settings - Wert + Min/Max sind auf einen Blick
-// sichtbar, ohne dass man erst reintippen und die Validierung abwarten muss.
+// sichtbar, ohne dass man erst reintippen und die Validierung abwarten muss. tickStep steuert nur
+// die sichtbaren Zwischenstufen-Punkte (datalist), unabhängig vom tatsächlichen Wert-Schritt.
+let sliderIdCounter = 0;
+
 function SliderField({
   label,
   value,
   min,
   max,
   step,
+  tickStep,
   unit = "",
   onChange,
 }: {
@@ -44,29 +48,44 @@ function SliderField({
   min: number;
   max: number;
   step: number;
+  tickStep: number;
   unit?: string;
   onChange: (v: number) => void;
 }) {
+  const [datalistId] = useState(() => `slider-ticks-${++sliderIdCounter}`);
   const display = value === "" ? min : value;
+
+  const ticks: number[] = [];
+  for (let t = min; t <= max + 1e-9; t += tickStep) {
+    ticks.push(Math.round(t * 100) / 100);
+  }
+
   return (
-    <label className="block">
-      <Box className="mb-2 flex items-center justify-between">
-        <Text type="xs">{label}</Text>
-        <Text type="xs" weight="bold">
+    <div>
+      <Box className="mb-3 flex items-center justify-between">
+        <Text weight="bold">{label}</Text>
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
           {display}
           {unit}
-        </Text>
+        </span>
       </Box>
       <input
         type="range"
         min={min}
         max={max}
         step={step}
+        list={datalistId}
         value={display}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="w-full accent-blue-600"
+        className="revolv-slider"
+        aria-label={label}
       />
-      <Box className="mt-1 flex justify-between">
+      <datalist id={datalistId}>
+        {ticks.map((t) => (
+          <option key={t} value={t} />
+        ))}
+      </datalist>
+      <Box className="mt-1.5 flex justify-between">
         <Text type="xs" color="muted">
           {min}
           {unit}
@@ -76,7 +95,7 @@ function SliderField({
           {unit}
         </Text>
       </Box>
-    </label>
+    </div>
   );
 }
 
@@ -307,17 +326,26 @@ export default function Settings() {
                     </label>
                   </Box>
                 </Card>
+              </Box>
 
+              <Box className="mt-6 space-y-6">
                 <Card className={`p-6 ${cardBackground}`}>
                   <Text weight="bold">Retouren-Ampel-Settings</Text>
+                  <Box className="mt-1 mb-5">
+                    <Text type="xs" color="muted">
+                      Ab welcher Retourenquote ein Artikel in der Tabelle gelb bzw. rot markiert
+                      wird.
+                    </Text>
+                  </Box>
 
-                  <Box className="mt-4 space-y-5">
+                  <Box className="grid gap-x-8 gap-y-5 md:grid-cols-2">
                     <SliderField
                       label="Gelbe Warnung ab"
                       value={yellowThreshold}
                       min={0}
                       max={100}
                       step={0.5}
+                      tickStep={10}
                       unit="%"
                       onChange={setYellowThreshold}
                     />
@@ -328,6 +356,7 @@ export default function Settings() {
                       min={0}
                       max={100}
                       step={0.5}
+                      tickStep={10}
                       unit="%"
                       onChange={setRedThreshold}
                     />
@@ -336,20 +365,21 @@ export default function Settings() {
 
                 <Card className={`p-6 ${cardBackground}`}>
                   <Text weight="bold">Retouren-Analyse-Settings</Text>
-                  <Box className="mt-1">
+                  <Box className="mt-1 mb-5">
                     <Text type="xs" color="muted">
                       Nach einer live in WAWI übernommenen Beschreibung ist eine neue KI-Analyse
                       erst wieder möglich, wenn BEIDE Bedingungen erfüllt sind.
                     </Text>
                   </Box>
 
-                  <Box className="mt-4 space-y-5">
+                  <Box className="grid gap-x-8 gap-y-5 md:grid-cols-2">
                     <SliderField
                       label="Mindestanzahl neuer Retouren"
                       value={minNewReturns}
                       min={3}
                       max={10}
                       step={1}
+                      tickStep={1}
                       onChange={setMinNewReturns}
                     />
 
@@ -359,6 +389,7 @@ export default function Settings() {
                       min={14}
                       max={30}
                       step={1}
+                      tickStep={2}
                       unit="%"
                       onChange={setSignificantShift}
                     />
