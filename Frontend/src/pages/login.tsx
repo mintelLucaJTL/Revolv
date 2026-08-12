@@ -49,34 +49,51 @@ export default function LoginPage() {
   };
 
   return (
-    <Box className="min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <Box className="flex flex-col items-center justify-center flex-1 p-12">
+    <Box className="relative min-h-screen flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 text-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 dark:text-slate-100">
+      {/* Abgewandelte, dauerhafte Version der Welcome-Splash-Animation (welcome.tsx) als
+          dezenter Hintergrund statt einmaligem Vollbild-Intro - leise Ringe pulsieren
+          endlos hinter der Karte, statt einmal aufzublitzen und zu verschwinden. */}
+      <div
+        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        aria-hidden="true"
+      >
+        <div className="relative flex h-72 w-72 items-center justify-center opacity-[0.15] dark:opacity-[0.2]">
+          <span className="absolute h-72 w-72 rounded-full border-2 border-blue-500 animate-revolv-ring-pulse" />
+          <span
+            className="absolute h-72 w-72 rounded-full border-2 border-blue-500 animate-revolv-ring-pulse"
+            style={{ animationDelay: "0.8s" }}
+          />
+          <div className="flex h-40 w-40 items-center justify-center rounded-[2rem] bg-gradient-to-br from-blue-500 to-blue-700 blur-2xl" />
+        </div>
+      </div>
+
+      <Box className="relative flex flex-col items-center justify-center flex-1 p-12">
         <Card className="max-w-[450px] w-full dark:bg-slate-900 dark:border-slate-700">
           <CardHeader className="items-center">
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
               <LogIn size={26} strokeWidth={1.5} />
             </span>
-            <CardTitle className="dark:text-slate-100">Welcome Back</CardTitle>
-            <Badge label="login" variant="info"></Badge>
+            <CardTitle className="dark:text-slate-100">Willkommen zurück</CardTitle>
+            <Badge label="Anmeldung" variant="info"></Badge>
           </CardHeader>
 
           <Separator />
 
           <CardContent className="flex flex-col gap-4 mt-4">
             <Text type="small" color="muted">
-              Please sign in to continue.
+              Bitte melde dich an, um fortzufahren.
             </Text>
 
-            <Text type="small">Email</Text>
+            <Text type="small">E-Mail</Text>
             <input
               className={inputClassName}
-              placeholder="you@example.com"
+              placeholder="du@beispiel.de"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
 
-            <Text type="small">Password</Text>
+            <Text type="small">Passwort</Text>
             <input
               className={inputClassName}
               placeholder="••••••••"
@@ -97,12 +114,12 @@ export default function LoginPage() {
 
             {error ? <div className="text-sm text-red-600 dark:text-red-400">{error}</div> : null}
 
-            <Button label="Sign In" variant="highlight" onClick={handleLogin} />
+            <Button label="Anmelden" variant="highlight" onClick={handleLogin} />
             <div className="text-center text-sm text-muted-foreground dark:text-slate-400">
-              Don't have an account? Register below.
+              Noch kein Konto? Registriere dich unten.
             </div>
             <Button
-              label="Create Account"
+              label="Konto erstellen"
               variant="outline"
               onClick={() => navigate("/register")}
             />
