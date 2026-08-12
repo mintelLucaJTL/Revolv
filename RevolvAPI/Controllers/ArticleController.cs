@@ -54,6 +54,8 @@ namespace RevolvAPI.Controllers
 
             var companyId = User.GetCompanyId();
 
+            var reanalyzeGate = await _returnAnalytics.GetReanalyzeGateAsync(id, companyId);
+
             // AI rows keyed by ArtikelId only — article master data lives in WAWI, not revolv.
             // Ein Artikel kann mehrere Analysen haben; neueste zuerst via OrderNewestFirst (#242),
             // damit Tabelle/Modal/KI-Hub dieselbe aktive Empfehlung sehen ([0] = aktiv).
@@ -73,6 +75,9 @@ namespace RevolvAPI.Controllers
                 ArticleNumber = displayInfo.Sku,
                 Name = displayInfo.Name,
                 Category = displayInfo.Category,
+                CanReanalyze = reanalyzeGate.CanReanalyze,
+                ReanalyzeBlockedReason = reanalyzeGate.BlockedReason,
+                DescriptionLastRevisedAt = reanalyzeGate.LastRevisedAt,
                 AiRecommendations = recommendations.Select(r => new AiRecommendationDetailDTO
                 {
                     Id = r.Id,
@@ -92,7 +97,8 @@ namespace RevolvAPI.Controllers
                         Id = d.Id,
                         CurrentText = d.CurrentText,
                         ProposedText = d.ProposedText,
-                        Status = d.Status
+                        Status = d.Status,
+                        PushedToWawiAt = d.PushedToWawiAt
                     }).ToList(),
 
                     ActionRecommendations = r.ActionRecommendations.Select(ar => new ActionRecommendationDTO

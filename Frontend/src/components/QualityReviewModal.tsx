@@ -57,6 +57,9 @@ export default function QualityReviewModal({
 
   const review = useArticleReview(articleDetail, onArticleUpdated, preferredRecommendationId);
   const summaryText = review.aiRec?.aiSummaryText ?? "";
+  // justPushedToWawi greift sofort (lokal, kein Warten auf Refetch) - unmittelbar nach dem
+  // eigenen Push ist eine neue Analyse per Re-Analyse-Sperre ohnehin noch nicht sinnvoll.
+  const isReanalyzeBlocked = articleDetail?.canReanalyze === false || review.justPushedToWawi;
 
   // Success/warning only after the matching recommendation is in props (rendered).
   useEffect(() => {
@@ -85,12 +88,37 @@ export default function QualityReviewModal({
   const handleAnalyze = async () => {
     if (!articleDetail?.id) return;
 
+    // Button bleibt klickbar, statt per disabled-Attribut stumm nichts zu tun - sonst merkt man
+    // beim Klicken gar nicht, WARUM nichts passiert. Sofort-Feedback per Toast, kein Warten auf
+    // den Server nötig (der Zustand ist schon lokal bekannt).
+    if (isReanalyzeBlocked) {
+      showToast({
+        type: "warning",
+        message:
+          articleDetail?.reanalyzeBlockedReason ??
+          "Für diesen Artikel können wir aktuell keine neue Analyse erstellen.",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     setPendingFeedbackId(null);
     try {
       const response = await apiFetch(`/api/ai/analyze/${articleDetail.id}`, {
         method: "POST",
       });
+
+      // 409 = Re-Analyse-Sperre (Sollte durch den Check oben schon abgefangen sein, aber z. B.
+      // bei zwei offenen Tabs kann der Zustand seit dem letzten Laden noch geändert haben).
+      if (response.status === 409) {
+        const data = (await response.json().catch(() => null)) as { message?: string } | null;
+        showToast({
+          type: "warning",
+          message: data?.message ?? "Für diesen Artikel ist aktuell keine neue Analyse nötig.",
+        });
+        onArticleUpdated?.();
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -170,9 +198,12 @@ export default function QualityReviewModal({
                 <div className="flex flex-shrink-0 items-center gap-2">
                   <Button
                     label={isAnalyzing ? "Analysiert…" : "KI-Analyse generieren"}
-                    variant="highlight"
+                    variant={isReanalyzeBlocked ? "secondary" : "highlight"}
                     onClick={handleAnalyze}
                     isLoading={isAnalyzing}
+                    // isReanalyzeBlocked bewusst NICHT hier - der Button bleibt klickbar, damit
+                    // handleAnalyze per Toast erklären kann, warum gerade nichts passiert, statt
+                    // beim Klick auf ein per disabled stummes Element ins Leere zu laufen.
                     disabled={isAnalyzing || !articleDetail?.id}
                   />
                   <button
@@ -195,6 +226,9 @@ export default function QualityReviewModal({
                 </div>
               </div>
 
+              {/* Re-Analyse-Sperre wird nicht hier, sondern direkt beim KI-Vorschlag im
+                  Beschreibungs-Tab angezeigt (ArticleReviewSections) - dort, wo sie inhaltlich
+                  hingehört, statt zusätzlich oben im Header zu stehen. */}
               {summaryText ? (
                 <div className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
                   <Sparkles size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
@@ -220,6 +254,8 @@ export default function QualityReviewModal({
                 review={review}
                 isAnalyzing={isAnalyzing}
                 onStartAnalysis={handleAnalyze}
+                canReanalyze={articleDetail.canReanalyze}
+                reanalyzeBlockedReason={articleDetail.reanalyzeBlockedReason}
               />
             )}
 

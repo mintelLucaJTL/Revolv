@@ -45,6 +45,8 @@ namespace RevolvAPI.Controllers
             settings.ThresholdYellow = dto.ThresholdYellow;
             settings.ThresholdRed = dto.ThresholdRed;
             settings.AutoAnalyzeNewIssues = dto.AutoAnalyzeNewIssues;
+            settings.MinNewReturnsForReanalyze = dto.MinNewReturnsForReanalyze;
+            settings.SignificantReasonShiftPercentagePoints = dto.SignificantReasonShiftPercentagePoints;
 
             await _ctx.SaveChangesAsync();
 
@@ -84,7 +86,9 @@ namespace RevolvAPI.Controllers
             ToneOfVoice = ToneOfVoiceOptions.Normalize(settings.ToneOfVoice),
             ThresholdYellow = settings.ThresholdYellow,
             ThresholdRed = settings.ThresholdRed,
-            AutoAnalyzeNewIssues = settings.AutoAnalyzeNewIssues
+            AutoAnalyzeNewIssues = settings.AutoAnalyzeNewIssues,
+            MinNewReturnsForReanalyze = settings.MinNewReturnsForReanalyze,
+            SignificantReasonShiftPercentagePoints = settings.SignificantReasonShiftPercentagePoints
         };
     }
 }

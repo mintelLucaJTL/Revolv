@@ -86,6 +86,10 @@ namespace RevolvAPI.Controllers
                         HasQualityBadge = latest?.QualityIssues.Any() ?? false,
                         HasDescriptionBadge = latest?.DescriptionProposals.Any() ?? false,
                         HasRecommendationBadge = latest?.ActionRecommendations.Any() ?? false,
+                        AllActionsCompleted = latest != null
+                            && latest.ActionRecommendations.Any()
+                            && latest.ActionRecommendations.All(a => a.IsCompleted),
+                        IsFullyResolved = latest?.IsFullyResolved ?? false,
                     };
                 })
                 .OrderByDescending(d => d.ReturnRate)

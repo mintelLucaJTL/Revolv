@@ -15,6 +15,10 @@ export interface ReturnItem {
   hasQualityBadge?: boolean;
   hasDescriptionBadge?: boolean;
   hasRecommendationBadge?: boolean;
+  /** true = alle Handlungsempfehlungen für diesen Artikel sind abgehakt. */
+  allActionsCompleted?: boolean;
+  /** true = Qualität, KI-Beschreibung UND Empfehlungen sind alle fertig bearbeitet. */
+  isFullyResolved?: boolean;
 }
 
 export interface SettingsApiDto {
@@ -67,4 +71,9 @@ export interface ArticleDetailDTO {
   size?: string;
   color?: string;
   aiRecommendations?: AiRecommendation[];
+  /** Re-Analyse-Sperre: false, solange sich seit der letzten WAWI-Übernahme noch nicht genug
+   *  an neuen Retouren/Gründen-Gewichtung getan hat. */
+  canReanalyze?: boolean;
+  reanalyzeBlockedReason?: string | null;
+  descriptionLastRevisedAt?: string | null;
 }

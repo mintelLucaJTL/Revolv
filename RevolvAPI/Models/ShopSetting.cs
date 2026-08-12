@@ -25,5 +25,15 @@ namespace RevolvAPI.Models
 
         // Whether newly created quality issues should be analyzed by the AI automatically.
         public bool AutoAnalyzeNewIssues { get; set; } = false;
+
+        // Re-Analyse-Sperre (siehe ReturnAnalyticsService.GetReanalyzeGateAsync): Mindestanzahl
+        // neuer Retouren seit der letzten WAWI-Übernahme, bevor eine erneute KI-Analyse überhaupt
+        // in Frage kommt.
+        public int MinNewReturnsForReanalyze { get; set; } = 3;
+
+        // Wie stark sich der Anteil (in Prozentpunkten) mindestens EINES Retourengrundes
+        // mindestens verschoben haben muss, damit eine neue Analyse als sinnvoll gilt.
+        [Precision(5, 2)]
+        public decimal SignificantReasonShiftPercentagePoints { get; set; } = 15.0m;
     }
 }

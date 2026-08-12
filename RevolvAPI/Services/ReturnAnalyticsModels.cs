@@ -59,4 +59,14 @@ namespace RevolvAPI.Services
         DateOnly ChangeMonth,
         string ChangeLabel,
         List<MonthlyReturnRatePoint> Points);
+
+    // Ob eine neue KI-Analyse fuer diesen Artikel sinnvoll ist (Re-Analyse-Sperre nach einer
+    // bereits live in WAWI uebernommenen Beschreibung). CanReanalyze=false, solange sich seit
+    // LastRevisedAt weder genug neue Retouren angesammelt haben noch die Gewichtung der
+    // Retourengruende sich signifikant verschoben hat - vorher liefert eine neue Analyse
+    // erfahrungsgemaess keine neuen Erkenntnisse und verbraucht nur unnoetig KI-Anfragen.
+    public record ReanalyzeGate(
+        bool CanReanalyze,
+        DateTime? LastRevisedAt,
+        string? BlockedReason);
 }

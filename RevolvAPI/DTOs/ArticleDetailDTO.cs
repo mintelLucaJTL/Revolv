@@ -8,6 +8,12 @@
         public string? Category { get; set; }
 
         public List<AiRecommendationDetailDTO> AiRecommendations { get; set; } = new();
+
+        // Re-Analyse-Sperre: false, solange sich seit der letzten live in WAWI übernommenen
+        // Beschreibung noch nicht genug an neuen Retouren/Gründen-Gewichtung getan hat.
+        public bool CanReanalyze { get; set; } = true;
+        public string? ReanalyzeBlockedReason { get; set; }
+        public DateTime? DescriptionLastRevisedAt { get; set; }
     }
 
     public class AiRecommendationDetailDTO
@@ -35,6 +41,7 @@
         public string? CurrentText { get; set; }
         public string? ProposedText { get; set; }
         public string? Status { get; set; }
+        public DateTime? PushedToWawiAt { get; set; }
     }
 
     public class ActionRecommendationDTO
