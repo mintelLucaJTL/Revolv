@@ -160,6 +160,7 @@ export default function ArticleReviewSections({
     pushedToWawiAt,
     isPushingToWawi,
     pushToWawiError,
+    justPushedToWawi,
     sectionStatus,
     toggleActionRecommendation,
     toggleQualityIssue,
@@ -361,7 +362,7 @@ export default function ArticleReviewSections({
                     KI-Vorschlag (den wir ja bereits übernommen haben) überholt, solange sich
                     nichts Neues ergeben hat, das eine weitere Analyse rechtfertigen würde - statt
                     beides erneut zu zeigen, nur noch der Hinweis, dass wir schon gehandelt haben. */}
-                {pushedToWawiAt && canReanalyze === false ? (
+                {pushedToWawiAt && (canReanalyze === false || justPushedToWawi) ? (
                   <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300">
                     <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
                     <Text>

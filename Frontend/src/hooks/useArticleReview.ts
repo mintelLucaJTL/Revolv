@@ -72,6 +72,12 @@ export function useArticleReview(
   const [pushedToWawiAt, setPushedToWawiAt] = useState<string | null>(null);
   const [isPushingToWawi, setIsPushingToWawi] = useState(false);
   const [pushToWawiError, setPushToWawiError] = useState<string | null>(null);
+  // Lokaler Sofort-Zustand für "gerade eben in dieser Sitzung übernommen" - articleDetail.canReanalyze
+  // kommt vom Server und ist erst nach einem Refetch aktuell; unmittelbar nach einem eigenen Push
+  // steht aber (per Re-Analyse-Sperre: mind. 3 neue Retouren nötig) mathematisch fest, dass eine
+  // neue Analyse gerade nicht sinnvoll ist - das muss nicht erst per Netzwerk-Roundtrip bestätigt
+  // werden, um sofort im UI zu greifen.
+  const [justPushedToWawi, setJustPushedToWawi] = useState(false);
 
   useEffect(() => {
     const initiallyCompleted = actionRecommendations
@@ -92,8 +98,18 @@ export function useArticleReview(
     setProposalActionError(null);
     setPushedToWawiAt(descriptionProposal?.pushedToWawiAt ?? null);
     setPushToWawiError(null);
+    setJustPushedToWawi(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiRec?.id]);
+
+  // Sobald der Server explizit bestätigt, dass wieder analysiert werden darf (z. B. nach einem
+  // Refetch, wenn inzwischen genug neue Retouren mit verschobener Gewichtung eingetrudelt sind),
+  // darf der lokale Sofort-Zustand das nicht länger überstimmen.
+  useEffect(() => {
+    if (articleDetail?.canReanalyze === true) {
+      setJustPushedToWawi(false);
+    }
+  }, [articleDetail?.canReanalyze]);
 
   // Optimistic UI with rollback if the PATCH fails.
   const toggleActionRecommendation = async (rec: ActionRecommendation) => {
@@ -274,6 +290,7 @@ export function useArticleReview(
       if (response.ok || response.status === 409) {
         const data = (await response.json()) as { pushedAt?: string | null };
         setPushedToWawiAt(data.pushedAt ?? new Date().toISOString());
+        setJustPushedToWawi(true);
         onArticleUpdated?.();
         return true;
       }
@@ -381,6 +398,7 @@ export function useArticleReview(
     pushedToWawiAt,
     isPushingToWawi,
     pushToWawiError,
+    justPushedToWawi,
     reviewProgress,
     sectionStatus: {
       quality: qualitySectionStatus,

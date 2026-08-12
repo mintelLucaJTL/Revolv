@@ -57,7 +57,9 @@ export default function QualityReviewModal({
 
   const review = useArticleReview(articleDetail, onArticleUpdated, preferredRecommendationId);
   const summaryText = review.aiRec?.aiSummaryText ?? "";
-  const isReanalyzeBlocked = articleDetail?.canReanalyze === false;
+  // justPushedToWawi greift sofort (lokal, kein Warten auf Refetch) - unmittelbar nach dem
+  // eigenen Push ist eine neue Analyse per Re-Analyse-Sperre ohnehin noch nicht sinnvoll.
+  const isReanalyzeBlocked = articleDetail?.canReanalyze === false || review.justPushedToWawi;
 
   // Success/warning only after the matching recommendation is in props (rendered).
   useEffect(() => {
