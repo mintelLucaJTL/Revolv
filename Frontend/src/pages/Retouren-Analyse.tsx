@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
 import {
   Box,
   Button,
@@ -78,18 +77,37 @@ function rateClasses(rate: number, yellowThreshold: number, redThreshold: number
   };
 }
 
-function aiStatusClasses(status: ReturnItem["aiStatus"]): string {
-  switch (status) {
-    case "Angenommen":
-    case "Gelöst":
-      return "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300";
-    case "Abgelehnt":
-      return "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-300";
-    case "Ausstehend":
-      return "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300";
-    default:
-      return "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400";
-  }
+// Reiner Status-Indikator (kein Bedienelement) im Stil eines Toggles: welche Seite hervorgehoben
+// ist, sagt auf einen Blick, ob für diesen Artikel noch etwas offen ist oder wirklich ALLE drei
+// Bereiche (Qualität, KI-Beschreibung, Empfehlungen) fertig bearbeitet sind - anders als der alte
+// aiStatus-Text, der sich nur nach dem Beschreibungsvorschlag richtete.
+function ArticleStatusToggle({ isFullyResolved }: { isFullyResolved: boolean }) {
+  return (
+    <div
+      className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 p-0.5 dark:border-slate-700 dark:bg-slate-800"
+      role="status"
+      aria-label={isFullyResolved ? "Abgeschlossen" : "Offen"}
+    >
+      <span
+        className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+          !isFullyResolved
+            ? "bg-amber-500 text-white shadow-sm"
+            : "text-slate-400 dark:text-slate-500"
+        }`}
+      >
+        Offen
+      </span>
+      <span
+        className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+          isFullyResolved
+            ? "bg-green-600 text-white shadow-sm"
+            : "text-slate-400 dark:text-slate-500"
+        }`}
+      >
+        Abgeschlossen
+      </span>
+    </div>
+  );
 }
 
 function TableRowSkeleton() {
@@ -516,24 +534,13 @@ export default function RetourenAnalyseView() {
                               {row.mostFrequentReason ?? "—"}
                             </td>
                             <td className="px-4 py-4 text-sm">
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${aiStatusClasses(
-                                    row.aiStatus,
-                                  )}`}
-                                >
+                              {row.aiStatus === "Keine Empfehlung" ? (
+                                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                                   {row.aiStatus}
                                 </span>
-                                {row.allActionsCompleted ? (
-                                  <span
-                                    className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-1 text-xs font-semibold text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300"
-                                    title="Alle Maßnahmen für diesen Artikel wurden ergriffen"
-                                  >
-                                    <CheckCircle2 size={12} aria-hidden="true" />
-                                    Maßnahmen erledigt
-                                  </span>
-                                ) : null}
-                              </div>
+                              ) : (
+                                <ArticleStatusToggle isFullyResolved={Boolean(row.isFullyResolved)} />
+                              )}
                             </td>
                           </tr>
                         );

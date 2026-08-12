@@ -89,6 +89,7 @@ namespace RevolvAPI.Controllers
                         AllActionsCompleted = latest != null
                             && latest.ActionRecommendations.Any()
                             && latest.ActionRecommendations.All(a => a.IsCompleted),
+                        IsFullyResolved = latest?.IsFullyResolved ?? false,
                     };
                 })
                 .OrderByDescending(d => d.ReturnRate)

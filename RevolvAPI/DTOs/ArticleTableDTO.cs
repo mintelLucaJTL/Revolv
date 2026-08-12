@@ -17,5 +17,10 @@
         // sind - unabhängig vom (nur beschreibungs-getriebenen) AiStatus, damit "alle Maßnahmen
         // ergriffen" auch dann sichtbar ist, wenn der Beschreibungsvorschlag noch offen/abgelehnt ist.
         public bool AllActionsCompleted { get; set; }
+
+        // True nur, wenn ALLE drei Bereiche (Qualität, KI-Beschreibung, Empfehlungen) fertig
+        // bearbeitet sind - Grundlage für den Offen/Abgeschlossen-Status in der Tabelle. Anders als
+        // AiStatus (rein beschreibungs-getrieben) berücksichtigt das wirklich alle drei Bereiche.
+        public bool IsFullyResolved { get; set; }
     }
 }
