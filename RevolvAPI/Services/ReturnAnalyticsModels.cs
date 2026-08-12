@@ -44,7 +44,7 @@ namespace RevolvAPI.Services
         string? Name,
         string? Category);
 
-    // Ein Monat der Retourenquote-Zeitreihe für Erfolgsmessung.
+    // Monatlicher Retourenquote-Punkt für Erfolgsmessung.
     public record MonthlyReturnRatePoint(
         DateOnly Month,
         decimal ReturnRatePercent);
@@ -59,6 +59,18 @@ namespace RevolvAPI.Services
         DateOnly ChangeMonth,
         string ChangeLabel,
         List<MonthlyReturnRatePoint> Points);
+
+    // Ein priorisierter To-Do-Eintrag für den Aktionsplan: ein Artikel mit offenen
+    // KI-Empfehlungen, sortiert nach geschätztem Einsparpotenzial.
+    public record ActionPlanItem(
+        int ArtikelId,
+        string Sku,
+        string? Name,
+        decimal ReturnRatePercent,
+        decimal EstimatedReturnCost,
+        int OpenItemCount,
+        string NextStepText,
+        int RecommendationId);
 
     // Ob eine neue KI-Analyse fuer diesen Artikel sinnvoll ist (Re-Analyse-Sperre nach einer
     // bereits live in WAWI uebernommenen Beschreibung). CanReanalyze=false, solange sich seit
