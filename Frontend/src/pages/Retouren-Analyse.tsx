@@ -124,12 +124,6 @@ function TableRowSkeleton() {
         <div className="h-4 w-20 rounded bg-slate-100 dark:bg-slate-800" />
       </td>
       <td className="px-4 py-4">
-        <div className="h-4 w-10 rounded bg-slate-100 dark:bg-slate-800" />
-      </td>
-      <td className="px-4 py-4">
-        <div className="h-4 w-14 rounded bg-slate-100 dark:bg-slate-800" />
-      </td>
-      <td className="px-4 py-4">
         <div className="h-7 w-16 rounded-full bg-slate-200 dark:bg-slate-700" />
       </td>
       <td className="px-4 py-4">
@@ -459,12 +453,6 @@ export default function RetourenAnalyseView() {
                           Kategorie
                         </th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-slate-300">
-                          Größe
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-slate-300">
-                          Farbe
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-slate-300">
                           Retourenquote
                         </th>
                         <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-slate-300">
@@ -514,12 +502,6 @@ export default function RetourenAnalyseView() {
                             </td>
                             <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
                               {row.category}
-                            </td>
-                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                              {row.size}
-                            </td>
-                            <td className="px-4 py-4 text-sm text-slate-700 dark:text-slate-300">
-                              {row.color ?? "—"}
                             </td>
                             <td className="px-4 py-4">
                               <span
