@@ -10,6 +10,8 @@ interface SettingsApiDto {
   autoAnalyzeNewIssues: boolean;
   thresholdYellow: number;
   thresholdRed: number;
+  minNewReturnsForReanalyze: number;
+  significantReasonShiftPercentagePoints: number;
 }
 
 type ThemeMode = "light" | "dark";
@@ -36,12 +38,16 @@ function applySettingsToForm(
     setAutoAnalysis: (v: boolean) => void;
     setYellowThreshold: (v: number) => void;
     setRedThreshold: (v: number) => void;
+    setMinNewReturns: (v: number) => void;
+    setSignificantShift: (v: number) => void;
   },
 ) {
   setters.setTone(normalizeTone(data.toneOfVoice));
   setters.setAutoAnalysis(Boolean(data.autoAnalyzeNewIssues));
   setters.setYellowThreshold(Number(data.thresholdYellow));
   setters.setRedThreshold(Number(data.thresholdRed));
+  setters.setMinNewReturns(Number(data.minNewReturnsForReanalyze));
+  setters.setSignificantShift(Number(data.significantReasonShiftPercentagePoints));
 }
 
 export default function Settings() {
@@ -49,6 +55,8 @@ export default function Settings() {
   const [autoAnalysis, setAutoAnalysis] = useState(false);
   const [yellowThreshold, setYellowThreshold] = useState<number | "">("");
   const [redThreshold, setRedThreshold] = useState<number | "">("");
+  const [minNewReturns, setMinNewReturns] = useState<number | "">("");
+  const [significantShift, setSignificantShift] = useState<number | "">("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -84,6 +92,8 @@ export default function Settings() {
           setAutoAnalysis,
           setYellowThreshold,
           setRedThreshold,
+          setMinNewReturns,
+          setSignificantShift,
         });
       } catch (error) {
         console.error(error);
@@ -105,6 +115,8 @@ export default function Settings() {
     try {
       const yellow = Number(yellowThreshold);
       const red = Number(redThreshold);
+      const minReturns = Number(minNewReturns);
+      const shift = Number(significantShift);
 
       if (
         Number.isNaN(yellow) ||
@@ -118,6 +130,14 @@ export default function Settings() {
         throw new Error("Gelber Schwellenwert muss kleiner als der rote sein (0–100).");
       }
 
+      if (Number.isNaN(minReturns) || minReturns < 0) {
+        throw new Error("Mindestanzahl neuer Retouren darf nicht negativ sein.");
+      }
+
+      if (Number.isNaN(shift) || shift < 0 || shift > 100) {
+        throw new Error("Prozentpunkte müssen zwischen 0 und 100 liegen.");
+      }
+
       const response = await apiFetch(API_SETTINGS, {
         method: "PUT",
         headers: {
@@ -128,6 +148,8 @@ export default function Settings() {
           autoAnalyzeNewIssues: autoAnalysis,
           thresholdYellow: yellow,
           thresholdRed: red,
+          minNewReturnsForReanalyze: minReturns,
+          significantReasonShiftPercentagePoints: shift,
         } satisfies SettingsApiDto),
       });
 
@@ -146,6 +168,8 @@ export default function Settings() {
         setAutoAnalysis,
         setYellowThreshold,
         setRedThreshold,
+        setMinNewReturns,
+        setSignificantShift,
       });
       setMessage("Einstellungen erfolgreich gespeichert.");
     } catch (error) {
@@ -280,6 +304,57 @@ export default function Settings() {
                         }}
                         className={inputClass}
                         placeholder="z. B. 25"
+                      />
+                    </label>
+                  </Box>
+                </Card>
+
+                <Card className={`p-6 ${cardBackground}`}>
+                  <Text weight="bold">Re-Analyse-Sperre</Text>
+                  <Box className="mt-1">
+                    <Text type="xs" color="muted">
+                      Nach einer live in WAWI übernommenen Beschreibung ist eine neue KI-Analyse
+                      erst wieder möglich, wenn BEIDE Bedingungen erfüllt sind.
+                    </Text>
+                  </Box>
+
+                  <Box className="mt-4 space-y-4">
+                    <label className="block">
+                      <Box className="mb-2">
+                        <Text type="xs">Mindestanzahl neuer Retouren</Text>
+                      </Box>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={minNewReturns}
+                        onChange={(event) => {
+                          const raw = event.target.value;
+                          setMinNewReturns(raw === "" ? "" : Number(raw));
+                        }}
+                        className={inputClass}
+                        placeholder="z. B. 3"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <Box className="mb-2">
+                        <Text type="xs">
+                          Mindestverschiebung eines Retourengrundes (Prozentpunkte)
+                        </Text>
+                      </Box>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        value={significantShift}
+                        onChange={(event) => {
+                          const raw = event.target.value;
+                          setSignificantShift(raw === "" ? "" : Number(raw));
+                        }}
+                        className={inputClass}
+                        placeholder="z. B. 15"
                       />
                     </label>
                   </Box>

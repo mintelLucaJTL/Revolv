@@ -7,14 +7,10 @@ namespace RevolvAPI.Services
 {
     public class ReturnAnalyticsService : IReturnAnalyticsService
     {
-        // Mindestanzahl neuer Retouren seit der letzten WAWI-Uebernahme, bevor eine erneute
-        // KI-Analyse ueberhaupt in Frage kommt - mit zu wenig neuen Daten liefert die KI ohnehin
-        // nur eine Wiederholung der letzten Analyse.
-        private const int MinNewReturnsForReanalyze = 3;
-
-        // Wie stark sich der Anteil (in Prozentpunkten) mindestens EINES Retourengrundes seit der
-        // letzten Uebernahme verschoben haben muss, damit eine neue Analyse als sinnvoll gilt.
-        private const decimal SignificantReasonShiftPercentagePoints = 15m;
+        // Fallback, falls eine Firma (noch) keine ShopSettings-Zeile hat (z. B. Background-Job vor
+        // dem ersten Besuch der Settings-Seite) - identisch zu ShopSetting-Modell-Defaults.
+        private const int DefaultMinNewReturnsForReanalyze = 3;
+        private const decimal DefaultSignificantReasonShiftPercentagePoints = 15m;
 
         private readonly AppDbContext _ctx;
 
@@ -408,6 +404,15 @@ namespace RevolvAPI.Services
                 return new ReanalyzeGate(CanReanalyze: true, LastRevisedAt: null, BlockedReason: null);
             }
 
+            // Pro Firma einstellbar (Settings-Seite, "Re-Analyse-Sperre") - Fallback auf die
+            // Standardwerte, falls die Firma noch keine ShopSettings-Zeile hat.
+            var shopSettings = await _ctx.ShopSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.CompanyId == companyId);
+            var minNewReturns = shopSettings?.MinNewReturnsForReanalyze ?? DefaultMinNewReturnsForReanalyze;
+            var significantShiftThreshold = shopSettings?.SignificantReasonShiftPercentagePoints
+                ?? DefaultSignificantReasonShiftPercentagePoints;
+
             var newReturnsCount = await (
                 from li in _ctx.WawiReturnLineItems.AsNoTracking()
                     .Where(x => x.ItemId == articleId && x.ReturnId != null)
@@ -420,7 +425,7 @@ namespace RevolvAPI.Services
                 "Die Gewichtung der Retourengründe hat sich seit der letzten Überarbeitung noch " +
                 "nicht ausreichend verändert für eine neue Analyse.";
 
-            if (newReturnsCount < MinNewReturnsForReanalyze)
+            if (newReturnsCount < minNewReturns)
             {
                 return new ReanalyzeGate(false, lastPush.PushedAt, notEnoughDataMessage);
             }
@@ -452,7 +457,7 @@ namespace RevolvAPI.Services
                 maxShift = Math.Max(maxShift, Math.Abs(afterShare - beforeShare));
             }
 
-            if (maxShift < SignificantReasonShiftPercentagePoints)
+            if (maxShift < significantShiftThreshold)
             {
                 return new ReanalyzeGate(false, lastPush.PushedAt, notEnoughDataMessage);
             }

@@ -16,5 +16,11 @@ namespace RevolvAPI.DTOs
         public decimal ThresholdRed { get; set; }
 
         public bool AutoAnalyzeNewIssues { get; set; }
+
+        [Range(0, 1000)]
+        public int MinNewReturnsForReanalyze { get; set; }
+
+        [Range(0, 100)]
+        public decimal SignificantReasonShiftPercentagePoints { get; set; }
     }
 }
