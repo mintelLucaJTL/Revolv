@@ -223,9 +223,13 @@ export default function QualityReviewModal({
                 </div>
               </div>
 
-              {/* Gesperrt = wir haben bereits eine aktuelle Analyse; der blaue KI-Hinweis von
-                  damals ist an dieser Stelle redundant und wird durch die grüne Sperr-Meldung
-                  ersetzt statt zusätzlich daneben angezeigt zu werden. */}
+              {summaryText ? (
+                <div className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
+                  <Sparkles size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+                  <Text>{summaryText}</Text>
+                </div>
+              ) : null}
+
               {isReanalyzeBlocked ? (
                 <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300">
                   <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
@@ -236,11 +240,6 @@ export default function QualityReviewModal({
                     {articleDetail?.reanalyzeBlockedReason ??
                       "Die Gewichtung der Retourengründe hat sich noch nicht ausreichend verändert für eine neue Analyse."}
                   </Text>
-                </div>
-              ) : summaryText ? (
-                <div className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
-                  <Sparkles size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <Text>{summaryText}</Text>
                 </div>
               ) : null}
             </div>
