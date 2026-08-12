@@ -14,6 +14,7 @@ import AppLayout from "./components/AppLayout";
 import ForgotPassword from "./pages/forgot-password";
 import ResetPassword from "./pages/reset-password";
 import AcceptInvite from "./pages/accept-invite";
+import Welcome from "./pages/welcome";
 
 /** Gate for every authenticated page - renders the persistent AppLayout (header + sidebar) once
  *  for all nested routes, so navigating between them doesn't unmount/remount it (see AppLayout). */
@@ -37,6 +38,18 @@ function AdminOutlet() {
   }
 
   return <Outlet />;
+}
+
+/** Auth-only gate without AppLayout - für Seiten wie /welcome, die bewusst kein
+ *  Header/Sidebar zeigen sollen (Vollbild-Splash), aber trotzdem einen Login voraussetzen. */
+function AuthOnlyRoute({ children }: { children: ReactNode }) {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
 }
 
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
@@ -104,6 +117,14 @@ function AppRoutes() {
           <PublicOnlyRoute>
             <AcceptInvite />
           </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/welcome"
+        element={
+          <AuthOnlyRoute>
+            <Welcome />
+          </AuthOnlyRoute>
         }
       />
       {/* Persistent header + sidebar (AppLayout) for every authenticated page - mounted once
