@@ -24,6 +24,21 @@ function formatPushedAt(iso: string): string {
   }
 }
 
+// "vor X Minuten" o.ä. für den Re-Analyse-Sperr-Hinweis - grob genug, keine Sekundengenauigkeit nötig.
+function formatRelativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.max(0, Math.round(diffMs / 60000));
+
+  if (minutes < 1) return "gerade eben";
+  if (minutes < 60) return `vor ${minutes} Minute${minutes === 1 ? "" : "n"}`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `vor ${hours} Stunde${hours === 1 ? "" : "n"}`;
+
+  const days = Math.round(hours / 24);
+  return `vor ${days} Tag${days === 1 ? "" : "en"}`;
+}
+
 function getPriorityBadgeClasses(priority?: string): string {
   const normalized = priority?.toLowerCase() ?? "";
   if (normalized.includes("hoch") || normalized.includes("high")) {
@@ -103,8 +118,10 @@ interface Props {
   onStartAnalysis?: () => void;
   // false = seit der letzten WAWI-Übernahme hat sich noch nicht genug verändert für eine neue
   // Analyse (siehe QualityReviewModal/ArticleDetailDTO.CanReanalyze). Blendet den veralteten
-  // "Aktuell"-Text aus, statt einen Stand zu zeigen, der seit dem Push ohnehin überholt ist.
+  // "Aktuell"-Text sowie den (bereits übernommenen) KI-Vorschlag aus, statt einen Stand zu
+  // zeigen, der seit dem Push ohnehin überholt ist.
   canReanalyze?: boolean;
+  reanalyzeBlockedReason?: string | null;
 }
 
 /**
@@ -119,6 +136,7 @@ export default function ArticleReviewSections({
   isAnalyzing,
   onStartAnalysis,
   canReanalyze,
+  reanalyzeBlockedReason,
 }: Props) {
   const {
     aiRec,
@@ -339,10 +357,20 @@ export default function ArticleReviewSections({
           <div>
             <Card className="border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
               <CardContent className="p-4">
-                {/* Nach der WAWI-Übernahme zeigt "Aktuell" den Stand von VOR dem Push - sobald
-                    sich seither nichts mehr verändert hat, das eine neue Analyse rechtfertigen
-                    würde, ist dieser alte Stand nur noch verwirrend und wird ausgeblendet. */}
-                {!(pushedToWawiAt && canReanalyze === false) && (
+                {/* Nach der WAWI-Übernahme sind "Aktuell" (Stand von VOR dem Push) und der
+                    KI-Vorschlag (den wir ja bereits übernommen haben) überholt, solange sich
+                    nichts Neues ergeben hat, das eine weitere Analyse rechtfertigen würde - statt
+                    beides erneut zu zeigen, nur noch der Hinweis, dass wir schon gehandelt haben. */}
+                {pushedToWawiAt && canReanalyze === false ? (
+                  <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300">
+                    <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+                    <Text>
+                      {`Wir haben die Beschreibung ${formatRelativeTime(pushedToWawiAt)} bereits überarbeitet. `}
+                      {reanalyzeBlockedReason ??
+                        "Die Gewichtung der Retourengründe hat sich noch nicht ausreichend verändert für eine neue Analyse."}
+                    </Text>
+                  </div>
+                ) : (
                   <>
                     <Text weight="bold">Aktuell</Text>
                     <Box className="mt-2 mb-4">
@@ -352,24 +380,24 @@ export default function ArticleReviewSections({
                         <Text color="muted">Keine Beschreibung vorhanden</Text>
                       )}
                     </Box>
+
+                    <Text weight="bold">KI-VORSCHLAG</Text>
+                    <Box className="mt-2">
+                      {isEditingProposal ? (
+                        <textarea
+                          value={draftProposedText}
+                          onChange={(e) => setDraftProposedText(e.target.value)}
+                          rows={5}
+                          className="w-full rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-950 p-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      ) : proposedTextValue ? (
+                        <Text>{proposedTextValue}</Text>
+                      ) : (
+                        <Text color="muted">Keine Vorschläge</Text>
+                      )}
+                    </Box>
                   </>
                 )}
-
-                <Text weight="bold">KI-VORSCHLAG</Text>
-                <Box className="mt-2">
-                  {isEditingProposal ? (
-                    <textarea
-                      value={draftProposedText}
-                      onChange={(e) => setDraftProposedText(e.target.value)}
-                      rows={5}
-                      className="w-full rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-950 p-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  ) : proposedTextValue ? (
-                    <Text>{proposedTextValue}</Text>
-                  ) : (
-                    <Text color="muted">Keine Vorschläge</Text>
-                  )}
-                </Box>
 
                 {proposalActionsFooter}
               </CardContent>

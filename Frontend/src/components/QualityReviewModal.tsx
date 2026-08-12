@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, Button, Text } from "@jtl-software/platform-ui-react";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import ArticleReviewSections from "./ArticleReviewSections";
 import { apiFetch } from "../utils/api";
 import {
@@ -20,21 +20,6 @@ const PLACEHOLDER_CUSTOMER_COMMENTS = [
 
 const EMPTY_RESULT_TOAST =
   "Die KI-Analyse lieferte keinen sichtbaren Vorschlag. Bitte erneut versuchen.";
-
-// "vor X Minuten" o.ä. - grob genug fürs Re-Analyse-Hinweisfeld, keine Sekundengenauigkeit nötig.
-function formatRelativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const minutes = Math.max(0, Math.round(diffMs / 60000));
-
-  if (minutes < 1) return "gerade eben";
-  if (minutes < 60) return `vor ${minutes} Minute${minutes === 1 ? "" : "n"}`;
-
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `vor ${hours} Stunde${hours === 1 ? "" : "n"}`;
-
-  const days = Math.round(hours / 24);
-  return `vor ${days} Tag${days === 1 ? "" : "en"}`;
-}
 
 interface Props {
   isOpen: boolean;
@@ -223,23 +208,13 @@ export default function QualityReviewModal({
                 </div>
               </div>
 
+              {/* Re-Analyse-Sperre wird nicht hier, sondern direkt beim KI-Vorschlag im
+                  Beschreibungs-Tab angezeigt (ArticleReviewSections) - dort, wo sie inhaltlich
+                  hingehört, statt zusätzlich oben im Header zu stehen. */}
               {summaryText ? (
                 <div className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
                   <Sparkles size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <Text>{summaryText}</Text>
-                </div>
-              ) : null}
-
-              {isReanalyzeBlocked ? (
-                <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300">
-                  <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
-                  <Text>
-                    {articleDetail?.descriptionLastRevisedAt
-                      ? `Wir haben die Beschreibung ${formatRelativeTime(articleDetail.descriptionLastRevisedAt)} bereits überarbeitet. `
-                      : ""}
-                    {articleDetail?.reanalyzeBlockedReason ??
-                      "Die Gewichtung der Retourengründe hat sich noch nicht ausreichend verändert für eine neue Analyse."}
-                  </Text>
                 </div>
               ) : null}
             </div>
@@ -262,6 +237,7 @@ export default function QualityReviewModal({
                 isAnalyzing={isAnalyzing}
                 onStartAnalysis={handleAnalyze}
                 canReanalyze={articleDetail.canReanalyze}
+                reanalyzeBlockedReason={articleDetail.reanalyzeBlockedReason}
               />
             )}
 
