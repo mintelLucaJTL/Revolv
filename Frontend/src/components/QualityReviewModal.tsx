@@ -88,6 +88,19 @@ export default function QualityReviewModal({
   const handleAnalyze = async () => {
     if (!articleDetail?.id) return;
 
+    // Button bleibt klickbar, statt per disabled-Attribut stumm nichts zu tun - sonst merkt man
+    // beim Klicken gar nicht, WARUM nichts passiert. Sofort-Feedback per Toast, kein Warten auf
+    // den Server nötig (der Zustand ist schon lokal bekannt).
+    if (isReanalyzeBlocked) {
+      showToast({
+        type: "warning",
+        message:
+          articleDetail?.reanalyzeBlockedReason ??
+          "Für diesen Artikel können wir aktuell keine neue Analyse erstellen.",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     setPendingFeedbackId(null);
     try {
@@ -95,8 +108,8 @@ export default function QualityReviewModal({
         method: "POST",
       });
 
-      // 409 = Re-Analyse-Sperre (Button ist dafür eigentlich schon deaktiviert, aber z. B. bei
-      // zwei offenen Tabs kann der Zustand seit dem letzten Laden noch geändert haben).
+      // 409 = Re-Analyse-Sperre (Sollte durch den Check oben schon abgefangen sein, aber z. B.
+      // bei zwei offenen Tabs kann der Zustand seit dem letzten Laden noch geändert haben).
       if (response.status === 409) {
         const data = (await response.json().catch(() => null)) as { message?: string } | null;
         showToast({
@@ -185,10 +198,13 @@ export default function QualityReviewModal({
                 <div className="flex flex-shrink-0 items-center gap-2">
                   <Button
                     label={isAnalyzing ? "Analysiert…" : "KI-Analyse generieren"}
-                    variant="highlight"
+                    variant={isReanalyzeBlocked ? "secondary" : "highlight"}
                     onClick={handleAnalyze}
                     isLoading={isAnalyzing}
-                    disabled={isAnalyzing || !articleDetail?.id || isReanalyzeBlocked}
+                    // isReanalyzeBlocked bewusst NICHT hier - der Button bleibt klickbar, damit
+                    // handleAnalyze per Toast erklären kann, warum gerade nichts passiert, statt
+                    // beim Klick auf ein per disabled stummes Element ins Leere zu laufen.
+                    disabled={isAnalyzing || !articleDetail?.id}
                   />
                   <button
                     type="button"
