@@ -1,14 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@jtl-software/platform-ui-react";
-import TopNavigationBar from "../components/TopNavigationBar";
-import Sidebar from "../components/Sidebar";
+import { Button, Card, CardContent, CardHeader, CardTitle } from "@jtl-software/platform-ui-react";
 import QualityReviewModal from "../components/QualityReviewModal";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../utils/api";
@@ -303,14 +294,8 @@ export default function RetourenAnalyseView() {
     : "Keine zurückgesendeten Artikel gefunden.";
 
   return (
-    <Box className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <TopNavigationBar />
-
-      <Box className="flex">
-        <Sidebar />
-
-        <Box className="flex-1 p-6">
-          <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
+    <>
+      <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
               <input
                 aria-label="Suche Artikel"
@@ -525,8 +510,6 @@ export default function RetourenAnalyseView() {
               </div>
             </CardContent>
           </Card>
-        </Box>
-      </Box>
 
       <QualityReviewModal
         isOpen={isModalOpen}
@@ -543,6 +526,6 @@ export default function RetourenAnalyseView() {
         onArticleUpdated={() => void loadArticles(activeBand)}
         onRefetchDetail={refetchSelectedDetail}
       />
-    </Box>
+    </>
   );
 }

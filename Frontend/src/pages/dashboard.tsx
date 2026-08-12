@@ -2,11 +2,9 @@ import { Box, Card, CardContent, Text } from "@jtl-software/platform-ui-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import KpiCard from "../components/KpiCard";
-import TopNavigationBar from "../components/TopNavigationBar";
 import ReturnReasonsChart from "../components/ReturnReasonsChar";
 import TopReturnsChart from "../components/TopReturnsChart";
 import ReturnCostsChart from "../components/ReturnCostsChart";
-import Sidebar from "../components/Sidebar";
 import LatestReturnsList from "../components/LatestReturnsList";
 import { apiFetch } from "../utils/api";
 import { buildRetourenAnalysePath } from "../utils/riskBand";
@@ -241,14 +239,8 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <Box className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <TopNavigationBar />
-
-      <Box className="flex">
-        <Sidebar />
-
-        <Box className="flex-1 p-6">
-          <Box className="flex items-center gap-2">
+    <>
+      <Box className="flex items-center gap-2">
             <Text weight="bold">Retourenanalyse</Text>
             {isRefreshing && (
               <span
@@ -355,8 +347,6 @@ export default function Dashboard() {
               <LatestReturnsList />
             </div>
           </div>
-        </Box>
-      </Box>
-    </Box>
+    </>
   );
 }

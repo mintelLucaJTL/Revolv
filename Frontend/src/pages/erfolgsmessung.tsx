@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Box,
   Card,
   CardContent,
   CardHeader,
@@ -18,8 +17,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import TopNavigationBar from "../components/TopNavigationBar";
-import Sidebar from "../components/Sidebar";
 import { apiFetch } from "../utils/api";
 
 interface TrendPoint {
@@ -147,14 +144,8 @@ export default function Erfolgsmessung() {
         : "text-red-600 dark:text-red-400";
 
   return (
-    <Box className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <TopNavigationBar />
-
-      <Box className="flex">
-        <Sidebar />
-
-        <Box className="flex-1 p-6">
-          <div className="mx-auto flex max-w-5xl flex-col gap-4">
+    <>
+      <div className="mx-auto flex max-w-5xl flex-col gap-4">
             <div>
               <Text weight="bold">Erfolgsmessung</Text>
               <Text type="xs" color="muted">
@@ -290,8 +281,6 @@ export default function Erfolgsmessung() {
               </>
             )}
           </div>
-        </Box>
-      </Box>
-    </Box>
+    </>
   );
 }

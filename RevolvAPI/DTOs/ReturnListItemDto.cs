@@ -5,5 +5,6 @@ namespace RevolvAPI.DTOs
         public string ArticleNumber { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string IssueText { get; set; } = string.Empty;
+        public DateTimeOffset ReturnedAt { get; set; }
     }
 }

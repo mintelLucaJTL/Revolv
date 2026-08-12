@@ -125,7 +125,8 @@ namespace RevolvAPI.Controllers
                 {
                     ArticleNumber = x.Sku,
                     Name = x.ArticleName ?? "Unbekannt",
-                    IssueText = x.ReasonName
+                    IssueText = x.ReasonName,
+                    ReturnedAt = x.ReturnDate
                 })
                 .ToList();
 

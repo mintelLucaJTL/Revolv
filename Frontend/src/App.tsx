@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import Dashboard from "./pages/dashboard";
 import Login from "./pages/login";
@@ -10,11 +10,14 @@ import Team from "./pages/team";
 import Erfolgsmessung from "./pages/erfolgsmessung";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./components/Toast";
+import AppLayout from "./components/AppLayout";
 import ForgotPassword from "./pages/forgot-password";
 import ResetPassword from "./pages/reset-password";
 import AcceptInvite from "./pages/accept-invite";
 
-function ProtectedRoute({ children }: { children: ReactNode }) {
+/** Gate for every authenticated page - renders the persistent AppLayout (header + sidebar) once
+ *  for all nested routes, so navigating between them doesn't unmount/remount it (see AppLayout). */
+function ProtectedLayout() {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
 
@@ -22,23 +25,18 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return children;
+  return <AppLayout />;
 }
 
-/** Authenticated Admin-only routes (Settings, Mein Team). */
-function AdminRoute({ children }: { children: ReactNode }) {
-  const location = useLocation();
-  const { isAuthenticated, isAdmin } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
+/** Nested under ProtectedLayout: gates Admin-only routes (Settings, Mein Team) the same way. */
+function AdminOutlet() {
+  const { isAdmin } = useAuth();
 
   if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return children;
+  return <Outlet />;
 }
 
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
@@ -108,56 +106,20 @@ function AppRoutes() {
           </PublicOnlyRoute>
         }
       />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/retouren-analyse"
-        element={
-          <ProtectedRoute>
-            <RetourenAnalyse />
-          </ProtectedRoute>
-        }
-      />
-      {/* /ki-empfehlungen retired: its filters moved into /retouren-analyse; falls through to the
-          catch-all route below for old links/bookmarks. */}
-      <Route
-        path="/erfolgsmessung"
-        element={
-          <ProtectedRoute>
-            <Erfolgsmessung />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/team"
-        element={
-          <AdminRoute>
-            <Team />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <AdminRoute>
-            <Settings />
-          </AdminRoute>
-        }
-      />
+      {/* Persistent header + sidebar (AppLayout) for every authenticated page - mounted once
+          here, not per-page, so it survives navigation between the nested routes below. */}
+      <Route element={<ProtectedLayout />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/retouren-analyse" element={<RetourenAnalyse />} />
+        {/* /ki-empfehlungen retired: its filters moved into /retouren-analyse; falls through to
+            the catch-all route below for old links/bookmarks. */}
+        <Route path="/erfolgsmessung" element={<Erfolgsmessung />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route element={<AdminOutlet />}>
+          <Route path="/team" element={<Team />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+      </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

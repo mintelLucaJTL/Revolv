@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, Box, Button, Card, Text } from "@jtl-software/platform-ui-react";
-import Sidebar from "../components/Sidebar";
-import TopNavigationBar from "../components/TopNavigationBar";
 import DeleteAccountModal from "../components/DeleteAccountModal";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -86,14 +84,8 @@ export default function Profile() {
   };
 
   return (
-    <Box className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <TopNavigationBar />
-
-      <Box className="flex">
-        <Sidebar />
-
-        <Box className="flex-1 p-6">
-          <Text weight="bold">Profil</Text>
+    <>
+      <Text weight="bold">Profil</Text>
 
           {loading ? (
             <Box className="mt-6">
@@ -190,14 +182,12 @@ export default function Profile() {
               </Card>
             </Box>
           )}
-        </Box>
-      </Box>
 
       <DeleteAccountModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteAccount}
       />
-    </Box>
+    </>
   );
 }

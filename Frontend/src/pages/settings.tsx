@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Box, Card, Button, Text } from "@jtl-software/platform-ui-react";
-import Sidebar from "../components/Sidebar";
-import TopNavigationBar from "../components/TopNavigationBar";
 import { apiFetch } from "../utils/api";
 
 // DTO for the settings API.
@@ -24,10 +22,104 @@ const ALLOWED_TONES = ["Locker", "Formell und sachlich"] as const;
 
 const DEFAULT_TONE = "Formell und sachlich";
 
+// Muss mit den ShopSetting-Modell-Defaults im Backend übereinstimmen (RevolvAPI/Models/ShopSetting.cs).
+const DEFAULT_YELLOW_THRESHOLD = 10;
+const DEFAULT_RED_THRESHOLD = 25;
+const DEFAULT_MIN_NEW_RETURNS = 3;
+const DEFAULT_SIGNIFICANT_SHIFT = 15;
+
 function normalizeTone(tone: string | undefined): string {
   return ALLOWED_TONES.includes(tone as (typeof ALLOWED_TONES)[number])
     ? (tone as string)
     : DEFAULT_TONE;
+}
+
+// Slider statt Zahlenfeld für alle numerischen Settings - Wert + Min/Max sind auf einen Blick
+// sichtbar, ohne dass man erst reintippen und die Validierung abwarten muss. tickStep steuert nur
+// die sichtbaren Zwischenstufen-Punkte (datalist), unabhängig vom tatsächlichen Wert-Schritt.
+let sliderIdCounter = 0;
+
+function SliderField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  tickStep,
+  unit = "",
+  onChange,
+}: {
+  label: string;
+  value: number | "";
+  min: number;
+  max: number;
+  step: number;
+  tickStep: number;
+  unit?: string;
+  onChange: (v: number) => void;
+}) {
+  const [datalistId] = useState(() => `slider-ticks-${++sliderIdCounter}`);
+  const display = value === "" ? min : value;
+
+  const ticks: number[] = [];
+  for (let t = min; t <= max + 1e-9; t += tickStep) {
+    ticks.push(Math.round(t * 100) / 100);
+  }
+
+  return (
+    <div>
+      <Box className="mb-3 flex items-center justify-between">
+        <Text weight="bold">{label}</Text>
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+          {display}
+          {unit}
+        </span>
+      </Box>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        list={datalistId}
+        value={display}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="revolv-slider"
+        aria-label={label}
+      />
+      <datalist id={datalistId}>
+        {ticks.map((t) => (
+          <option key={t} value={t} />
+        ))}
+      </datalist>
+      {/* Zahl unter jedem Punkt auf der Spur, nicht nur an den Enden - zeigt direkt, welcher
+          Wert an welcher Stelle liegt, statt dass man sich zwischen Min und Max selbst orientieren muss. */}
+      <div className="relative mt-1.5 h-4">
+        {ticks.map((t, index) => {
+          const pct = ((t - min) / (max - min)) * 100;
+          const isFirst = index === 0;
+          const isLast = index === ticks.length - 1;
+          const isActive = Math.abs(t - display) < (step ?? 1) / 2;
+          return (
+            <span
+              key={t}
+              className={`absolute top-0 whitespace-nowrap text-xs font-semibold ${
+                isActive
+                  ? "text-blue-700 dark:text-blue-300"
+                  : "text-slate-500 dark:text-slate-400"
+              }`}
+              style={{
+                left: `${pct}%`,
+                transform: isFirst ? "none" : isLast ? "translateX(-100%)" : "translateX(-50%)",
+              }}
+            >
+              {t}
+              {unit}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // Applies the settings to the form.
@@ -130,12 +222,12 @@ export default function Settings() {
         throw new Error("Gelber Schwellenwert muss kleiner als der rote sein (0–100).");
       }
 
-      if (Number.isNaN(minReturns) || minReturns < 0) {
-        throw new Error("Mindestanzahl neuer Retouren darf nicht negativ sein.");
+      if (Number.isNaN(minReturns) || minReturns < 3 || minReturns > 10) {
+        throw new Error("Mindestanzahl neuer Retouren muss zwischen 3 und 10 liegen.");
       }
 
-      if (Number.isNaN(shift) || shift < 0 || shift > 100) {
-        throw new Error("Prozentpunkte müssen zwischen 0 und 100 liegen.");
+      if (Number.isNaN(shift) || shift < 14 || shift > 30) {
+        throw new Error("Prozentpunkte müssen zwischen 14 und 30 liegen.");
       }
 
       const response = await apiFetch(API_SETTINGS, {
@@ -189,9 +281,6 @@ export default function Settings() {
     setTheme((current) => (current === "dark" ? "light" : "dark"));
   };
 
-  const pageBackground =
-    theme === "dark" ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-900";
-
   const cardBackground =
     theme === "dark" ? "bg-slate-900 border border-slate-700" : "bg-white border border-slate-200";
 
@@ -203,14 +292,8 @@ export default function Settings() {
   const themeButtonLabel = theme === "dark" ? "Zum White-Mode wechseln" : "Zum Dark-Mode wechseln";
 
   return (
-    <Box className={`min-h-screen ${pageBackground}`}>
-      <TopNavigationBar />
-
-      <Box className="flex">
-        <Sidebar />
-
-        <Box className="flex-1 p-6">
-          <Text weight="bold">Einstellungen</Text>
+    <>
+      <Text weight="bold">Einstellungen</Text>
 
           {loading ? (
             <Box className="mt-6">
@@ -266,97 +349,93 @@ export default function Settings() {
                     </label>
                   </Box>
                 </Card>
+              </Box>
 
-                <Card className={`p-6 ${cardBackground}`}>
-                  <Text weight="bold">Retouren-Ampel</Text>
+              <Box className="mt-6 grid gap-4 md:grid-cols-2">
+                <Card className={`p-5 ${cardBackground}`}>
+                  <Box className="flex items-start justify-between gap-3">
+                    <Text weight="bold">Retouren-Ampel-Settings</Text>
+                    <Button
+                      label="Standard wiederherstellen"
+                      variant="ghost"
+                      onClick={() => {
+                        setYellowThreshold(DEFAULT_YELLOW_THRESHOLD);
+                        setRedThreshold(DEFAULT_RED_THRESHOLD);
+                      }}
+                    />
+                  </Box>
+                  <Box className="mt-1 mb-4">
+                    <Text type="small" weight="medium" color="muted">
+                      Ab welcher Retourenquote ein Artikel in der Tabelle gelb bzw. rot markiert
+                      wird.
+                    </Text>
+                  </Box>
 
-                  <Box className="mt-4 space-y-4">
-                    <label className="block">
-                      <Box className="mb-2">
-                        <Text type="xs">Gelbe Warnung ab (%)</Text>
-                      </Box>
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.1}
-                        value={yellowThreshold}
-                        onChange={(event) => {
-                          const raw = event.target.value;
-                          setYellowThreshold(raw === "" ? "" : Number(raw));
-                        }}
-                        className={inputClass}
-                        placeholder="z. B. 10"
-                      />
-                    </label>
+                  <Box className="space-y-5">
+                    <SliderField
+                      label="Gelbe Warnung ab"
+                      value={yellowThreshold}
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      tickStep={10}
+                      unit="%"
+                      onChange={setYellowThreshold}
+                    />
 
-                    <label className="block">
-                      <Box className="mb-2">
-                        <Text type="xs">Rote Warnung ab (%)</Text>
-                      </Box>
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.1}
-                        value={redThreshold}
-                        onChange={(event) => {
-                          const raw = event.target.value;
-                          setRedThreshold(raw === "" ? "" : Number(raw));
-                        }}
-                        className={inputClass}
-                        placeholder="z. B. 25"
-                      />
-                    </label>
+                    <SliderField
+                      label="Rote Warnung ab"
+                      value={redThreshold}
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      tickStep={10}
+                      unit="%"
+                      onChange={setRedThreshold}
+                    />
                   </Box>
                 </Card>
 
-                <Card className={`p-6 ${cardBackground}`}>
-                  <Text weight="bold">Re-Analyse-Sperre</Text>
-                  <Box className="mt-1">
-                    <Text type="xs" color="muted">
+                <Card className={`p-5 ${cardBackground}`}>
+                  <Box className="flex items-start justify-between gap-3">
+                    <Text weight="bold">Retouren-Analyse-Settings</Text>
+                    <Button
+                      label="Standard wiederherstellen"
+                      variant="ghost"
+                      onClick={() => {
+                        setMinNewReturns(DEFAULT_MIN_NEW_RETURNS);
+                        setSignificantShift(DEFAULT_SIGNIFICANT_SHIFT);
+                      }}
+                    />
+                  </Box>
+                  <Box className="mt-1 mb-4">
+                    <Text type="small" weight="medium" color="muted">
                       Nach einer live in WAWI übernommenen Beschreibung ist eine neue KI-Analyse
                       erst wieder möglich, wenn BEIDE Bedingungen erfüllt sind.
                     </Text>
                   </Box>
 
-                  <Box className="mt-4 space-y-4">
-                    <label className="block">
-                      <Box className="mb-2">
-                        <Text type="xs">Mindestanzahl neuer Retouren</Text>
-                      </Box>
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={minNewReturns}
-                        onChange={(event) => {
-                          const raw = event.target.value;
-                          setMinNewReturns(raw === "" ? "" : Number(raw));
-                        }}
-                        className={inputClass}
-                        placeholder="z. B. 3"
-                      />
-                    </label>
+                  <Box className="space-y-5">
+                    <SliderField
+                      label="Mindestanzahl neuer Retouren"
+                      value={minNewReturns}
+                      min={3}
+                      max={10}
+                      step={1}
+                      tickStep={1}
+                      onChange={setMinNewReturns}
+                    />
 
-                    <label className="block">
-                      <Box className="mb-2">
-                        <Text type="xs">
-                          Mindestverschiebung eines Retourengrundes (Prozentpunkte)
-                        </Text>
-                      </Box>
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={0.1}
-                        value={significantShift}
-                        onChange={(event) => {
-                          const raw = event.target.value;
-                          setSignificantShift(raw === "" ? "" : Number(raw));
-                        }}
-                        className={inputClass}
-                        placeholder="z. B. 15"
-                      />
-                    </label>
+                    <SliderField
+                      label="Mindestverschiebung eines Retourengrundes"
+                      value={significantShift}
+                      min={14}
+                      max={30}
+                      step={1}
+                      tickStep={2}
+                      unit="%"
+                      onChange={setSignificantShift}
+                    />
                   </Box>
                 </Card>
               </Box>
@@ -377,8 +456,6 @@ export default function Settings() {
               </Box>
             </>
           )}
-        </Box>
-      </Box>
-    </Box>
+    </>
   );
 }

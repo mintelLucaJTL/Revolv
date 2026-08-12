@@ -1,8 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Card, Button, Text } from "@jtl-software/platform-ui-react";
-import Sidebar from "../components/Sidebar";
-import TopNavigationBar from "../components/TopNavigationBar";
 import { useAuth } from "../context/AuthContext";
 import { ROLE_ADMIN, ROLE_MITARBEITER, type RoleName } from "../utils/roles";
 import {
@@ -141,14 +139,8 @@ export default function Team() {
     "w-full rounded border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100";
 
   return (
-    <Box className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <TopNavigationBar />
-
-      <Box className="flex">
-        <Sidebar />
-
-        <Box className="flex-1 p-6">
-          <Text weight="bold">Mein Team</Text>
+    <>
+      <Text weight="bold">Mein Team</Text>
           <Box className="mt-1">
             <Text type="xs">
               Mitarbeiter einladen und Rollen verwalten. Eingeladene Nutzer gehören automatisch zu
@@ -271,8 +263,6 @@ export default function Team() {
               </>
             )}
           </Card>
-        </Box>
-      </Box>
-    </Box>
+    </>
   );
 }
