@@ -22,6 +22,12 @@ const ALLOWED_TONES = ["Locker", "Formell und sachlich"] as const;
 
 const DEFAULT_TONE = "Formell und sachlich";
 
+// Muss mit den ShopSetting-Modell-Defaults im Backend übereinstimmen (RevolvAPI/Models/ShopSetting.cs).
+const DEFAULT_YELLOW_THRESHOLD = 10;
+const DEFAULT_RED_THRESHOLD = 25;
+const DEFAULT_MIN_NEW_RETURNS = 3;
+const DEFAULT_SIGNIFICANT_SHIFT = 15;
+
 function normalizeTone(tone: string | undefined): string {
   return ALLOWED_TONES.includes(tone as (typeof ALLOWED_TONES)[number])
     ? (tone as string)
@@ -330,7 +336,17 @@ export default function Settings() {
 
               <Box className="mt-6 space-y-6">
                 <Card className={`p-6 ${cardBackground}`}>
-                  <Text weight="bold">Retouren-Ampel-Settings</Text>
+                  <Box className="flex items-start justify-between gap-3">
+                    <Text weight="bold">Retouren-Ampel-Settings</Text>
+                    <Button
+                      label="Standard wiederherstellen"
+                      variant="ghost"
+                      onClick={() => {
+                        setYellowThreshold(DEFAULT_YELLOW_THRESHOLD);
+                        setRedThreshold(DEFAULT_RED_THRESHOLD);
+                      }}
+                    />
+                  </Box>
                   <Box className="mt-1 mb-5">
                     <Text type="xs" color="muted">
                       Ab welcher Retourenquote ein Artikel in der Tabelle gelb bzw. rot markiert
@@ -364,7 +380,17 @@ export default function Settings() {
                 </Card>
 
                 <Card className={`p-6 ${cardBackground}`}>
-                  <Text weight="bold">Retouren-Analyse-Settings</Text>
+                  <Box className="flex items-start justify-between gap-3">
+                    <Text weight="bold">Retouren-Analyse-Settings</Text>
+                    <Button
+                      label="Standard wiederherstellen"
+                      variant="ghost"
+                      onClick={() => {
+                        setMinNewReturns(DEFAULT_MIN_NEW_RETURNS);
+                        setSignificantShift(DEFAULT_SIGNIFICANT_SHIFT);
+                      }}
+                    />
+                  </Box>
                   <Box className="mt-1 mb-5">
                     <Text type="xs" color="muted">
                       Nach einer live in WAWI übernommenen Beschreibung ist eine neue KI-Analyse
