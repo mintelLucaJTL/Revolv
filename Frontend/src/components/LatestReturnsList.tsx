@@ -1,27 +1,38 @@
 import { useState, useEffect } from "react";
 import { Box, Card, CardContent, CardHeader, CardTitle } from "@jtl-software/platform-ui-react";
+import { RotateCcw } from "lucide-react";
 import { apiFetch } from "../utils/api";
-import { getReasonColor } from "../utils/reasonColors";
 
 interface LatestReturnItem {
   articleNumber: string;
   name: string;
-  issueText: string;
+  returnedAt: string;
 }
 
-function TableRowSkeleton() {
+function formatRelativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.max(0, Math.round(diffMs / 60000));
+
+  if (minutes < 1) return "gerade eben";
+  if (minutes < 60) return `vor ${minutes} Min.`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `vor ${hours} Std.`;
+
+  const days = Math.round(hours / 24);
+  return `vor ${days} Tg.`;
+}
+
+function RowSkeleton() {
   return (
-    <tr className="animate-pulse">
-      <td className="px-4 py-3">
-        <div className="h-3.5 w-20 rounded bg-slate-200 dark:bg-slate-700" />
-      </td>
-      <td className="px-4 py-3">
-        <div className="h-3.5 w-32 rounded bg-slate-200 dark:bg-slate-700" />
-      </td>
-      <td className="px-4 py-3">
-        <div className="h-6 w-24 rounded-full bg-slate-100 dark:bg-slate-800" />
-      </td>
-    </tr>
+    <div className="flex items-center gap-3 px-4 py-3">
+      <div className="h-8 w-8 flex-shrink-0 rounded-full bg-slate-200 dark:bg-slate-700" />
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="h-3.5 w-40 rounded bg-slate-200 dark:bg-slate-700" />
+        <div className="h-3 w-20 rounded bg-slate-100 dark:bg-slate-800" />
+      </div>
+      <div className="h-3 w-14 flex-shrink-0 rounded bg-slate-100 dark:bg-slate-800" />
+    </div>
   );
 }
 
@@ -70,51 +81,34 @@ export default function LatestReturnsList() {
             Keine aktuellen Retouren vorhanden.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-700">
-            <table className="min-w-full divide-y divide-slate-100 dark:divide-slate-700">
-              <thead className="bg-slate-50 dark:bg-slate-800">
-                <tr>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Artikel-Nr.
-                  </th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Produktname
-                  </th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Retourengrund
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white dark:divide-slate-700 dark:bg-slate-900">
-                {isLoading
-                  ? Array.from({ length: 3 }, (_, index) => (
-                      <TableRowSkeleton key={`latest-returns-skeleton-${index}`} />
-                    ))
-                  : returns.map((item, index) => (
-                      <tr
-                        key={`${item.articleNumber}-${index}`}
-                        className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
-                      >
-                        <td className="px-4 py-3 text-sm text-slate-400 dark:text-slate-500">
-                          {item.articleNumber}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          {item.name}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:text-slate-300">
-                            <span
-                              className="h-2 w-2 flex-shrink-0 rounded-full"
-                              style={{ backgroundColor: getReasonColor(item.issueText) }}
-                              aria-hidden="true"
-                            />
-                            {item.issueText}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-              </tbody>
-            </table>
+          <div className="divide-y divide-slate-100 rounded-xl border border-slate-100 dark:divide-slate-800 dark:border-slate-800">
+            {isLoading
+              ? Array.from({ length: 4 }, (_, index) => (
+                  <RowSkeleton key={`latest-returns-skeleton-${index}`} />
+                ))
+              : returns.map((item, index) => (
+                  <div
+                    key={`${item.articleNumber}-${index}`}
+                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                  >
+                    <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400">
+                      <RotateCcw size={15} aria-hidden="true" />
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        {item.articleNumber}
+                      </p>
+                    </div>
+
+                    <span className="flex-shrink-0 whitespace-nowrap text-xs text-slate-400 dark:text-slate-500">
+                      {formatRelativeTime(item.returnedAt)}
+                    </span>
+                  </div>
+                ))}
           </div>
         )}
       </CardContent>
