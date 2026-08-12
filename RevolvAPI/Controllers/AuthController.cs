@@ -172,31 +172,6 @@ namespace RevolvAPI.Controllers
             return Ok();
         }
 
-        // One-time helper: re-hash legacy plaintext passwords still stored in the DB. Admin-only
-        // and Development-only - this rewrites every user's password hash in the company, so it
-        // has no business being reachable (anonymously or otherwise) in production.
-        [HttpPost("migrate-passwords")]
-        [Authorize(Roles = RoleNames.Admin)]
-        public async Task<IActionResult> MigratePasswords()
-        {
-            if (!_env.IsDevelopment())
-            {
-                return NotFound();
-            }
-
-            var users = await _ctx.Users
-                .Where(u => u.PasswordHash != null && u.PasswordHash != "" && !u.PasswordHash.StartsWith("$2"))
-                .ToListAsync();
-
-            foreach (var user in users)
-            {
-                user.PasswordHash = _passwordService.EnsureHashed(user.PasswordHash);
-            }
-
-            await _ctx.SaveChangesAsync();
-            return Ok(new { migrated = users.Count });
-        }
-
         [HttpPost("forgot-password")]
         [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest r)
