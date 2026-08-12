@@ -15,6 +15,8 @@ export interface ReturnItem {
   hasQualityBadge?: boolean;
   hasDescriptionBadge?: boolean;
   hasRecommendationBadge?: boolean;
+  /** true = alle Handlungsempfehlungen für diesen Artikel sind abgehakt. */
+  allActionsCompleted?: boolean;
 }
 
 export interface SettingsApiDto {

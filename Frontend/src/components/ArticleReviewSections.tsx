@@ -414,6 +414,20 @@ export default function ArticleReviewSections({
                   <Text color="muted">Keine weiteren Empfehlungen</Text>
                 </CardContent>
               </Card>
+            ) : completedActionCount === actionRecommendations.length ? (
+              // Alles abgehakt: die einzelnen (durchgestrichenen) Empfehlungen bringen an dieser
+              // Stelle keinen Mehrwert mehr - eine klare Bestätigung ist hilfreicher als eine
+              // Liste voller Erledigt-Häkchen zum Durchscrollen.
+              <Card className="border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
+                <CardContent className="flex items-center gap-2 p-4">
+                  <CheckCircle2
+                    size={18}
+                    className="flex-shrink-0 text-green-600 dark:text-green-400"
+                    aria-hidden="true"
+                  />
+                  <Text>Alle Empfehlungen umgesetzt</Text>
+                </CardContent>
+              </Card>
             ) : (
               <>
                 <div className="mb-3 flex justify-end">

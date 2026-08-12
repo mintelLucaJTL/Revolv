@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 import {
   Box,
   Button,
@@ -515,13 +516,24 @@ export default function RetourenAnalyseView() {
                               {row.mostFrequentReason ?? "—"}
                             </td>
                             <td className="px-4 py-4 text-sm">
-                              <span
-                                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${aiStatusClasses(
-                                  row.aiStatus,
-                                )}`}
-                              >
-                                {row.aiStatus}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${aiStatusClasses(
+                                    row.aiStatus,
+                                  )}`}
+                                >
+                                  {row.aiStatus}
+                                </span>
+                                {row.allActionsCompleted ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-1 text-xs font-semibold text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300"
+                                    title="Alle Maßnahmen für diesen Artikel wurden ergriffen"
+                                  >
+                                    <CheckCircle2 size={12} aria-hidden="true" />
+                                    Maßnahmen erledigt
+                                  </span>
+                                ) : null}
+                              </div>
                             </td>
                           </tr>
                         );

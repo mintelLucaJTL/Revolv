@@ -12,5 +12,10 @@
         public bool HasQualityBadge { get; set; }
         public bool HasDescriptionBadge { get; set; }
         public bool HasRecommendationBadge { get; set; }
+
+        // True, wenn es mindestens eine Handlungsempfehlung gibt UND alle als erledigt markiert
+        // sind - unabhängig vom (nur beschreibungs-getriebenen) AiStatus, damit "alle Maßnahmen
+        // ergriffen" auch dann sichtbar ist, wenn der Beschreibungsvorschlag noch offen/abgelehnt ist.
+        public bool AllActionsCompleted { get; set; }
     }
 }
