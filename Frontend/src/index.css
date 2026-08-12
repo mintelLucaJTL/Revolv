@@ -16,3 +16,67 @@
 .animate-ai-scan {
   animation: ai-scan 1.2s ease-in-out infinite;
 }
+
+/* Post-Login-Splash (welcome.tsx) — Logo poppt mit leichtem Overshoot rein, ein Sonar-Ring
+   pulsiert dahinter, der Schriftzug folgt versetzt, am Ende blendet die ganze Seite aus, bevor
+   zum Dashboard weitergeleitet wird. */
+@keyframes revolv-logo-in {
+  0% {
+    transform: scale(0.4) rotate(-8deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08) rotate(2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes revolv-ring-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@keyframes revolv-text-in {
+  0% {
+    transform: translateY(12px);
+    opacity: 0;
+    letter-spacing: 0.3em;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+    letter-spacing: 0.05em;
+  }
+}
+
+@keyframes revolv-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-revolv-logo-in {
+  animation: revolv-logo-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.animate-revolv-ring-pulse {
+  animation: revolv-ring-pulse 1.6s ease-out infinite;
+}
+
+.animate-revolv-text-in {
+  animation: revolv-text-in 0.6s ease-out 0.45s both;
+}
+
+.animate-revolv-fade-out {
+  animation: revolv-fade-out 0.45s ease-in forwards;
+}

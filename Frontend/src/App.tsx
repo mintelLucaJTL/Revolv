@@ -43,8 +43,12 @@ function AdminRoute({ children }: { children: ReactNode }) {
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
 
+  // Nach /welcome statt direkt /dashboard: login.tsx ruft nach dem Login zwar navigate("/welcome")
+  // auf, aber AuthContext setzt isAuthenticated schon synchron innerhalb von login() - dieser Guard
+  // hier rendert dadurch VOR dem eigenen navigate()-Aufruf neu und würde sonst das Rennen gewinnen
+  // und direkt zu /dashboard springen, ohne dass die Animation je zu sehen ist.
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/welcome" replace />;
   }
 
   return children;
