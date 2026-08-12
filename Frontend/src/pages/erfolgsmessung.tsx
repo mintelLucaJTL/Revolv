@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Box,
   Card,
   CardContent,
   CardHeader,
@@ -7,7 +8,6 @@ import {
   Text,
   Button,
 } from "@jtl-software/platform-ui-react";
-import { History, CalendarCheck, TrendingDown, TrendingUp } from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -145,8 +145,7 @@ export default function Erfolgsmessung() {
         : "text-red-600 dark:text-red-400";
 
   return (
-    <>
-      <div className="mx-auto flex max-w-5xl flex-col gap-4">
+    <div className="mx-auto flex max-w-5xl flex-col gap-4">
             <div>
               <Text weight="bold">Erfolgsmessung</Text>
               <Text type="xs" color="muted">
@@ -195,15 +194,10 @@ export default function Erfolgsmessung() {
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Card className="dark:bg-slate-900 dark:border-slate-700">
                     <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
-                          <History size={18} aria-hidden="true" />
-                        </span>
-                        <Text type="xs" color="muted">
-                          Ø Retourenquote vorher
-                        </Text>
-                      </div>
-                      <div className="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
+                      <Text type="xs" color="muted">
+                        Ø Retourenquote vorher
+                      </Text>
+                      <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
                         {formatPercent(before)}
                       </div>
                     </CardContent>
@@ -211,15 +205,10 @@ export default function Erfolgsmessung() {
 
                   <Card className="dark:bg-slate-900 dark:border-slate-700">
                     <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
-                          <CalendarCheck size={18} aria-hidden="true" />
-                        </span>
-                        <Text type="xs" color="muted">
-                          Ø Retourenquote nachher
-                        </Text>
-                      </div>
-                      <div className="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
+                      <Text type="xs" color="muted">
+                        Ø Retourenquote nachher
+                      </Text>
+                      <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
                         {formatPercent(after)}
                       </div>
                     </CardContent>
@@ -227,27 +216,10 @@ export default function Erfolgsmessung() {
 
                   <Card className="dark:bg-slate-900 dark:border-slate-700">
                     <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${
-                            delta === null
-                              ? "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                              : improved
-                                ? "bg-green-50 text-green-600 dark:bg-green-950/40 dark:text-green-400"
-                                : "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
-                          }`}
-                        >
-                          {improved ? (
-                            <TrendingDown size={18} aria-hidden="true" />
-                          ) : (
-                            <TrendingUp size={18} aria-hidden="true" />
-                          )}
-                        </span>
-                        <Text type="xs" color="muted">
-                          Veränderung
-                        </Text>
-                      </div>
-                      <div className={`mt-2 text-2xl font-bold ${deltaColor}`}>{formatDelta(delta)}</div>
+                      <Text type="xs" color="muted">
+                        Veränderung
+                      </Text>
+                      <div className={`mt-1 text-2xl font-bold ${deltaColor}`}>{formatDelta(delta)}</div>
                     </CardContent>
                   </Card>
                 </div>
@@ -284,19 +256,19 @@ export default function Erfolgsmessung() {
                           />
                           <ReferenceLine
                             x={formatMonthLabel(selected.changeMonth)}
-                            stroke="#2563EB"
+                            stroke="#3B82F6"
                             strokeDasharray="4 4"
                             label={{
                               value: "KI-Änderung",
                               position: "insideTopLeft",
-                              fill: "#2563EB",
+                              fill: "#3B82F6",
                               fontSize: 12,
                             }}
                           />
                           <Line
                             type="monotone"
                             dataKey="returnRate"
-                            stroke="#2563EB"
+                            stroke="#3B82F6"
                             strokeWidth={2}
                             dot={{ r: 3 }}
                             activeDot={{ r: 5 }}
@@ -309,6 +281,5 @@ export default function Erfolgsmessung() {
               </>
             )}
           </div>
-    </>
   );
 }

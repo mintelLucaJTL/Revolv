@@ -182,6 +182,30 @@ export default function RetourenAnalyseView() {
     }
   }, [searchParams]);
 
+  // Deep-Link vom Aktionsplan (/retouren-analyse?open=<articleId>) - öffnet automatisch das
+  // Review-Modal für den Artikel, sobald die Tabelle geladen ist. Wartet bewusst auf "ready",
+  // sonst gibt es beim ersten Render noch keine Zeilen zum Matchen.
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (!openId || articlesState.status !== "ready") return;
+
+    const match = articlesState.data.find(
+      (item) => String(item.id ?? item.articleNumber) === openId,
+    );
+    if (!match) return;
+
+    const id = match.id ?? match.articleNumber;
+    setSelectedId(id);
+    setSelectedDetail(null);
+    setIsModalOpen(true);
+    void fetchArticleDetail(id);
+
+    const next = new URLSearchParams(searchParams);
+    next.delete("open");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, articlesState]);
+
   // Also re-run after modal saves so KI-Status stays in sync.
   const loadArticles = async (band: RiskBand | null) => {
     const hasVisibleData =

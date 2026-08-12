@@ -132,8 +132,8 @@ public sealed class SecurityWebApplicationFactory : WebApplicationFactory<Progra
         public Task<Dictionary<int, ArticleDisplayInfo>> GetArticleDisplayInfoAsync(IEnumerable<int> artikelIds) =>
             Task.FromResult(new Dictionary<int, ArticleDisplayInfo>());
 
-        public Task<List<ArticleSuccessTrend>> GetArticleSuccessTrendsAsync(int companyId, int months = 8) =>
-            Task.FromResult(new List<ArticleSuccessTrend>());
+        public Task<List<ActionPlanItem>> GetActionPlanAsync(int companyId) =>
+            Task.FromResult(new List<ActionPlanItem>());
     }
 }
 
