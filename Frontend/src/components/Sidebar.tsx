@@ -29,7 +29,7 @@ export default function Sidebar() {
           <Button
             key={item.path}
             label={item.label}
-            variant={isActive ? "default" : "ghost"}
+            variant={isActive ? "highlight" : "ghost"}
             fullWidth
             onClick={() => navigate(item.path)}
             aria-current={isActive ? "page" : undefined}

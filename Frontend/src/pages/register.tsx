@@ -1,6 +1,7 @@
 import { Box, Card, Stack, Button, CardTitle } from "@jtl-software/platform-ui-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { UserPlus } from "lucide-react";
 
 export default function Registrieren() {
   const navigate = useNavigate();
@@ -71,7 +72,12 @@ export default function Registrieren() {
     <Box className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <Card className="w-full max-w-md p-8 dark:bg-slate-900 dark:border-slate-700">
         <Stack>
-          <CardTitle className="dark:text-slate-100">Account erstellen</CardTitle>
+          <Box className="flex justify-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+              <UserPlus size={26} strokeWidth={1.5} />
+            </span>
+          </Box>
+          <CardTitle className="text-center dark:text-slate-100">Account erstellen</CardTitle>
           <input
             className={inputClassName}
             placeholder="Name"
@@ -105,7 +111,11 @@ export default function Registrieren() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
-          <Button label={loading ? "Registriere..." : "Registrieren"} onClick={handleRegister} />
+          <Button
+            label={loading ? "Registriere..." : "Registrieren"}
+            variant="highlight"
+            onClick={handleRegister}
+          />
           <Button label="Zurück zum login" variant="secondary" onClick={() => navigate("/login")} />
         </Stack>
       </Card>
