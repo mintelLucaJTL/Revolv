@@ -34,8 +34,10 @@ export default function LoginPage() {
     }
 
     try {
+      // Kein navigate() hier - PublicOnlyRoute leitet automatisch zu /welcome weiter, sobald
+      // login() den Auth-Status setzt (siehe App.tsx). Ein eigener navigate()-Aufruf würde mit
+      // diesem reaktiven Redirect um die URL konkurrieren.
       await login(email, password);
-      navigate("/dashboard");
     } catch (err) {
       if (err instanceof TypeError) {
         setError(
