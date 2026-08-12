@@ -102,10 +102,10 @@ function SliderField({
           return (
             <span
               key={t}
-              className={`absolute top-0 whitespace-nowrap text-[11px] ${
+              className={`absolute top-0 whitespace-nowrap text-xs font-semibold ${
                 isActive
-                  ? "font-bold text-blue-700 dark:text-blue-300"
-                  : "text-slate-400 dark:text-slate-500"
+                  ? "text-blue-700 dark:text-blue-300"
+                  : "text-slate-500 dark:text-slate-400"
               }`}
               style={{
                 left: `${pct}%`,
@@ -351,8 +351,8 @@ export default function Settings() {
                 </Card>
               </Box>
 
-              <Box className="mt-6 space-y-6">
-                <Card className={`p-6 ${cardBackground}`}>
+              <Box className="mt-6 grid gap-4 md:grid-cols-2">
+                <Card className={`p-5 ${cardBackground}`}>
                   <Box className="flex items-start justify-between gap-3">
                     <Text weight="bold">Retouren-Ampel-Settings</Text>
                     <Button
@@ -364,14 +364,14 @@ export default function Settings() {
                       }}
                     />
                   </Box>
-                  <Box className="mt-1 mb-5">
-                    <Text type="xs" color="muted">
+                  <Box className="mt-1 mb-4">
+                    <Text type="small" weight="medium" color="muted">
                       Ab welcher Retourenquote ein Artikel in der Tabelle gelb bzw. rot markiert
                       wird.
                     </Text>
                   </Box>
 
-                  <Box className="grid gap-x-8 gap-y-5 md:grid-cols-2">
+                  <Box className="space-y-5">
                     <SliderField
                       label="Gelbe Warnung ab"
                       value={yellowThreshold}
@@ -396,7 +396,7 @@ export default function Settings() {
                   </Box>
                 </Card>
 
-                <Card className={`p-6 ${cardBackground}`}>
+                <Card className={`p-5 ${cardBackground}`}>
                   <Box className="flex items-start justify-between gap-3">
                     <Text weight="bold">Retouren-Analyse-Settings</Text>
                     <Button
@@ -408,14 +408,14 @@ export default function Settings() {
                       }}
                     />
                   </Box>
-                  <Box className="mt-1 mb-5">
-                    <Text type="xs" color="muted">
+                  <Box className="mt-1 mb-4">
+                    <Text type="small" weight="medium" color="muted">
                       Nach einer live in WAWI übernommenen Beschreibung ist eine neue KI-Analyse
                       erst wieder möglich, wenn BEIDE Bedingungen erfüllt sind.
                     </Text>
                   </Box>
 
-                  <Box className="grid gap-x-8 gap-y-5 md:grid-cols-2">
+                  <Box className="space-y-5">
                     <SliderField
                       label="Mindestanzahl neuer Retouren"
                       value={minNewReturns}
