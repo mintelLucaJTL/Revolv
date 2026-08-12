@@ -18,19 +18,18 @@ import type { ReturnItem, SettingsApiDto, ArticleDetailDTO } from "../types/api"
 const DEFAULT_YELLOW_THRESHOLD = 10;
 const DEFAULT_RED_THRESHOLD = 25;
 
-// Folge-Ticket: die drei Tags aus dem ehemaligen separaten KI-Lösungs-Hub sind jetzt
-// Filter direkt in dieser Tabelle statt einer zweiten, redundanten Seite.
-const TAG_FILTERS = ["Alle Artikel", "Qualität", "Beschreibung", "Empfehlungen"] as const;
+// Statt der drei einzelnen Bereichs-Tags (Qualität/Beschreibung/Empfehlungen) jetzt direkt nach
+// dem kombinierten Offen/Abgeschlossen-Status filtern (siehe ArticleStatusToggle) - der ist die
+// eigentlich relevante Frage: "was muss ich mir noch anschauen?".
+const TAG_FILTERS = ["Alle Artikel", "Offen", "Abgeschlossen"] as const;
 type TagFilter = (typeof TAG_FILTERS)[number];
 
 function matchesTagFilter(item: ReturnItem, filter: TagFilter): boolean {
   switch (filter) {
-    case "Qualität":
-      return Boolean(item.hasQualityBadge);
-    case "Beschreibung":
-      return Boolean(item.hasDescriptionBadge);
-    case "Empfehlungen":
-      return Boolean(item.hasRecommendationBadge);
+    case "Offen":
+      return item.aiStatus !== "Keine Empfehlung" && !item.isFullyResolved;
+    case "Abgeschlossen":
+      return Boolean(item.isFullyResolved);
     default:
       return true;
   }
