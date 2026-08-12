@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, Button, Text } from "@jtl-software/platform-ui-react";
-import { Sparkles } from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 import ArticleReviewSections from "./ArticleReviewSections";
 import { apiFetch } from "../utils/api";
 import {
@@ -20,6 +20,21 @@ const PLACEHOLDER_CUSTOMER_COMMENTS = [
 
 const EMPTY_RESULT_TOAST =
   "Die KI-Analyse lieferte keinen sichtbaren Vorschlag. Bitte erneut versuchen.";
+
+// "vor X Minuten" o.ä. - grob genug fürs Re-Analyse-Hinweisfeld, keine Sekundengenauigkeit nötig.
+function formatRelativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.max(0, Math.round(diffMs / 60000));
+
+  if (minutes < 1) return "gerade eben";
+  if (minutes < 60) return `vor ${minutes} Minute${minutes === 1 ? "" : "n"}`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `vor ${hours} Stunde${hours === 1 ? "" : "n"}`;
+
+  const days = Math.round(hours / 24);
+  return `vor ${days} Tag${days === 1 ? "" : "en"}`;
+}
 
 interface Props {
   isOpen: boolean;
@@ -57,6 +72,7 @@ export default function QualityReviewModal({
 
   const review = useArticleReview(articleDetail, onArticleUpdated, preferredRecommendationId);
   const summaryText = review.aiRec?.aiSummaryText ?? "";
+  const isReanalyzeBlocked = articleDetail?.canReanalyze === false;
 
   // Success/warning only after the matching recommendation is in props (rendered).
   useEffect(() => {
@@ -91,6 +107,18 @@ export default function QualityReviewModal({
       const response = await apiFetch(`/api/ai/analyze/${articleDetail.id}`, {
         method: "POST",
       });
+
+      // 409 = Re-Analyse-Sperre (Button ist dafür eigentlich schon deaktiviert, aber z. B. bei
+      // zwei offenen Tabs kann der Zustand seit dem letzten Laden noch geändert haben).
+      if (response.status === 409) {
+        const data = (await response.json().catch(() => null)) as { message?: string } | null;
+        showToast({
+          type: "warning",
+          message: data?.message ?? "Für diesen Artikel ist aktuell keine neue Analyse nötig.",
+        });
+        onArticleUpdated?.();
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -173,7 +201,7 @@ export default function QualityReviewModal({
                     variant="highlight"
                     onClick={handleAnalyze}
                     isLoading={isAnalyzing}
-                    disabled={isAnalyzing || !articleDetail?.id}
+                    disabled={isAnalyzing || !articleDetail?.id || isReanalyzeBlocked}
                   />
                   <button
                     type="button"
@@ -199,6 +227,19 @@ export default function QualityReviewModal({
                 <div className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
                   <Sparkles size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <Text>{summaryText}</Text>
+                </div>
+              ) : null}
+
+              {isReanalyzeBlocked ? (
+                <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300">
+                  <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+                  <Text>
+                    {articleDetail?.descriptionLastRevisedAt
+                      ? `Wir haben die Beschreibung ${formatRelativeTime(articleDetail.descriptionLastRevisedAt)} bereits überarbeitet. `
+                      : ""}
+                    {articleDetail?.reanalyzeBlockedReason ??
+                      "Die Gewichtung der Retourengründe hat sich noch nicht ausreichend verändert für eine neue Analyse."}
+                  </Text>
                 </div>
               ) : null}
             </div>

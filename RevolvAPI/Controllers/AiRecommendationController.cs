@@ -356,6 +356,8 @@ namespace RevolvAPI.Controllers
                     {
                         message = "Die KI-Analyse lieferte kein gültiges Ergebnis. Bitte erneut versuchen.",
                     }),
+                ArticleAnalysisStatus.Blocked =>
+                    Conflict(new { message = result.BlockedReason }),
                 ArticleAnalysisStatus.Success =>
                     Ok(new { recommendationId = result.RecommendationId }),
                 _ => StatusCode(StatusCodes.Status500InternalServerError),

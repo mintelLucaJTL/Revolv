@@ -319,6 +319,72 @@ BEGIN
 END
 GO
 
+-- -----------------------------------------------------------------------------
+-- revolv.DescriptionPushLog (FK -> revolv.DescriptionProposals) - Audit-Log fuer jeden Versuch,
+-- einen KI-Beschreibungsvorschlag live in WAWI (dbo.tArtikelBeschreibung.cBeschreibung) zu
+-- uebernehmen. War bisher nur als Datenbank/Scripts/revolv.DescriptionPushLog.sql vorhanden,
+-- aber nie in dieses automatisch ausgefuehrte Master-Setup uebernommen worden - ein frischer
+-- Klon des Projekts haette die Tabelle also nie automatisch bekommen.
+-- -----------------------------------------------------------------------------
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.DescriptionPushLog') AND type IN (N'U'))
+BEGIN
+    CREATE TABLE [revolv].[DescriptionPushLog] (
+        [Id] INT IDENTITY(1,1) PRIMARY KEY,
+        [DescriptionProposalId] INT NOT NULL,
+        [ArtikelId] INT NOT NULL,                     -- WAWI-Artikel (kArtikel), kein FK (anderes Schema)
+        [PushedAt] DATETIME2 NOT NULL,
+        [PushedByUserId] INT NOT NULL,
+        [PreviousTextSnapshot] NVARCHAR(MAX) NULL,     -- JSON: [{SpracheId,PlattformId,ShopId,PreviousText}, ...]
+        [NewText] NVARCHAR(MAX) NOT NULL,
+        [RowsAffected] INT NOT NULL,
+        [Status] NVARCHAR(20) NOT NULL,                -- "Success" | "Failed"
+        [ErrorMessage] NVARCHAR(2000) NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_DescriptionPushLog_DescriptionProposals')
+BEGIN
+    ALTER TABLE [revolv].[DescriptionPushLog]
+    ADD CONSTRAINT FK_DescriptionPushLog_DescriptionProposals
+    FOREIGN KEY ([DescriptionProposalId]) REFERENCES [revolv].[DescriptionProposals]([Id]);
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DescriptionPushLog_DescriptionProposalId')
+BEGIN
+    CREATE INDEX IX_DescriptionPushLog_DescriptionProposalId ON [revolv].[DescriptionPushLog] ([DescriptionProposalId]);
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DescriptionPushLog_ArtikelId')
+BEGIN
+    CREATE INDEX IX_DescriptionPushLog_ArtikelId ON [revolv].[DescriptionPushLog] ([ArtikelId]);
+END
+GO
+
+-- Re-Analyse-Sperre (ReturnAnalyticsService.GetReanalyzeGateAsync): Snapshot der
+-- Retourengruende-Verteilung zum Zeitpunkt des Pushs, um spaeter zu erkennen, ob sich seither
+-- genug neue Retouren angesammelt haben UND sich die Gewichtung der Gruende signifikant
+-- verschoben hat, bevor eine neue KI-Analyse ueberhaupt wieder angeboten wird.
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'revolv.DescriptionPushLog') AND name = 'ReturnReasonSnapshotJson'
+)
+BEGIN
+    ALTER TABLE revolv.DescriptionPushLog ADD ReturnReasonSnapshotJson NVARCHAR(MAX) NULL;
+END
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'revolv.DescriptionPushLog') AND name = 'ReturnLineItemCountAtPush'
+)
+BEGIN
+    ALTER TABLE revolv.DescriptionPushLog ADD ReturnLineItemCountAtPush INT NOT NULL DEFAULT 0;
+END
+GO
+
 -- ActionRecommendations
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'revolv.ActionRecommendations') AND type IN (N'U'))
 BEGIN

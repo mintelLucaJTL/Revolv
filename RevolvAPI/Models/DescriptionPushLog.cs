@@ -38,5 +38,13 @@ namespace RevolvAPI.Models
         public int RowsAffected { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? ErrorMessage { get; set; }
+
+        // Snapshot der Retourengruende-Verteilung dieses Artikels zum Zeitpunkt des Pushs -
+        // Grundlage fuer die Re-Analyse-Sperre (siehe ReturnAnalyticsService.GetReanalyzeGateAsync):
+        // eine neue KI-Analyse lohnt sich erst, wenn sich seit der letzten Ueberarbeitung genug
+        // NEUE Retouren angesammelt haben UND sich die Gewichtung der Gruende deutlich verschoben
+        // hat. JSON: { "<ReturnReasonId oder \"null\">": <Anzahl>, ... }.
+        public string? ReturnReasonSnapshotJson { get; set; }
+        public int ReturnLineItemCountAtPush { get; set; }
     }
 }

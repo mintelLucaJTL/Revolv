@@ -28,6 +28,18 @@ namespace RevolvAPI.Services
                 return ArticleAnalysisResult.NotFound();
             }
 
+            // Re-Analyse-Sperre: nach einer bereits live in WAWI übernommenen Beschreibung lohnt
+            // sich eine neue KI-Anfrage erst, wenn genug neue Retouren dazugekommen sind und sich
+            // die Gewichtung der Retourengründe spürbar verschoben hat. Gilt für den manuellen
+            // Button genauso wie für den automatischen Background-Job (Ticket #252), damit beide
+            // Wege KI-Anfragen sparen, nicht nur der Button.
+            var gate = await _returnAnalytics.GetReanalyzeGateAsync(articleId, companyId);
+            if (!gate.CanReanalyze)
+            {
+                return ArticleAnalysisResult.Blocked(
+                    gate.BlockedReason ?? "Für diesen Artikel ist aktuell keine neue Analyse nötig.");
+            }
+
             // Live return rate for the new row (Ticket #242) — same source as the returns table.
             var metrics = await _returnAnalytics.GetArticleReturnMetricsAsync();
             var returnRate = metrics.FirstOrDefault(m => m.ArtikelId == articleId)?.ReturnRatePercent;

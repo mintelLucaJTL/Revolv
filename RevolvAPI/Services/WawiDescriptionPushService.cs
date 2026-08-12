@@ -106,6 +106,19 @@ namespace RevolvAPI.Services
                         s => s.SetProperty(d => d.Beschreibung, proposedText),
                         cancellationToken);
 
+                // Verteilung der Retourengruende JETZT (vor der neuen Ueberarbeitung) festhalten -
+                // Referenzpunkt fuer die Re-Analyse-Sperre (ReturnAnalyticsService.GetReanalyzeGateAsync):
+                // eine neue KI-Analyse soll erst wieder moeglich sein, wenn sich diese Verteilung
+                // seit hier signifikant veraendert hat.
+                var reasonCounts = await _ctx.WawiReturnLineItems
+                    .Where(li => li.ItemId == artikelId)
+                    .GroupBy(li => li.ReturnReasonId)
+                    .Select(g => new { ReasonId = g.Key, Count = g.Count() })
+                    .ToListAsync(cancellationToken);
+                var reasonSnapshotJson = JsonSerializer.Serialize(
+                    reasonCounts.ToDictionary(x => x.ReasonId?.ToString() ?? "null", x => x.Count));
+                var reasonCountAtPush = reasonCounts.Sum(x => x.Count);
+
                 _ctx.DescriptionPushLogs.Add(new DescriptionPushLog
                 {
                     DescriptionProposalId = proposalId,
@@ -116,6 +129,8 @@ namespace RevolvAPI.Services
                     NewText = proposedText,
                     RowsAffected = rowsAffected,
                     Status = DescriptionPushLogStatuses.Success,
+                    ReturnReasonSnapshotJson = reasonSnapshotJson,
+                    ReturnLineItemCountAtPush = reasonCountAtPush,
                 });
                 await _ctx.SaveChangesAsync(cancellationToken);
 

@@ -67,4 +67,9 @@ export interface ArticleDetailDTO {
   size?: string;
   color?: string;
   aiRecommendations?: AiRecommendation[];
+  /** Re-Analyse-Sperre: false, solange sich seit der letzten WAWI-Übernahme noch nicht genug
+   *  an neuen Retouren/Gründen-Gewichtung getan hat. */
+  canReanalyze?: boolean;
+  reanalyzeBlockedReason?: string | null;
+  descriptionLastRevisedAt?: string | null;
 }

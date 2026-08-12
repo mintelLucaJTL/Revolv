@@ -20,5 +20,10 @@ namespace RevolvAPI.Services
         // Retourenquote-Trend pro Artikel für die letzten `months` Monate, nur für Artikel mit
         // mindestens einem angenommenen/erledigten KI-Vorschlag (Erfolgsmessung-Feature).
         Task<List<ArticleSuccessTrend>> GetArticleSuccessTrendsAsync(int companyId, int months = 8);
+
+        // Re-Analyse-Sperre: ob eine neue KI-Analyse für diesen Artikel aktuell sinnvoll ist,
+        // basierend auf neuen Retouren und einer verschobenen Retourengrund-Gewichtung seit der
+        // letzten live in WAWI übernommenen Beschreibung.
+        Task<ReanalyzeGate> GetReanalyzeGateAsync(int articleId, int companyId);
     }
 }

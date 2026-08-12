@@ -1,10 +1,21 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
+using RevolvAPI.Models;
 
 namespace RevolvAPI.Services
 {
     public class ReturnAnalyticsService : IReturnAnalyticsService
     {
+        // Mindestanzahl neuer Retouren seit der letzten WAWI-Uebernahme, bevor eine erneute
+        // KI-Analyse ueberhaupt in Frage kommt - mit zu wenig neuen Daten liefert die KI ohnehin
+        // nur eine Wiederholung der letzten Analyse.
+        private const int MinNewReturnsForReanalyze = 3;
+
+        // Wie stark sich der Anteil (in Prozentpunkten) mindestens EINES Retourengrundes seit der
+        // letzten Uebernahme verschoben haben muss, damit eine neue Analyse als sinnvoll gilt.
+        private const decimal SignificantReasonShiftPercentagePoints = 15m;
+
         private readonly AppDbContext _ctx;
 
         public ReturnAnalyticsService(AppDbContext ctx)
@@ -376,6 +387,77 @@ namespace RevolvAPI.Services
             }
 
             return result.OrderByDescending(r => r.ChangeMonth).ToList();
+        }
+
+        public async Task<ReanalyzeGate> GetReanalyzeGateAsync(int articleId, int companyId)
+        {
+            // Nur die eigene Firma darf die Sperre eines Artikels beeinflussen/sehen - Company-
+            // Scoping ueber DescriptionProposal -> AiRecommendation, da DescriptionPushLog selbst
+            // keine CompanyId traegt.
+            var lastPush = await _ctx.DescriptionPushLogs
+                .AsNoTracking()
+                .Where(l => l.ArtikelId == articleId
+                    && l.Status == DescriptionPushLogStatuses.Success
+                    && l.DescriptionProposal!.AiRecommendation!.CompanyId == companyId)
+                .OrderByDescending(l => l.PushedAt)
+                .FirstOrDefaultAsync();
+
+            // Noch nie live uebernommen -> keine Sperre, die erste Analyse ist immer erlaubt.
+            if (lastPush == null)
+            {
+                return new ReanalyzeGate(CanReanalyze: true, LastRevisedAt: null, BlockedReason: null);
+            }
+
+            var newReturnsCount = await (
+                from li in _ctx.WawiReturnLineItems.AsNoTracking()
+                    .Where(x => x.ItemId == articleId && x.ReturnId != null)
+                join r in _ctx.WawiReturns.AsNoTracking() on li.ReturnId!.Value equals r.Id
+                where r.ReturnDate > lastPush.PushedAt
+                select li.Id)
+                .CountAsync();
+
+            const string notEnoughDataMessage =
+                "Die Gewichtung der Retourengründe hat sich seit der letzten Überarbeitung noch " +
+                "nicht ausreichend verändert für eine neue Analyse.";
+
+            if (newReturnsCount < MinNewReturnsForReanalyze)
+            {
+                return new ReanalyzeGate(false, lastPush.PushedAt, notEnoughDataMessage);
+            }
+
+            var snapshotCounts = string.IsNullOrWhiteSpace(lastPush.ReturnReasonSnapshotJson)
+                ? new Dictionary<string, int>()
+                : JsonSerializer.Deserialize<Dictionary<string, int>>(lastPush.ReturnReasonSnapshotJson)
+                    ?? new Dictionary<string, int>();
+            var snapshotTotal = lastPush.ReturnLineItemCountAtPush;
+
+            var currentCounts = await _ctx.WawiReturnLineItems
+                .AsNoTracking()
+                .Where(li => li.ItemId == articleId)
+                .GroupBy(li => li.ReturnReasonId)
+                .Select(g => new { ReasonId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.ReasonId?.ToString() ?? "null", x => x.Count);
+            var currentTotal = currentCounts.Values.Sum();
+
+            var allReasonKeys = snapshotCounts.Keys.Union(currentCounts.Keys);
+            var maxShift = 0m;
+            foreach (var reasonKey in allReasonKeys)
+            {
+                var beforeShare = snapshotTotal > 0
+                    ? (decimal)snapshotCounts.GetValueOrDefault(reasonKey) / snapshotTotal * 100m
+                    : 0m;
+                var afterShare = currentTotal > 0
+                    ? (decimal)currentCounts.GetValueOrDefault(reasonKey) / currentTotal * 100m
+                    : 0m;
+                maxShift = Math.Max(maxShift, Math.Abs(afterShare - beforeShare));
+            }
+
+            if (maxShift < SignificantReasonShiftPercentagePoints)
+            {
+                return new ReanalyzeGate(false, lastPush.PushedAt, notEnoughDataMessage);
+            }
+
+            return new ReanalyzeGate(true, lastPush.PushedAt, null);
         }
 
         // First translation by LanguageId (fine for single-language tenants).
