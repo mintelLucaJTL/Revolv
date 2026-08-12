@@ -343,7 +343,7 @@ export default function RetourenAnalyseView() {
               <Button
                 key={tag}
                 label={tag}
-                variant={tagFilter === tag ? "default" : "secondary"}
+                variant={tagFilter === tag ? "highlight" : "ghost"}
                 onClick={() => setTagFilter(tag)}
               />
             ))}
