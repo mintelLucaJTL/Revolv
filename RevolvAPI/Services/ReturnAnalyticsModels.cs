@@ -44,10 +44,14 @@ namespace RevolvAPI.Services
         string? Name,
         string? Category);
 
-    // Monatlicher Retourenquote-Punkt für Erfolgsmessung.
+    // Monatlicher Retourenquote-Punkt für Erfolgsmessung. ReturnedQuantity/SoldQuantity dazu, damit
+    // die UI zeigen kann, WORAUS sich der Prozentwert ergibt (z. B. "3 von 24 verkauften Einheiten
+    // zurückgegeben") statt einer nackten, für sich wenig aussagekräftigen Prozentzahl.
     public record MonthlyReturnRatePoint(
         DateOnly Month,
-        decimal ReturnRatePercent);
+        decimal ReturnRatePercent,
+        decimal ReturnedQuantity,
+        decimal SoldQuantity);
 
     // Retourenquote-Trend eines Artikels rund um den frühesten angenommenen/erledigten
     // KI-Vorschlag (Erfolgsmessung-Feature). Nur Artikel mit mindestens einer solchen Änderung

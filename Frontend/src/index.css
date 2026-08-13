@@ -17,21 +17,40 @@
   animation: ai-scan 1.2s ease-in-out infinite;
 }
 
-/* Post-Login-Splash (welcome.tsx) — Logo poppt mit leichtem Overshoot rein, ein Sonar-Ring
+/* Post-Login-Splash (welcome.tsx) — Logo flippt in 3D rein (statt nur 2D-Scale), ein Sonar-Ring
    pulsiert dahinter, der Schriftzug folgt versetzt, am Ende blendet die ganze Seite aus, bevor
-   zum Dashboard weitergeleitet wird. */
+   zum Dashboard weitergeleitet wird. Braucht `perspective` auf einem Elternelement, sonst wirkt
+   die Y-Rotation wie ein flaches Zusammenstauchen statt einer echten 3D-Drehung. */
 @keyframes revolv-logo-in {
   0% {
-    transform: scale(0.4) rotate(-8deg);
+    transform: rotateY(-110deg) scale(0.5);
     opacity: 0;
   }
   60% {
-    transform: scale(1.08) rotate(2deg);
+    transform: rotateY(15deg) scale(1.06);
     opacity: 1;
   }
   100% {
-    transform: scale(1) rotate(0deg);
+    transform: rotateY(0deg) scale(1);
     opacity: 1;
+  }
+}
+
+/* Kontinuierliches, sanftes 3D-Wippen nach dem Eintreten - auf einem eigenen, äußeren Wrapper,
+   damit es sich mit der Eintritts-Animation des Logos selbst nicht in die Quere kommt. */
+@keyframes revolv-logo-tilt {
+  0%,
+  100% {
+    transform: rotateX(0deg) rotateY(0deg);
+  }
+  25% {
+    transform: rotateX(9deg) rotateY(-12deg);
+  }
+  50% {
+    transform: rotateX(0deg) rotateY(0deg);
+  }
+  75% {
+    transform: rotateX(-9deg) rotateY(12deg);
   }
 }
 
@@ -69,6 +88,10 @@
   animation: revolv-logo-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+.animate-revolv-logo-tilt {
+  animation: revolv-logo-tilt 4s ease-in-out 0.7s infinite;
+}
+
 .animate-revolv-ring-pulse {
   animation: revolv-ring-pulse 1.6s ease-out infinite;
 }
@@ -79,6 +102,59 @@
 
 .animate-revolv-fade-out {
   animation: revolv-fade-out 0.45s ease-in forwards;
+}
+
+/* Weitere Splash-Elemente: ein Glow, der langsam hinter dem Logo atmet, ein dünner Orbit-Ring,
+   der kontinuierlich umläuft (statt nur der auslaufenden Sonar-Ringe), eine Unterstreichung, die
+   unter dem Schriftzug einfährt, und ein paar Partikel, die versetzt nach oben wegtreiben. */
+@keyframes revolv-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes revolv-underline-in {
+  0% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+@keyframes revolv-particle-float {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-90px) scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-revolv-glow-pulse {
+  animation: revolv-glow-pulse 2.4s ease-in-out infinite;
+}
+
+.animate-revolv-underline-in {
+  animation: revolv-underline-in 0.5s ease-out 0.85s both;
+  transform-origin: center;
+}
+
+.animate-revolv-particle {
+  animation: revolv-particle-float 2.2s ease-out infinite;
 }
 
 /* Settings-Slider (settings.tsx SliderField) - groesser und deutlich sichtbarer als der

@@ -228,7 +228,9 @@ namespace RevolvAPI.Controllers
                     .Select(p => new SuccessMetricPointDto
                     {
                         Month = $"{p.Month.Year:D4}-{p.Month.Month:D2}",
-                        ReturnRate = p.ReturnRatePercent
+                        ReturnRate = p.ReturnRatePercent,
+                        ReturnedQuantity = p.ReturnedQuantity,
+                        SoldQuantity = p.SoldQuantity
                     })
                     .ToList()
             }).ToList();
