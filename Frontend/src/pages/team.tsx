@@ -11,6 +11,34 @@ import {
   updateTeamMemberRole,
   type TeamMember,
 } from "../utils/team";
+import Skeleton from "../components/Skeleton";
+
+function TeamMembersSkeleton() {
+  return (
+    <div className="mt-4" aria-busy="true">
+      <span className="sr-only">Team wird geladen</span>
+      <div className="flex flex-wrap items-end gap-3">
+        <Skeleton className="h-10 min-w-[220px] flex-1" />
+        <Skeleton className="h-10 w-36" />
+        <Skeleton className="h-10 w-24" />
+      </div>
+      <Box className="mt-4 divide-y divide-slate-200 dark:divide-slate-700">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className="flex items-center justify-between gap-3 py-3">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-56" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-8 w-32" />
+              <Skeleton className="h-8 w-24" />
+            </div>
+          </div>
+        ))}
+      </Box>
+    </div>
+  );
+}
 
 /**
  * Admin-only team management: list colleagues, invite by email (backend assigns the
@@ -34,6 +62,8 @@ export default function Team() {
   const [actionError, setActionError] = useState(false);
 
   const loadTeam = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const data = await fetchTeamMembers();
       setMembers(data);
@@ -151,22 +181,25 @@ export default function Team() {
           <Card className="mt-6 border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
             <Text weight="bold">Mitglieder</Text>
             <Box className="mt-1">
-              <Text type="xs">
-                {loading
-                  ? "Lädt…"
-                  : `${members.length} Mitglied${members.length === 1 ? "" : "er"}`}
-              </Text>
+              {loading ? (
+                <Skeleton className="h-4 w-24" />
+              ) : (
+                <Text type="xs">
+                  {`${members.length} Mitglied${members.length === 1 ? "" : "er"}`}
+                </Text>
+              )}
             </Box>
 
-            {error && (
-              <Box className="mt-3">
+            {loading ? (
+              <TeamMembersSkeleton />
+            ) : error ? (
+              <Box className="mt-4 flex flex-col items-start gap-3">
                 <Text type="xs" color="danger">
                   {error}
                 </Text>
+                <Button label="Erneut versuchen" onClick={() => void loadTeam()} />
               </Box>
-            )}
-
-            {!loading && !error && (
+            ) : (
               <>
                 <form onSubmit={handleInvite} className="mt-4 flex flex-wrap items-end gap-3">
                   <label className="flex min-w-[220px] flex-1 flex-col gap-1.5">
@@ -198,6 +231,7 @@ export default function Team() {
                     label={inviting ? "Sendet…" : "Einladen"}
                     variant="highlight"
                     disabled={inviting}
+                    isLoading={inviting}
                   />
                 </form>
 

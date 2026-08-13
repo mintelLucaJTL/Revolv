@@ -10,6 +10,7 @@ import {
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { KeyRound } from "lucide-react";
+import PasswordField from "./PasswordField";
 import { apiFetch } from "../utils/api";
 
 const inputClassName =
@@ -38,9 +39,12 @@ export default function SetPasswordCard({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+
     setError("");
 
     if (!token) {
@@ -58,6 +62,8 @@ export default function SetPasswordCard({
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       const response = await apiFetch("/api/auth/reset-password", {
         method: "POST",
@@ -73,6 +79,8 @@ export default function SetPasswordCard({
       navigate("/login");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Passwort konnte nicht gesetzt werden.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -93,27 +101,45 @@ export default function SetPasswordCard({
             </Text>
           ) : null}
 
-          <Text type="small">Passwort</Text>
-          <input
-            className={inputClassName}
-            placeholder="••••••••"
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleSubmit();
+            }}
+          >
+            <Text type="small">Passwort</Text>
+            <PasswordField
+              inputClassName={inputClassName}
+              placeholder="••••••••"
+              name="new-password"
+              autoComplete="new-password"
+              value={newPassword}
+              disabled={isSubmitting}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
 
-          <Text type="small">Passwort wiederholen</Text>
-          <input
-            className={inputClassName}
-            placeholder="••••••••"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
+            <Text type="small">Passwort wiederholen</Text>
+            <PasswordField
+              inputClassName={inputClassName}
+              placeholder="••••••••"
+              name="confirm-password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              disabled={isSubmitting}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
 
-          {error ? <div className="text-sm text-red-600 dark:text-red-400">{error}</div> : null}
+            {error ? <div className="text-sm text-red-600 dark:text-red-400">{error}</div> : null}
 
-          <Button label={submitLabel} variant="highlight" onClick={handleSubmit} />
+            <Button
+              type="submit"
+              label={isSubmitting ? `${submitLabel}…` : submitLabel}
+              variant="highlight"
+              isLoading={isSubmitting}
+              disabled={isSubmitting}
+            />
+          </form>
         </CardContent>
       </Card>
     </Box>

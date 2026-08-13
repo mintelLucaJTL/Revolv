@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Avatar, Box, Button, Card, Text } from "@jtl-software/platform-ui-react";
 import { UserRound } from "lucide-react";
 import DeleteAccountModal from "../components/DeleteAccountModal";
+import Skeleton from "../components/Skeleton";
 import { useAuth } from "../context/AuthContext";
 import {
   fetchCurrentUser,
@@ -11,6 +12,43 @@ import {
   deleteCurrentUser,
   type CurrentUser,
 } from "../utils/user";
+
+function ProfileSkeleton() {
+  return (
+    <Box className="mt-6 flex flex-col gap-6 max-w-2xl" aria-busy="true">
+      <span className="sr-only">Profil wird geladen</span>
+      <Card className="p-6 bg-white border border-slate-200 dark:bg-slate-900 dark:border-slate-700">
+        <Box className="flex items-center gap-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <Box className="space-y-2">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-4 w-56" />
+          </Box>
+        </Box>
+      </Card>
+      <Card className="p-6 bg-white border border-slate-200 dark:bg-slate-900 dark:border-slate-700">
+        <Skeleton className="h-5 w-44" />
+        <Box className="mt-4 space-y-4">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-10 w-full" />
+        </Box>
+        <Box className="mt-6 flex justify-end">
+          <Skeleton className="h-10 w-44" />
+        </Box>
+      </Card>
+      <Card className="p-6 bg-white border border-red-100 dark:bg-slate-900 dark:border-red-900/50">
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="mt-3 h-4 w-full" />
+        <Skeleton className="mt-2 h-4 w-2/3" />
+        <Box className="mt-4 flex justify-end">
+          <Skeleton className="h-10 w-36" />
+        </Box>
+      </Card>
+    </Box>
+  );
+}
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -31,26 +69,24 @@ export default function Profile() {
 
   // Load User
   useEffect(() => {
-    let isMounted = true;
-
-    fetchCurrentUser()
-      .then((currentUser) => {
-        if (!isMounted) return;
-        setUser(currentUser);
-        setNameInput(currentUser.name ?? "");
-      })
-      .catch((err) => {
-        console.error("Failed to load current user:", err);
-        if (isMounted) setLoadError("Profil konnte nicht geladen werden.");
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
+    void loadProfile();
   }, []);
+
+  const loadProfile = async () => {
+    setLoading(true);
+    setLoadError(null);
+
+    try {
+      const currentUser = await fetchCurrentUser();
+      setUser(currentUser);
+      setNameInput(currentUser.name ?? "");
+    } catch (err) {
+      console.error("Failed to load current user:", err);
+      setLoadError("Profil konnte nicht geladen werden.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const hasNameChanges = nameInput.trim() !== (user?.name ?? "").trim();
 
@@ -89,14 +125,15 @@ export default function Profile() {
       <Text weight="bold">Profil</Text>
 
           {loading ? (
-            <Box className="mt-6">
-              <Text type="xs">Lade Profil…</Text>
-            </Box>
+            <ProfileSkeleton />
           ) : loadError ? (
-            <Box className="mt-6">
-              <Text type="xs" color="muted">
-                {loadError}
-              </Text>
+            <Box className="mt-6 max-w-2xl">
+              <Card className="p-8 bg-white border border-slate-200 dark:bg-slate-900 dark:border-slate-700">
+                <Box className="flex flex-col items-center justify-center gap-3 text-sm text-red-600 dark:text-red-400">
+                  <span>{loadError}</span>
+                  <Button label="Erneut versuchen" onClick={() => void loadProfile()} />
+                </Box>
+              </Card>
             </Box>
           ) : (
             <Box className="mt-6 flex flex-col gap-6 max-w-2xl">
@@ -164,6 +201,7 @@ export default function Profile() {
                       variant="highlight"
                       onClick={handleSaveName}
                       disabled={!hasNameChanges || isSavingName}
+                      isLoading={isSavingName}
                     />
                   </Box>
                 </Box>
