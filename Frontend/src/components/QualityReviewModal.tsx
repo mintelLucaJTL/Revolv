@@ -11,13 +11,6 @@ import { useToast } from "./Toast";
 import { useArticleReview } from "../hooks/useArticleReview";
 import type { AnalyzeArticleResponse, ArticleDetailDTO } from "../types/api";
 
-// Placeholder until backend exposes real return comments.
-const PLACEHOLDER_CUSTOMER_COMMENTS = [
-  "Zurückgeschickt weil Hüftumfang nicht passt.",
-  "Farbe wirkt auf dem Foto anders als in echt.",
-  "Passt nicht zur angegebenen Größentabelle.",
-];
-
 const EMPTY_RESULT_TOAST =
   "Die KI-Analyse lieferte keinen sichtbaren Vorschlag. Bitte erneut versuchen.";
 
@@ -162,26 +155,6 @@ export default function QualityReviewModal({
 
   if (!isOpen) return null;
 
-  const customerCommentsSection =
-    articleDetail && !isLoading && !error ? (
-      <div className="mt-6">
-        <Text weight="bold">Kundenkommentare</Text>
-
-        <div className="mt-3 space-y-2">
-          {PLACEHOLDER_CUSTOMER_COMMENTS.map((comment, index) => (
-            <div
-              key={index}
-              className="rounded-2xl rounded-tl-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-4 py-3"
-            >
-              <p className="text-sm italic text-slate-600 dark:text-slate-300">
-                &ldquo;{comment}&rdquo;
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    ) : null;
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-xs p-4"
@@ -258,8 +231,6 @@ export default function QualityReviewModal({
                 reanalyzeBlockedReason={articleDetail.reanalyzeBlockedReason}
               />
             )}
-
-            {customerCommentsSection}
           </CardContent>
         </Card>
       </div>

@@ -15,20 +15,11 @@ interface ActionPlanItem {
   recommendationId: number;
 }
 
-function formatCurrency(value: number): string {
-  return value.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-}
-
-function formatPercent(value: number): string {
-  return `${value.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
-}
-
 function RowSkeleton() {
   return (
     <div className="flex items-center gap-4 border-b border-slate-100 px-4 py-4 last:border-b-0 dark:border-slate-800">
       <div className="h-4 w-6 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
       <div className="h-4 flex-1 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
-      <div className="h-4 w-20 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
       <div className="h-4 w-16 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
     </div>
   );
@@ -70,14 +61,6 @@ export default function Aktionsplan() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-4">
-      <div>
-        <Text weight="bold">Aktionsplan</Text>
-        <Text type="xs" color="muted">
-          Deine offenen KI-Empfehlungen, priorisiert nach geschätztem Einsparpotenzial - oben
-          steht, was sich am meisten lohnt.
-        </Text>
-      </div>
-
       {error ? (
         <Card className="dark:bg-slate-900 dark:border-slate-700">
           <CardContent className="flex flex-col items-center justify-center gap-3 p-8 text-sm text-red-600">
@@ -88,7 +71,7 @@ export default function Aktionsplan() {
       ) : (
         <Card className="dark:bg-slate-900 dark:border-slate-700">
           <CardHeader>
-            <CardTitle className="dark:text-slate-100">Offene Punkte</CardTitle>
+            <CardTitle className="dark:text-slate-100">Produkte nach Wichtigkeit priorisiert</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
@@ -125,25 +108,6 @@ export default function Aktionsplan() {
                         <span className="font-normal text-slate-400 dark:text-slate-500">
                           ({item.articleNumber})
                         </span>
-                      </div>
-                      <div className="truncate text-xs text-slate-500 dark:text-slate-400">
-                        Nächster Schritt: {item.nextStepText}
-                      </div>
-                    </div>
-
-                    <div className="hidden shrink-0 text-right sm:block">
-                      <div className="text-xs text-slate-400 dark:text-slate-500">Retourenquote</div>
-                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                        {formatPercent(item.returnRatePercent)}
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 text-right">
-                      <div className="text-xs text-slate-400 dark:text-slate-500">
-                        Gesch. Einsparpotenzial
-                      </div>
-                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {formatCurrency(item.estimatedReturnCost)}
                       </div>
                     </div>
 

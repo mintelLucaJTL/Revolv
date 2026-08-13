@@ -11,12 +11,26 @@ interface NotificationItem {
   link: string;
 }
 
+const DISMISSED_STORAGE_KEY = "revolv.dismissedNotifications";
+
+function loadDismissed(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+  } catch {
+    return {};
+  }
+}
+
 // Keine eigene Notifications-Tabelle/Read-Unread-Tracking - GET /api/notifications berechnet
 // jeden Hinweis live aus vorhandenen Daten (offene KI-Empfehlungen, rote Artikel, bald
 // ablaufende Team-Einladungen). Alle 5 Minuten neu geladen, das reicht für Hinweise, die sich
-// nicht sekündlich ändern.
+// nicht sekündlich ändern. Angeklickte Hinweise werden lokal (je Typ+Anzahl) als erledigt
+// gemerkt, damit sie nach dem Klick aus der Glocke verschwinden - taucht später ein neuer
+// Hinweis desselben Typs mit anderer Anzahl auf, wird er wieder angezeigt.
 export default function NotificationsBell() {
   const [items, setItems] = useState<NotificationItem[]>([]);
+  const [dismissed, setDismissed] = useState<Record<string, number>>(() => loadDismissed());
   const navigate = useNavigate();
 
   const load = async () => {
@@ -36,14 +50,30 @@ export default function NotificationsBell() {
     return () => clearInterval(interval);
   }, []);
 
-  const totalCount = items.reduce((sum, item) => sum + item.count, 0);
+  const visibleItems = items.filter((item) => dismissed[item.type] !== item.count);
+  const totalCount = visibleItems.reduce((sum, item) => sum + item.count, 0);
+
+  const dismiss = (item: NotificationItem) => {
+    setDismissed((prev) => {
+      const next = { ...prev, [item.type]: item.count };
+      try {
+        localStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // localStorage nicht verfügbar (z.B. privater Modus) - Dismiss gilt dann nur für die Session
+      }
+      return next;
+    });
+  };
 
   const menuItems =
-    items.length > 0
-      ? items.map((item) => ({
+    visibleItems.length > 0
+      ? visibleItems.map((item) => ({
           type: DropdownItem.Default,
           label: item.message,
-          onClick: () => navigate(item.link),
+          onClick: () => {
+            dismiss(item);
+            navigate(item.link);
+          },
         }))
       : [
           {
