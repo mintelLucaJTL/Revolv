@@ -56,6 +56,8 @@ export interface AiRecommendation {
   qualityIssues?: QualityIssue[];
   descriptionProposals?: DescriptionProposal[];
   actionRecommendations?: ActionRecommendation[];
+  /** KI-aufbereitete Kundenkommentare (grammatikalisch bereinigt, aus Retourengründen erzeugt). */
+  customerComments?: string[];
 }
 
 /** Response body from POST /api/ai/analyze/{articleId}. */

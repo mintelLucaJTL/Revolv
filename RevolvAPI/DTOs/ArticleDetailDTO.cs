@@ -26,6 +26,9 @@
         public List<QualityIssueDTO> QualityIssues { get; set; } = new();
         public List<DescriptionProposalDTO> DescriptionProposals { get; set; } = new();
         public List<ActionRecommendationDTO> ActionRecommendations { get; set; } = new();
+
+        /// <summary>KI-aufbereitete Kundenkommentare (grammatikalisch bereinigt, aus Retourengründen erzeugt).</summary>
+        public List<string> CustomerComments { get; set; } = new();
     }
 
     public class QualityIssueDTO

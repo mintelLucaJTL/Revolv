@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Box,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   Text,
   Button,
+  DropdownItem,
+  JTLDropdown,
 } from "@jtl-software/platform-ui-react";
+import { ChevronDown } from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -146,140 +148,145 @@ export default function Erfolgsmessung() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-4">
-            <div>
-              <Text weight="bold">Erfolgsmessung</Text>
-              <Text type="xs" color="muted">
-                Wirkt die KI wirklich? Retourenquote vor und nach einer übernommenen Änderung.
-              </Text>
-            </div>
+      <div>
+        <Text weight="bold">Erfolgsmessung</Text>
+        <Text type="xs" color="muted">
+          Wirkt die KI wirklich? Retourenquote vor und nach einer übernommenen Änderung.
+        </Text>
+      </div>
 
-            {isLoading ? (
-              <TrendSkeleton />
-            ) : error ? (
-              <Card className="dark:bg-slate-900 dark:border-slate-700">
-                <CardContent className="flex flex-col items-center justify-center gap-3 p-8 text-sm text-red-600">
-                  <span>{error}</span>
-                  <Button label="Erneut versuchen" onClick={() => void loadTrends()} />
-                </CardContent>
-              </Card>
-            ) : !selected ? (
-              <Card className="dark:bg-slate-900 dark:border-slate-700">
-                <CardContent className="p-8 text-sm text-slate-500 dark:text-slate-400">
-                  Noch keine Erfolgsmessung verfügbar. Sobald für einen Artikel ein
-                  KI-Vorschlag angenommen bzw. erledigt wurde, erscheint hier dessen
-                  Retourenquote-Trend.
-                </CardContent>
-              </Card>
-            ) : (
-              <>
-                <Card className="dark:bg-slate-900 dark:border-slate-700">
-                  <CardContent className="p-4">
-                    <label className="flex flex-col gap-1.5 sm:max-w-sm">
-                      <span className="text-xs text-slate-500 dark:text-slate-400">Artikel</span>
-                      <select
-                        value={selectedId ?? ""}
-                        onChange={(e) => setSelectedId(Number(e.target.value))}
-                        className="rounded-md border border-gray-200 bg-white px-3 py-2 text-slate-900 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100"
-                      >
-                        {trends.map((a) => (
-                          <option key={a.articleId} value={a.articleId}>
-                            {a.name} ({a.articleNumber})
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </CardContent>
-                </Card>
+      {isLoading ? (
+        <TrendSkeleton />
+      ) : error ? (
+        <Card className="dark:bg-slate-900 dark:border-slate-700">
+          <CardContent className="flex flex-col items-center justify-center gap-3 p-8 text-sm text-red-600">
+            <span>{error}</span>
+            <Button label="Erneut versuchen" onClick={() => void loadTrends()} />
+          </CardContent>
+        </Card>
+      ) : !selected ? (
+        <Card className="dark:bg-slate-900 dark:border-slate-700">
+          <CardContent className="p-8 text-sm text-slate-500 dark:text-slate-400">
+            Noch keine Erfolgsmessung verfügbar. Sobald für einen Artikel ein
+            KI-Vorschlag angenommen bzw. erledigt wurde, erscheint hier dessen
+            Retourenquote-Trend.
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <Card className="dark:bg-slate-900 dark:border-slate-700">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-1.5 sm:max-w-sm">
+                <span className="text-xs text-slate-500 dark:text-slate-400">Artikel</span>
+                <JTLDropdown
+                  position="left"
+                  width="100%"
+                  menuItems={trends.map((a) => ({
+                    type: DropdownItem.Default,
+                    label: `${a.name} (${a.articleNumber})`,
+                    onClick: () => setSelectedId(a.articleId),
+                  }))}
+                >
+                  <Button
+                    variant="secondary"
+                    label={selected ? `${selected.name} (${selected.articleNumber})` : "Artikel wählen"}
+                    icon={<ChevronDown size={16} />}
+                    className="w-full justify-between"
+                  />
+                </JTLDropdown>
+              </div>
+            </CardContent>
+          </Card>
 
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <Card className="dark:bg-slate-900 dark:border-slate-700">
-                    <CardContent className="p-4">
-                      <Text type="xs" color="muted">
-                        Ø Retourenquote vorher
-                      </Text>
-                      <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
-                        {formatPercent(before)}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="dark:bg-slate-900 dark:border-slate-700">
-                    <CardContent className="p-4">
-                      <Text type="xs" color="muted">
-                        Ø Retourenquote nachher
-                      </Text>
-                      <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
-                        {formatPercent(after)}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="dark:bg-slate-900 dark:border-slate-700">
-                    <CardContent className="p-4">
-                      <Text type="xs" color="muted">
-                        Veränderung
-                      </Text>
-                      <div className={`mt-1 text-2xl font-bold ${deltaColor}`}>{formatDelta(delta)}</div>
-                    </CardContent>
-                  </Card>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card className="dark:bg-slate-900 dark:border-slate-700">
+              <CardContent className="p-4">
+                <Text type="xs" color="muted">
+                  Ø Retourenquote vorher
+                </Text>
+                <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
+                  {formatPercent(before)}
                 </div>
+              </CardContent>
+            </Card>
 
-                <Card className="dark:bg-slate-900 dark:border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="dark:text-slate-100">Retourenquote über Zeit</CardTitle>
-                    <Text type="xs" color="muted">
-                      {selected.changeLabel} — {formatMonthLabel(selected.changeMonth)}
-                    </Text>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-72 w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
-                          <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#64748B" }} />
-                          <YAxis
-                            tick={{ fontSize: 12, fill: "#64748B" }}
-                            tickFormatter={(value) => `${value}%`}
-                            width={48}
-                          />
-                          <Tooltip
-                            formatter={(value) => [formatPercent(Number(value)), "Retourenquote"]}
-                            labelFormatter={(label) => label}
-                            contentStyle={{
-                              borderRadius: 12,
-                              backgroundColor: "#0f172a",
-                              borderColor: "#334155",
-                              color: "#e2e8f0",
-                            }}
-                            itemStyle={{ color: "#e2e8f0" }}
-                            labelStyle={{ color: "#e2e8f0" }}
-                          />
-                          <ReferenceLine
-                            x={formatMonthLabel(selected.changeMonth)}
-                            stroke="#3B82F6"
-                            strokeDasharray="4 4"
-                            label={{
-                              value: "KI-Änderung",
-                              position: "insideTopLeft",
-                              fill: "#3B82F6",
-                              fontSize: 12,
-                            }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="returnRate"
-                            stroke="#3B82F6"
-                            strokeWidth={2}
-                            dot={{ r: 3 }}
-                            activeDot={{ r: 5 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            )}
+            <Card className="dark:bg-slate-900 dark:border-slate-700">
+              <CardContent className="p-4">
+                <Text type="xs" color="muted">
+                  Ø Retourenquote nachher
+                </Text>
+                <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
+                  {formatPercent(after)}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="dark:bg-slate-900 dark:border-slate-700">
+              <CardContent className="p-4">
+                <Text type="xs" color="muted">
+                  Veränderung
+                </Text>
+                <div className={`mt-1 text-2xl font-bold ${deltaColor}`}>{formatDelta(delta)}</div>
+              </CardContent>
+            </Card>
           </div>
+
+          <Card className="dark:bg-slate-900 dark:border-slate-700">
+            <CardHeader>
+              <CardTitle className="dark:text-slate-100">Retourenquote über Zeit</CardTitle>
+              <Text type="xs" color="muted">
+                {selected.changeLabel} — {formatMonthLabel(selected.changeMonth)}
+              </Text>
+            </CardHeader>
+            <CardContent>
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#64748B" }} />
+                    <YAxis
+                      tick={{ fontSize: 12, fill: "#64748B" }}
+                      tickFormatter={(value) => `${value}%`}
+                      width={48}
+                    />
+                    <Tooltip
+                      formatter={(value) => [formatPercent(Number(value)), "Retourenquote"]}
+                      labelFormatter={(label) => label}
+                      contentStyle={{
+                        borderRadius: 12,
+                        backgroundColor: "#0f172a",
+                        borderColor: "#334155",
+                        color: "#e2e8f0",
+                      }}
+                      itemStyle={{ color: "#e2e8f0" }}
+                      labelStyle={{ color: "#e2e8f0" }}
+                    />
+                    <ReferenceLine
+                      x={formatMonthLabel(selected.changeMonth)}
+                      stroke="#3B82F6"
+                      strokeDasharray="4 4"
+                      label={{
+                        value: "KI-Änderung",
+                        position: "insideTopLeft",
+                        fill: "#3B82F6",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="returnRate"
+                      stroke="#3B82F6"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
   );
 }

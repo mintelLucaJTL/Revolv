@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
@@ -108,11 +109,30 @@ namespace RevolvAPI.Controllers
                         ImpactBadge = ar.ImpactBadge,
                         Priority = ar.Priority,
                         IsCompleted = ar.IsCompleted
-                    }).ToList()
+                    }).ToList(),
+
+                    CustomerComments = DeserializeCustomerComments(r.GeneratedCustomerCommentsJson)
                 }).ToList()
             };
 
             return Ok(articleDto);
+        }
+
+        private static List<string> DeserializeCustomerComments(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return new List<string>();
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
+            }
+            catch (JsonException)
+            {
+                return new List<string>();
+            }
         }
     }
 }
