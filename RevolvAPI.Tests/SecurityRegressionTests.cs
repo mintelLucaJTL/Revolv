@@ -134,6 +134,12 @@ public sealed class SecurityWebApplicationFactory : WebApplicationFactory<Progra
 
         public Task<List<ActionPlanItem>> GetActionPlanAsync(int companyId) =>
             Task.FromResult(new List<ActionPlanItem>());
+
+        public Task<ReanalyzeGate> GetReanalyzeGateAsync(int articleId, int companyId) =>
+            Task.FromResult(new ReanalyzeGate(CanReanalyze: true, LastRevisedAt: null, BlockedReason: null));
+
+        public Task<List<ArticleSuccessTrend>> GetArticleSuccessTrendsAsync(int companyId, int months = 8) =>
+            Task.FromResult(new List<ArticleSuccessTrend>());
     }
 }
 
