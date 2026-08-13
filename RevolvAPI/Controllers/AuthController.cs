@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using RevolvAPI;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using RevolvAPI.Models;
@@ -42,6 +44,7 @@ namespace RevolvAPI.Controllers
 
         [HttpPost("login")]
         [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
         public async Task<IActionResult> Login([FromBody] LoginRequest r)
         {
             // Include Role so TokenService can put the real role name in the JWT.
@@ -123,6 +126,7 @@ namespace RevolvAPI.Controllers
 
         [HttpPost("register")]
         [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
         public async Task<IActionResult> Register([FromBody] RegisterRequest r)
         {
             if (await _ctx.Users.AnyAsync(u => u.Email == r.Email))
@@ -174,6 +178,7 @@ namespace RevolvAPI.Controllers
 
         [HttpPost("forgot-password")]
         [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest r)
         {
             var user = await _ctx.Users.FirstOrDefaultAsync(u => u.Email == r.Email);
@@ -195,6 +200,7 @@ namespace RevolvAPI.Controllers
 
         [HttpPost("reset-password")]
         [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Auth)]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest r)
         {
             var user = await _ctx.Users.FirstOrDefaultAsync(u => u.PasswordResetToken == r.Token);
