@@ -145,6 +145,11 @@ export default function RetourenAnalyseView() {
   const [selectedDetail, setSelectedDetail] = useState<ArticleDetailDTO | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  // Kleiner Tooltip, der der Maus folgt, solange über einer Tabellenzeile gehovert wird - wie im
+  // Aktionsplan, damit sofort klar ist, dass die Zeile anklickbar ist.
+  const [hoverTip, setHoverTip] = useState<{ id: string | number; x: number; y: number } | null>(
+    null,
+  );
 
   const fetchArticleDetail = async (id: string | number): Promise<ArticleDetailDTO | null> => {
     setDetailError(null);
@@ -469,10 +474,15 @@ export default function RetourenAnalyseView() {
                     <tbody className="bg-white divide-y divide-gray-100 dark:bg-slate-900 dark:divide-slate-700">
                       {visible.map((row) => {
                         const rc = rateClasses(row.returnRate, thresholds.yellow, thresholds.red);
+                        const rowId = row.id ?? row.articleNumber;
                         return (
                           <tr
-                            key={row.id ?? row.articleNumber}
-                            className="hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                            key={rowId}
+                            className="relative cursor-pointer transition-all duration-150 hover:bg-blue-50 hover:shadow-[inset_0_0_0_1px_rgba(59,130,246,0.4),0_0_20px_-4px_rgba(59,130,246,0.5)] dark:hover:bg-blue-950/30 dark:hover:shadow-[inset_0_0_0_1px_rgba(96,165,250,0.5),0_0_24px_-4px_rgba(96,165,250,0.65)]"
+                            onMouseMove={(e) => setHoverTip({ id: rowId, x: e.clientX, y: e.clientY })}
+                            onMouseLeave={() =>
+                              setHoverTip((current) => (current?.id === rowId ? null : current))
+                            }
                             onClick={async () => {
                               const id = row.id ?? row.articleNumber;
 
@@ -550,6 +560,15 @@ export default function RetourenAnalyseView() {
         onArticleUpdated={() => void loadArticles(activeBand)}
         onRefetchDetail={refetchSelectedDetail}
       />
+
+      {hoverTip && (
+        <div
+          className="pointer-events-none fixed z-50 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg dark:bg-slate-700"
+          style={{ left: hoverTip.x + 16, top: hoverTip.y + 16 }}
+        >
+          Hier zur KI-Analyse navigieren →
+        </div>
+      )}
     </>
   );
 }

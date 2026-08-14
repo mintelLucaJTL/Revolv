@@ -51,7 +51,7 @@ namespace RevolvAPI.Services
         public async Task<RefreshTokenRotationResult> RotateAsync(string rawToken)
         {
             var hash = Hash(rawToken);
-            var existing = await _ctx.RefreshTokens.FirstOrDefaultAsync(rt => rt.TokenHash == hash);
+            st var existing = await _ctx.RefreshTokens.FirstOrDefaultAsync(rt => rt.TokenHash == hash);
 
             if (existing == null)
             {
