@@ -53,7 +53,11 @@ function sum(values: number[]): number {
 // Summierte Stückzahlen statt Durchschnitt der einzelnen Monats-Prozentwerte: 3 von 6 verkauften
 // Einheiten zurückgegeben ist eine andere (korrektere) Quote als der Mittelwert mehrerer
 // Monatsquoten mit stark unterschiedlichem Volumen.
-function aggregateRate(points: TrendPoint[]): { rate: number | null; returned: number; sold: number } {
+function aggregateRate(points: TrendPoint[]): {
+  rate: number | null;
+  returned: number;
+  sold: number;
+} {
   const returned = sum(points.map((p) => p.returnedQuantity));
   const sold = sum(points.map((p) => p.soldQuantity));
   return { rate: sold > 0 ? (returned / sold) * 100 : null, returned, sold };
@@ -113,9 +117,7 @@ export default function Erfolgsmessung() {
       );
     } catch (err) {
       console.error("Fehler beim Laden der Erfolgsmessung:", err);
-      setError(
-        err instanceof Error ? err.message : "Erfolgsmessung konnte nicht geladen werden.",
-      );
+      setError(err instanceof Error ? err.message : "Erfolgsmessung konnte nicht geladen werden.");
     } finally {
       setIsLoading(false);
     }
@@ -222,9 +224,9 @@ export default function Erfolgsmessung() {
                 >
                   <Button
                     variant="secondary"
+                    fullWidth
                     label={selected ? `${selected.name} (${selected.articleNumber})` : "Artikel wählen"}
                     icon={<ChevronDown size={16} />}
-                    className="w-full justify-between"
                   />
                 </JTLDropdown>
               </div>
@@ -234,13 +236,17 @@ export default function Erfolgsmessung() {
           {hasNoData ? (
             <Card className="border-2 border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
               <CardContent className="flex flex-col items-center gap-3 p-16 text-center">
-                <HelpCircle className="text-amber-500 dark:text-amber-400" size={56} strokeWidth={2} />
+                <HelpCircle
+                  className="text-amber-500 dark:text-amber-400"
+                  size={56}
+                  strokeWidth={2}
+                />
                 <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
                   Keine Daten vorhanden
                 </div>
                 <Text type="small" color="muted">
-                  Für diesen Artikel gibt es aktuell keine Verkäufe im Vergleichszeitraum -
-                  ohne Verkäufe lässt sich keine Retourenquote berechnen.
+                  Für diesen Artikel gibt es aktuell keine Verkäufe im Vergleichszeitraum - ohne
+                  Verkäufe lässt sich keine Retourenquote berechnen.
                 </Text>
               </CardContent>
             </Card>
@@ -256,7 +262,9 @@ export default function Erfolgsmessung() {
                       {formatPercent(before.rate)}
                     </div>
                     <Text type="small" color="muted">
-                      {before.rate !== null ? formatUnits(before.returned, before.sold) : "Keine Daten vorhanden"}
+                      {before.rate !== null
+                        ? formatUnits(before.returned, before.sold)
+                        : "Keine Daten vorhanden"}
                     </Text>
                   </CardContent>
                 </Card>
@@ -270,7 +278,9 @@ export default function Erfolgsmessung() {
                       {formatPercent(after.rate)}
                     </div>
                     <Text type="small" color="muted">
-                      {after.rate !== null ? formatUnits(after.returned, after.sold) : "Keine Daten vorhanden"}
+                      {after.rate !== null
+                        ? formatUnits(after.returned, after.sold)
+                        : "Keine Daten vorhanden"}
                     </Text>
                   </CardContent>
                 </Card>
@@ -284,7 +294,9 @@ export default function Erfolgsmessung() {
                       {formatDelta(delta)}
                     </div>
                     <Text type="small" color="muted">
-                      {delta !== null ? "Prozentpunkte, aus den Stückzahlen oben" : "Keine Daten vorhanden"}
+                      {delta !== null
+                        ? "Prozentpunkte, aus den Stückzahlen oben"
+                        : "Keine Daten vorhanden"}
                     </Text>
                   </CardContent>
                 </Card>
@@ -300,7 +312,10 @@ export default function Erfolgsmessung() {
                 <CardContent>
                   <div className="h-72 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                      <LineChart
+                        data={chartData}
+                        margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+                      >
                         <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
                         <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#64748B" }} />
                         <YAxis

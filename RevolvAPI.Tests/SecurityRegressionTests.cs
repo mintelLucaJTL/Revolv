@@ -31,18 +31,23 @@ public sealed class SecurityWebApplicationFactory : WebApplicationFactory<Progra
 
     private readonly string _environment;
     private readonly string _dbName = "SecurityTests-" + Guid.NewGuid().ToString("N");
+    private readonly IReadOnlyDictionary<string, string?> _extraConfig;
 
     public SecurityWebApplicationFactory()
         : this("Development")
     {
     }
 
-    private SecurityWebApplicationFactory(string environment)
+    private SecurityWebApplicationFactory(string environment, IReadOnlyDictionary<string, string?>? extraConfig = null)
     {
         _environment = environment;
+        _extraConfig = extraConfig ?? new Dictionary<string, string?>();
     }
 
     public static SecurityWebApplicationFactory CreateProduction() => new("Production");
+
+    public static SecurityWebApplicationFactory CreateWithConfig(IReadOnlyDictionary<string, string?> extraConfig) =>
+        new("Development", extraConfig);
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -60,6 +65,11 @@ public sealed class SecurityWebApplicationFactory : WebApplicationFactory<Progra
                 ["ConnectionStrings:WawiConnection"] =
                     "Server=(localdb)\\mssqllocaldb;Database=RevolvSecurityUnused;Trusted_Connection=True;TrustServerCertificate=True"
             });
+
+            if (_extraConfig.Count > 0)
+            {
+                config.AddInMemoryCollection(_extraConfig);
+            }
         });
 
         builder.ConfigureTestServices(services =>
@@ -134,6 +144,12 @@ public sealed class SecurityWebApplicationFactory : WebApplicationFactory<Progra
 
         public Task<List<ActionPlanItem>> GetActionPlanAsync(int companyId) =>
             Task.FromResult(new List<ActionPlanItem>());
+
+        public Task<ReanalyzeGate> GetReanalyzeGateAsync(int articleId, int companyId) =>
+            Task.FromResult(new ReanalyzeGate(true, null, null));
+
+        public Task<List<ArticleSuccessTrend>> GetArticleSuccessTrendsAsync(int companyId, int months = 8) =>
+            Task.FromResult(new List<ArticleSuccessTrend>());
     }
 }
 
@@ -151,7 +167,8 @@ public class SecurityRegressionTests : IClassFixture<SecurityWebApplicationFacto
         "/api/dashboard/kpi",
         "/api/articles",
         "/api/settings",
-        "/api/ai/recommendations"
+        "/api/ai/recommendations",
+        "/api/quality/open"
     };
 
     [Theory]

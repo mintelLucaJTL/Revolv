@@ -102,6 +102,7 @@ namespace RevolvAPI.Services
                 articleInfo.Name ?? "Unbekannter Artikel",
                 currentDescription,
                 returnReasons,
+                companyId,
                 customerComments);
 
             if (!AiRecommendationContentRules.IsUsable(aiResult))

@@ -117,11 +117,16 @@ namespace RevolvAPI.Services
             string articleName,
             string? currentDescription,
             IEnumerable<string> returnReasons,
+            int companyId,
             IEnumerable<string>? customerComments = null)
         {
             var reasons = returnReasons.ToList();
             var comments = customerComments?.ToList() ?? new List<string>();
-            var settings = await _ctx.ShopSettings.FirstOrDefaultAsync();
+            // ShopSettings are per company (not a global singleton). An unfiltered FirstOrDefault
+            // would apply another tenant's tone of voice to this analysis.
+            var settings = await _ctx.ShopSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.CompanyId == companyId);
             var toneOfVoice = ToneOfVoiceOptions.Normalize(settings?.ToneOfVoice);
 
             try
