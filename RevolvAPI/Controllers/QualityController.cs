@@ -3,6 +3,7 @@ using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using RevolvAPI.Extensions;
 using RevolvAPI.Services;
 
 namespace RevolvAPI.Controllers
@@ -24,10 +25,15 @@ namespace RevolvAPI.Controllers
         [HttpGet("open")]
         public async Task<IActionResult> GetOpenQualityIssues()
         {
+            var companyId = User.GetCompanyId();
+
+            // Tenant isolation: QualityIssues belong to an AiRecommendation; without CompanyId
+            // any authenticated user could list other companies' open quality issues (IDOR).
             var issues = await _ctx.QualityIssues
                 .AsNoTracking()
-                .Where(q => q.Status != AiRecommendationStatuses.QualityIssueResolved)
                 .Include(q => q.AiRecommendation)
+                .Where(q => q.Status != AiRecommendationStatuses.QualityIssueResolved
+                            && q.AiRecommendation.CompanyId == companyId)
                 .ToListAsync();
 
             var artikelIds = issues

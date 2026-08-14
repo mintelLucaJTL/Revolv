@@ -136,7 +136,7 @@ public sealed class SecurityWebApplicationFactory : WebApplicationFactory<Progra
             Task.FromResult(new List<ActionPlanItem>());
 
         public Task<ReanalyzeGate> GetReanalyzeGateAsync(int articleId, int companyId) =>
-            Task.FromResult(new ReanalyzeGate(CanReanalyze: true, LastRevisedAt: null, BlockedReason: null));
+            Task.FromResult(new ReanalyzeGate(true, null, null));
 
         public Task<List<ArticleSuccessTrend>> GetArticleSuccessTrendsAsync(int companyId, int months = 8) =>
             Task.FromResult(new List<ArticleSuccessTrend>());
@@ -157,7 +157,8 @@ public class SecurityRegressionTests : IClassFixture<SecurityWebApplicationFacto
         "/api/dashboard/kpi",
         "/api/articles",
         "/api/settings",
-        "/api/ai/recommendations"
+        "/api/ai/recommendations",
+        "/api/quality/open"
     };
 
     [Theory]
