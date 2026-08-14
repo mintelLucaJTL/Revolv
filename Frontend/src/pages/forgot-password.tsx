@@ -18,15 +18,20 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+
     setError("");
 
     if (!email) {
       setError("Bitte E-Mail-Adresse eingeben.");
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       await apiFetch("/api/auth/forgot-password", {
@@ -40,6 +45,8 @@ export default function ForgotPasswordPage() {
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Anfrage fehlgeschlagen.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -69,17 +76,36 @@ export default function ForgotPasswordPage() {
                 erhalten.
               </Text>
 
-              <input
-                className={inputClassName}
-                placeholder="you@example.com"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <form
+                className="flex flex-col gap-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void handleSubmit();
+                }}
+              >
+                <input
+                  className={inputClassName}
+                  placeholder="you@example.com"
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  value={email}
+                  disabled={isSubmitting}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
 
-              {error ? <div className="text-sm text-red-600 dark:text-red-400">{error}</div> : null}
+                {error ? (
+                  <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
+                ) : null}
 
-              <Button label="Link anfordern" variant="highlight" onClick={handleSubmit} />
+                <Button
+                  type="submit"
+                  label={isSubmitting ? "Wird gesendet…" : "Link anfordern"}
+                  variant="highlight"
+                  isLoading={isSubmitting}
+                  disabled={isSubmitting}
+                />
+              </form>
             </>
           )}
         </CardContent>

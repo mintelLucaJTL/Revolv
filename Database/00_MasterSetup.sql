@@ -555,5 +555,16 @@ BEGIN
 END
 GO
 
+-- Kundenkommentare-Tab: KI-aufbereitete Kundenkommentare (grammatikalisch bereinigt, aus
+-- Retourengründen/Freitext-Kommentaren erzeugt), als JSON-Array-String persistiert.
+IF NOT EXISTS (
+    SELECT * FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'revolv.AiRecommendations') AND name = 'GeneratedCustomerCommentsJson'
+)
+BEGIN
+    ALTER TABLE revolv.AiRecommendations ADD GeneratedCustomerCommentsJson NVARCHAR(MAX) NULL;
+END
+GO
+
 PRINT 'Revolv setup complete: schema revolv and app tables are ready.';
 GO

@@ -15,20 +15,11 @@ interface ActionPlanItem {
   recommendationId: number;
 }
 
-function formatCurrency(value: number): string {
-  return value.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-}
-
-function formatPercent(value: number): string {
-  return `${value.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
-}
-
 function RowSkeleton() {
   return (
     <div className="flex items-center gap-4 border-b border-slate-100 px-4 py-4 last:border-b-0 dark:border-slate-800">
       <div className="h-4 w-6 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
       <div className="h-4 flex-1 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
-      <div className="h-4 w-20 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
       <div className="h-4 w-16 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
     </div>
   );
@@ -43,6 +34,9 @@ export default function Aktionsplan() {
   const [items, setItems] = useState<ActionPlanItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  // Kleiner Tooltip, der der Maus folgt, solange über einer Zeile gehovert wird - zusätzlich
+  // zum Glow-Hover, damit sofort klar ist, dass die Zeile anklickbar ist.
+  const [hoverTip, setHoverTip] = useState<{ id: number; x: number; y: number } | null>(null);
 
   const loadItems = async () => {
     setIsLoading(true);
@@ -70,14 +64,6 @@ export default function Aktionsplan() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-4">
-      <div>
-        <Text weight="bold">Aktionsplan</Text>
-        <Text type="xs" color="muted">
-          Deine offenen KI-Empfehlungen, priorisiert nach geschätztem Einsparpotenzial - oben
-          steht, was sich am meisten lohnt.
-        </Text>
-      </div>
-
       {error ? (
         <Card className="dark:bg-slate-900 dark:border-slate-700">
           <CardContent className="flex flex-col items-center justify-center gap-3 p-8 text-sm text-red-600">
@@ -88,7 +74,7 @@ export default function Aktionsplan() {
       ) : (
         <Card className="dark:bg-slate-900 dark:border-slate-700">
           <CardHeader>
-            <CardTitle className="dark:text-slate-100">Offene Punkte</CardTitle>
+            <CardTitle className="dark:text-slate-100">Produkte nach Wichtigkeit priorisiert</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
@@ -113,9 +99,13 @@ export default function Aktionsplan() {
                     key={item.articleId}
                     type="button"
                     onClick={() => navigate(`/retouren-analyse?open=${item.articleId}`)}
-                    className="flex w-full items-center gap-4 border-b border-slate-100 px-4 py-4 text-left transition-colors last:border-b-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60"
+                    onMouseMove={(e) =>
+                      setHoverTip({ id: item.articleId, x: e.clientX, y: e.clientY })
+                    }
+                    onMouseLeave={() => setHoverTip((current) => (current?.id === item.articleId ? null : current))}
+                    className="group relative flex w-full items-center gap-4 border-b border-slate-100 px-4 py-4 text-left transition-all duration-150 last:border-b-0 hover:z-10 hover:-translate-y-0.5 hover:scale-[1.01] hover:border-transparent hover:bg-blue-50 hover:shadow-[0_0_24px_-6px_rgba(59,130,246,0.55)] dark:border-slate-800 dark:hover:bg-blue-950/40 dark:hover:shadow-[0_0_28px_-4px_rgba(96,165,250,0.7)]"
                   >
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400 group-hover:bg-blue-600 group-hover:text-white dark:group-hover:bg-blue-500">
                       {index + 1}
                     </span>
 
@@ -126,38 +116,31 @@ export default function Aktionsplan() {
                           ({item.articleNumber})
                         </span>
                       </div>
-                      <div className="truncate text-xs text-slate-500 dark:text-slate-400">
-                        Nächster Schritt: {item.nextStepText}
-                      </div>
-                    </div>
-
-                    <div className="hidden shrink-0 text-right sm:block">
-                      <div className="text-xs text-slate-400 dark:text-slate-500">Retourenquote</div>
-                      <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                        {formatPercent(item.returnRatePercent)}
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 text-right">
-                      <div className="text-xs text-slate-400 dark:text-slate-500">
-                        Gesch. Einsparpotenzial
-                      </div>
-                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {formatCurrency(item.estimatedReturnCost)}
-                      </div>
                     </div>
 
                     <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
                       {item.openItemCount} offen
                     </span>
 
-                    <ChevronRight className="shrink-0 text-slate-300 dark:text-slate-600" size={18} />
+                    <ChevronRight
+                      className="shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-500 dark:text-slate-600 dark:group-hover:text-blue-400"
+                      size={18}
+                    />
                   </button>
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
+      )}
+
+      {hoverTip && (
+        <div
+          className="pointer-events-none fixed z-50 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg dark:bg-slate-700"
+          style={{ left: hoverTip.x + 16, top: hoverTip.y + 16 }}
+        >
+          Zum Artikel in der Retourenanalyse navigieren →
+        </div>
       )}
     </div>
   );

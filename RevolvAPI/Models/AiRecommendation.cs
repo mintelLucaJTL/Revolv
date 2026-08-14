@@ -16,6 +16,12 @@ namespace RevolvAPI.Models
         public decimal? ReturnRate { get; set; }
         public bool IsFullyResolved { get; set; }
 
+        // KI-aufbereitete Kundenkommentare (grammatikalisch bereinigt, aus Retourengründen und
+        // rohen Freitext-Kommentaren erzeugt) - als JSON-Array-String persistiert, da es kein
+        // eigenes Read-Modell dafür braucht (siehe QualityIssues/ActionRecommendations für
+        // Beispiele mit eigener Tabelle, hier bewusst schlanker).
+        public string? GeneratedCustomerCommentsJson { get; set; }
+
         // Folge-Ticket zu #190: welche Firma diese Analyse gehört - Controller filtern
         // darauf, damit Firma A keine Empfehlungen/Qualitätsprobleme von Firma B sieht.
         public int CompanyId { get; set; }

@@ -2,6 +2,7 @@ import { Box, Card, Stack, Button, CardTitle } from "@jtl-software/platform-ui-r
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { UserPlus } from "lucide-react";
+import PasswordField from "../components/PasswordField";
 
 export default function Registrieren() {
   const navigate = useNavigate();
@@ -97,26 +98,37 @@ export default function Registrieren() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <input
-            className={inputClassName}
+          <PasswordField
+            inputClassName={inputClassName}
             placeholder="Passwort"
-            type="password"
+            name="new-password"
+            autoComplete="new-password"
             value={password}
+            disabled={loading}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <input
-            className={inputClassName}
+          <PasswordField
+            inputClassName={inputClassName}
             placeholder="Passwort bestätigen"
-            type="password"
+            name="confirm-password"
+            autoComplete="new-password"
             value={confirmPassword}
+            disabled={loading}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
           <Button
             label={loading ? "Registriere..." : "Registrieren"}
             variant="highlight"
+            isLoading={loading}
+            disabled={loading}
             onClick={handleRegister}
           />
-          <Button label="Zurück zum login" variant="secondary" onClick={() => navigate("/login")} />
+          <Button
+            label="Zurück zum login"
+            variant="secondary"
+            disabled={loading}
+            onClick={() => navigate("/login")}
+          />
         </Stack>
       </Card>
     </Box>

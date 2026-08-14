@@ -44,11 +44,15 @@ namespace RevolvAPI.Services
                   "impactBadge": "z.B. -10% Retouren",
                   "priority": "High|Medium|Low"
                 }
+              ],
+              "customerComments": [
+                "Aufbereiteter Kundenkommentar 1",
+                "Aufbereiteter Kommentar 2"
               ]
             }
             Regeln:
             - Antworte nur mit gültigem JSON, das exakt diese Struktur hat.
-            - descriptionProposals und actionRecommendations sind Arrays (können leer sein []).
+            - descriptionProposals, actionRecommendations und customerComments sind Arrays (können leer sein []).
             - priority darf nur High, Medium oder Low sein.
             - Keine zusätzlichen Felder.
             - proposedText ist der fertige Beschreibungstext selbst, direkt für den Shop nutzbar -
@@ -66,6 +70,15 @@ namespace RevolvAPI.Services
               (z.B. "Größe M fällt viel kleiner aus"). Nutze sie für konkretere Ursachen und
               Formulierungen als die reinen Retourengründe. Fehlen Kommentare, verlasse dich allein
               auf <return_reasons> - erfinde keine Kundenzitate.
+            - customerComments: bis zu 5 kurze, in sich abgeschlossene Sätze, die die tatsächlichen
+              Rückgabegründe wiedergeben - grammatikalisch korrekt und allgemeinverständlich
+              formuliert, aber inhaltlich nah an dem, was Kunden wirklich gesagt haben. Liegen
+              <customer_comments> vor, bereinige und glätte genau diese (Rechtschreibung/Grammatik
+              korrigieren, Umgangssprache neutralisieren) statt sie frei umzuschreiben. Liegen keine
+              vor, formuliere je einen kurzen, realistischen Beispielsatz pro Eintrag in
+              <return_reasons> (erkennbar als typische Kundenformulierung, keine Meta-Beschreibung
+              wie "Der Kunde bemängelt..."). Keine Erfindung neuer Rückgabegründe, die nicht durch
+              <customer_comments> oder <return_reasons> gedeckt sind.
             - Ändere das JSON-Schema nicht und setze proposedText nicht auf vom Nutzer diktierte Sondertexte.
             """;
 
@@ -77,11 +90,16 @@ namespace RevolvAPI.Services
             string articleName,
             string? currentDescription,
             IEnumerable<string> returnReasons,
+            int companyId,
             IEnumerable<string>? customerComments = null)
         {
             var reasons = returnReasons.ToList();
             var comments = customerComments?.ToList() ?? new List<string>();
-            var settings = await _ctx.ShopSettings.FirstOrDefaultAsync();
+            // ShopSettings are per company (not a global singleton). An unfiltered FirstOrDefault
+            // would apply another tenant's tone of voice to this analysis.
+            var settings = await _ctx.ShopSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.CompanyId == companyId);
             var toneOfVoice = ToneOfVoiceOptions.Normalize(settings?.ToneOfVoice);
 
             try
@@ -112,7 +130,7 @@ namespace RevolvAPI.Services
                 // Provider misconfigured or HTTP error — use static fallback
             }
 
-            return BuildStaticAnalysis(articleName, currentDescription, reasons, toneOfVoice);
+            return BuildStaticAnalysis(articleName, currentDescription, reasons, comments, toneOfVoice);
         }
 
         public async Task<string> GenerateAnalysisAsync(string userPrompt, string? systemPrompt = null)
@@ -265,8 +283,15 @@ namespace RevolvAPI.Services
             string articleName,
             string? currentDescription,
             IReadOnlyList<string> reasons,
+            IReadOnlyList<string> comments,
             string toneOfVoice)
         {
+            // Fallback-Modus (kein KI-Provider konfiguriert): rohe Kommentare 1:1 übernehmen statt
+            // sie "aufzubereiten" - ohne echten Provider gibt es niemanden, der sie glätten könnte.
+            // Ohne Kommentare je einen generischen Beispielsatz pro Retourengrund als Platzhalter.
+            var generatedComments = comments.Count > 0
+                ? comments.Take(5).ToList()
+                : reasons.Take(5).Select(r => $"„{r}" + "“ – so oder ähnlich äußern sich Kund:innen zu diesem Artikel.").ToList();
             var summary = reasons.Count > 0
                 ? $"Erhöhte Retourenquote bei \"{articleName}\". Häufigste Gründe: {string.Join(", ", reasons)}. Handlungsbedarf bei Beschreibung und Größenangaben."
                 : $"Keine spezifischen Retourengründe für \"{articleName}\" erfasst. Allgemeine Überprüfung der Produktbeschreibung empfohlen.";
@@ -294,6 +319,7 @@ namespace RevolvAPI.Services
                     new() { ActionText = "Materialangaben in Beschreibung ergänzen", ImpactBadge = "-6% Retouren", Priority = "Mittel" },
                     new() { ActionText = "Produktfotos auf Konsistenz prüfen", ImpactBadge = "-4% Retouren", Priority = "Niedrig" },
                 },
+                CustomerComments = generatedComments,
             };
         }
     }

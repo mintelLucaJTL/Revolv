@@ -169,8 +169,7 @@ namespace RevolvAPI.Services
         }
 
         // Kalendermonat-Fenster endend im aktuellen Monat, `months` Monate lang (inkl. aktuellem
-        // Monat) - gemeinsam von GetMonthlyReturnCostsAsync und GetArticleSuccessTrendsAsync
-        // genutzt, damit beide dieselbe Definition von "die letzten n Monate" haben.
+        // Monat) - von GetMonthlyReturnCostsAsync genutzt.
         private static DateTimeOffset GetTrailingRangeStart(int months)
         {
             var now = DateTimeOffset.UtcNow;
@@ -310,6 +309,13 @@ namespace RevolvAPI.Services
                 // Artikel ohne Verkaufs-/Retourendaten (z. B. inzwischen inaktiv) überspringen -
                 // ohne Grundlage kein sinnvoller Prioritäts-Score.
                 if (!metricsByArticle.TryGetValue(recommendation.ArtikelId, out var metric)) continue;
+
+                // Ein offener KI-Punkt kann auch ohne tatsächliche Retoure entstehen (z. B. ein
+                // manuell/automatisch erkanntes Qualitätsproblem). Ohne Retourenmenge gibt es
+                // nichts einzusparen - "0% / 0€" wäre zwar rechnerisch korrekt, sähe aber wie ein
+                // Fehler aus. Solche Artikel gehören nicht in eine nach Einsparpotenzial sortierte
+                // Liste, also raus statt mit einer irreführenden Null-Zeile anzuzeigen.
+                if (metric.ReturnedQuantity <= 0) continue;
 
                 var estimatedCost = metric.ReturnedQuantity * priceByItem.GetValueOrDefault(recommendation.ArtikelId, 0m);
 
@@ -528,7 +534,7 @@ namespace RevolvAPI.Services
                         .Sum(x => x.SalesCount);
 
                     var rate = sales > 0 ? (decimal)returns / (decimal)sales * 100m : 0m;
-                    points.Add(new MonthlyReturnRatePoint(month, Math.Round(rate, 1)));
+                    points.Add(new MonthlyReturnRatePoint(month, Math.Round(rate, 1), returns, sales));
                 }
 
                 var displayInfo = displayInfos.GetValueOrDefault(item.ArtikelId);

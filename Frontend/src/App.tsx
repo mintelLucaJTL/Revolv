@@ -67,11 +67,42 @@ function PublicOnlyRoute({ children }: { children: ReactNode }) {
   return children;
 }
 
+function SessionRestoreScreen() {
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950"
+      role="status"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <div className="relative flex h-20 w-20 items-center justify-center">
+        <span className="absolute h-20 w-20 rounded-2xl border-2 border-blue-500/50 dark:border-blue-500/60 animate-revolv-ring-pulse" />
+        <span
+          className="absolute h-20 w-20 rounded-2xl border-2 border-blue-500/50 dark:border-blue-500/60 animate-revolv-ring-pulse"
+          style={{ animationDelay: "0.55s" }}
+        />
+        <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-[0_0_60px_rgba(59,130,246,0.35)] dark:shadow-[0_0_60px_rgba(59,130,246,0.55)] animate-revolv-logo-in">
+          <span className="text-3xl font-bold text-white">R</span>
+        </div>
+      </div>
+
+      <div className="flex flex-col items-center gap-1.5 animate-revolv-text-in">
+        <span className="text-2xl font-bold text-slate-900 dark:text-white">Revolv</span>
+        <span className="text-sm text-slate-500 dark:text-slate-400">Sitzung wird geprüft…</span>
+      </div>
+
+      <div className="relative h-1 w-48 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+        <div className="absolute inset-y-0 w-1/3 rounded-full bg-blue-500 animate-ai-scan" />
+      </div>
+    </div>
+  );
+}
+
 function AppRoutes() {
   const { isAuthenticated, isInitializing } = useAuth();
 
   if (isInitializing) {
-    return null;
+    return <SessionRestoreScreen />;
   }
 
   return (
