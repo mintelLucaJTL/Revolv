@@ -279,11 +279,39 @@ export default function Dashboard() {
                   const isNegative =
                     extraText.trim().startsWith("-") || extraText.trim().startsWith("−");
                   const Icon = card.icon;
+                  // "KI-Empfehlungen offen" ist die einzige der vier oberen Karten mit einer
+                  // konkreten Stelle, wo man direkt etwas tun kann - deshalb bekommt nur sie
+                  // Klick + Glow-Hover, statt alle vier gleich klickbar zu machen.
+                  const isActionable = card.title === "KI-Empfehlungen offen";
 
-                  return (
+                  const kpiCard = (
                     <Card
                       key={card.title}
-                      className="rounded-lg bg-white p-4 shadow-sm hover:shadow-md transition-shadow dark:bg-slate-900 dark:text-slate-100"
+                      onClick={isActionable ? () => navigate("/aktionsplan") : undefined}
+                      role={isActionable ? "button" : undefined}
+                      tabIndex={isActionable ? 0 : undefined}
+                      onKeyDown={
+                        isActionable
+                          ? (e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                navigate("/aktionsplan");
+                              }
+                            }
+                          : undefined
+                      }
+                      className={`rounded-lg bg-white p-4 shadow-sm transition-all duration-200 dark:bg-slate-900 dark:text-slate-100 ${
+                        isActionable
+                          ? // near = Maus in der Pufferzone rund um die Karte, hover = direkt drauf.
+                            // Dark braucht deutlich mehr Deckkraft, sonst versackt der Glow im
+                            // dunklen Hintergrund statt sich sichtbar abzuheben.
+                            "cursor-pointer hover:-translate-y-0.5 hover:scale-[1.02] " +
+                            "group-hover:border-blue-300 group-hover:shadow-[0_0_14px_-6px_rgba(59,130,246,0.35)] " +
+                            "dark:group-hover:border-blue-400 dark:group-hover:shadow-[0_0_18px_-4px_rgba(96,165,250,0.55)] " +
+                            "hover:border-blue-300 hover:shadow-[0_0_28px_-6px_rgba(59,130,246,0.65)] " +
+                            "dark:hover:border-blue-300 dark:hover:shadow-[0_0_32px_-4px_rgba(96,165,250,0.85)]"
+                          : "hover:shadow-md"
+                      }`}
                     >
                       <CardContent className="p-0">
                         <div className="flex items-start justify-between gap-4">
@@ -314,6 +342,16 @@ export default function Dashboard() {
                       </CardContent>
                     </Card>
                   );
+
+                  // Pufferzone: schon das Herankommen mit der Maus (nicht erst der direkte Hover
+                  // auf der Karte selbst) löst per group-hover den dezenten "near"-Zustand aus.
+                  return isActionable ? (
+                    <div key={card.title} className="group -m-3 p-3">
+                      {kpiCard}
+                    </div>
+                  ) : (
+                    kpiCard
+                  );
                 })}
           </div>
 
@@ -334,7 +372,6 @@ export default function Dashboard() {
                       badgeLabel={t.badgeLabel}
                       smallLabel={t.smallLabel}
                       value={t.value}
-                      percent={t.percent}
                       onClick={() => navigate(buildRetourenAnalysePath(t.variant))}
                     />
                   ))}
