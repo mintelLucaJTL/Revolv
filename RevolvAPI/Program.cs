@@ -1,12 +1,16 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using RevolvAPI;
 using RevolvAPI.Data;
 using RevolvAPI.Data.Seeder;
 using RevolvAPI.Services;
 using RevolvAPI.Swagger;
+using System.Security.Claims;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,6 +92,45 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
+// H4: brute-force / cost-abuse limits. Auth is partitioned by connection IP (not
+// X-Forwarded-For, which is client-spoofable without ForwardedHeaders). AI analyze is
+// partitioned by authenticated user id, with IP as fallback. Limits are read from
+// IConfiguration per request so test hosts can override them after WebApplication.CreateBuilder.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy(RateLimitPolicies.Auth, httpContext =>
+    {
+        var (permit, windowSeconds) = RateLimitPolicies.ReadLimits(httpContext, "RateLimiting:Auth", 10, 60);
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: $"auth:{ip}:{permit}:{windowSeconds}",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = permit,
+                Window = TimeSpan.FromSeconds(windowSeconds),
+                QueueLimit = 0
+            });
+    });
+
+    options.AddPolicy(RateLimitPolicies.AiAnalyze, httpContext =>
+    {
+        var (permit, windowSeconds) = RateLimitPolicies.ReadLimits(httpContext, "RateLimiting:AiAnalyze", 20, 60);
+        var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var subject = !string.IsNullOrEmpty(userId) ? $"user:{userId}" : $"ip:{ip}";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: $"ai:{subject}:{permit}:{windowSeconds}",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = permit,
+                Window = TimeSpan.FromSeconds(windowSeconds),
+                QueueLimit = 0
+            });
+    });
+});
+
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
@@ -117,6 +160,8 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowReactFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+// After auth so the AI-analyze policy can partition by user id.
+app.UseRateLimiter();
 app.MapControllers();
 
 DbSeeder.Seed(app.Services.CreateScope().ServiceProvider.GetRequiredService<AppDbContext>());

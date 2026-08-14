@@ -1,12 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using RevolvAPI;
 using RevolvAPI.Data;
 using RevolvAPI.DTOs;
 using RevolvAPI.Extensions;
 using RevolvAPI.Models;
 using RevolvAPI.Services;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 
 namespace RevolvAPI.Controllers
 {
@@ -343,6 +345,7 @@ namespace RevolvAPI.Controllers
         // Background-Job (AutoAnalysisBackgroundService) für ShopSetting.AutoAnalyzeNewIssues
         // wiederverwendet. Leere/ungültige KI-Ergebnisse werden nicht persistiert (#242).
         [HttpPost("analyze/{articleId}")]
+        [EnableRateLimiting(RateLimitPolicies.AiAnalyze)]
         public async Task<IActionResult> AnalyzeArticle(int articleId)
         {
             var result = await _articleAnalysisService.AnalyzeArticleAsync(articleId, User.GetCompanyId());

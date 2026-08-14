@@ -31,18 +31,23 @@ public sealed class SecurityWebApplicationFactory : WebApplicationFactory<Progra
 
     private readonly string _environment;
     private readonly string _dbName = "SecurityTests-" + Guid.NewGuid().ToString("N");
+    private readonly IReadOnlyDictionary<string, string?> _extraConfig;
 
     public SecurityWebApplicationFactory()
         : this("Development")
     {
     }
 
-    private SecurityWebApplicationFactory(string environment)
+    private SecurityWebApplicationFactory(string environment, IReadOnlyDictionary<string, string?>? extraConfig = null)
     {
         _environment = environment;
+        _extraConfig = extraConfig ?? new Dictionary<string, string?>();
     }
 
     public static SecurityWebApplicationFactory CreateProduction() => new("Production");
+
+    public static SecurityWebApplicationFactory CreateWithConfig(IReadOnlyDictionary<string, string?> extraConfig) =>
+        new("Development", extraConfig);
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -60,6 +65,11 @@ public sealed class SecurityWebApplicationFactory : WebApplicationFactory<Progra
                 ["ConnectionStrings:WawiConnection"] =
                     "Server=(localdb)\\mssqllocaldb;Database=RevolvSecurityUnused;Trusted_Connection=True;TrustServerCertificate=True"
             });
+
+            if (_extraConfig.Count > 0)
+            {
+                config.AddInMemoryCollection(_extraConfig);
+            }
         });
 
         builder.ConfigureTestServices(services =>
