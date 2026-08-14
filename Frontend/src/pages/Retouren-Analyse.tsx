@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@jtl-software/platform-ui-react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import QualityReviewModal from "../components/QualityReviewModal";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../utils/api";
@@ -321,15 +321,28 @@ export default function RetourenAnalyseView() {
     }
   }, [searchParams]);
 
-  // Deep-Link vom Aktionsplan (/retouren-analyse?open=<articleId>) - öffnet automatisch das
-  // Review-Modal für den Artikel, sobald die Tabelle geladen ist. Wartet bewusst auf "ready",
-  // sonst gibt es beim ersten Render noch keine Zeilen zum Matchen.
+  // Deep-Link vom Dashboard (/retouren-analyse?filter=Offen) - wählt den Bearbeitungsstatus-Filter
+  // vorab aus, damit die "KI-Empfehlungen offen"-Karte direkt gefiltert ankommt.
+  useEffect(() => {
+    const filterParam = searchParams.get("filter");
+    if (filterParam && (TAG_FILTERS as readonly string[]).includes(filterParam)) {
+      setTagFilter(filterParam as TagFilter);
+    }
+  }, [searchParams]);
+
+  // Deep-Link vom Aktionsplan / von "Letzte Retouren" (/retouren-analyse?open=<articleId oder
+  // articleNumber>) - öffnet automatisch das Review-Modal für den Artikel, sobald die Tabelle
+  // geladen ist. Matcht auf id ODER articleNumber, da der Aktionsplan die id kennt, "Letzte
+  // Retouren" aber nur die articleNumber liefert. Wartet bewusst auf "ready", sonst gibt es beim
+  // ersten Render noch keine Zeilen zum Matchen.
   useEffect(() => {
     const openId = searchParams.get("open");
     if (!openId || articlesState.status !== "ready") return;
 
     const match = articlesState.data.find(
-      (item) => String(item.id ?? item.articleNumber) === openId,
+      (item) =>
+        (item.id !== undefined && item.id !== null && String(item.id) === openId) ||
+        item.articleNumber === openId,
     );
     if (!match) return;
 
@@ -505,6 +518,16 @@ export default function RetourenAnalyseView() {
 
   return (
     <>
+      <div className="mb-4 flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 shadow-[0_0_24px_-8px_rgba(59,130,246,0.6)] dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200 dark:shadow-[0_0_28px_-6px_rgba(96,165,250,0.5)]">
+        <Sparkles size={18} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+        <p>
+          Hier siehst du alle Artikel mit Retouren, eingefärbt nach Retourenquote (rot/gelb/grün).
+          Filtere nach Suchbegriff, Risikoklasse oder Bearbeitungsstatus und klicke auf einen
+          Artikel, um die KI-Analyse mit Qualitätsprüfung, Beschreibungsvorschlag und
+          Handlungsempfehlungen zu öffnen.
+        </p>
+      </div>
+
       <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
               <input

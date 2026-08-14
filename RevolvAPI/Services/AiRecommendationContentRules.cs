@@ -34,6 +34,11 @@ namespace RevolvAPI.Services
                 return true;
             }
 
+            if (response.QualityIssues.Any(q => !string.IsNullOrWhiteSpace(q)))
+            {
+                return true;
+            }
+
             return false;
         }
     }

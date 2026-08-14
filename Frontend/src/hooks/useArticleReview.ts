@@ -154,9 +154,35 @@ export function useArticleReview(
     }
   };
 
+  // Nur längere, aussagekräftige Wörter (z.B. "reißverschluss") - kurze Wörter wie "und"/"ist"
+  // würden sonst thematisch völlig unabhängige Einträge fälschlich verknüpfen.
+  const extractSignificantWords = (text: string): Set<string> =>
+    new Set(
+      text
+        .toLowerCase()
+        .replace(/[^\p{L}\s]/gu, " ")
+        .split(/\s+/)
+        .filter((w) => w.length >= 6),
+    );
+
+  // Erledigt man eine Qualitätswarnung (z.B. "Reißverschluss prüfen"), ist eine noch offene
+  // Handlungsempfehlung zum selben Thema (gemeinsames aussagekräftiges Wort) inhaltlich
+  // redundant geworden - die soll nicht separat abgehakt werden müssen.
+  const findLinkedActionRecommendations = (issue: QualityIssue): ActionRecommendation[] => {
+    const issueWords = extractSignificantWords(issue.issueText ?? "");
+    if (issueWords.size === 0) return [];
+
+    return actionRecommendations.filter((rec) => {
+      if (completedActionIds.has(rec.id)) return false;
+      const actionWords = extractSignificantWords(rec.actionText ?? "");
+      return [...issueWords].some((w) => actionWords.has(w));
+    });
+  };
+
   // Optimistic UI with rollback if the PATCH fails.
   const toggleQualityIssue = async (issue: QualityIssue) => {
     const nextIsResolved = !completedQualityIssueIds.has(issue.id);
+    const linkedActions = nextIsResolved ? findLinkedActionRecommendations(issue) : [];
 
     setCompletedQualityIssueIds((prev) => {
       const next = new Set(prev);
@@ -180,6 +206,13 @@ export function useArticleReview(
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
+      }
+
+      // Erst nach erfolgreichem Speichern der Qualitätswarnung - sonst würden bei einem
+      // fehlgeschlagenen PATCH oben Handlungsempfehlungen erledigt, obwohl die Warnung selbst
+      // gar nicht als gelöst gespeichert wurde.
+      for (const rec of linkedActions) {
+        void toggleActionRecommendation(rec);
       }
 
       onArticleUpdated?.();

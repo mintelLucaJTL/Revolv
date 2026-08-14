@@ -178,6 +178,15 @@ export default function Erfolgsmessung() {
         </Text>
       </div>
 
+      <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 shadow-[0_0_24px_-8px_rgba(59,130,246,0.6)] dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200 dark:shadow-[0_0_28px_-6px_rgba(96,165,250,0.5)]">
+        <LineChartIcon size={18} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+        <p>
+          Wähle unten einen Artikel, für den bereits ein KI-Vorschlag angenommen bzw. erledigt
+          wurde. Du siehst dann die durchschnittliche Retourenquote vor und nach der Änderung im
+          Verlauf – so erkennst du auf einen Blick, ob die KI-Empfehlung tatsächlich gewirkt hat.
+        </p>
+      </div>
+
       {isLoading ? (
         <TrendSkeleton />
       ) : error ? (

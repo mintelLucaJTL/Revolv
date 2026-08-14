@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent } from "@jtl-software/platform-ui-react";
 
 type Variant = "red" | "green" | "yellow";
@@ -8,6 +9,8 @@ interface Props {
   smallLabel?: string;
   value: number | string;
   onClick?: () => void;
+  /** Text im Tooltip, der der Maus beim Hover folgt (sagt, was der Klick macht). */
+  hoverHint?: string;
 }
 
 // Full-card traffic-light styling for the Ampel KPI tiles — same red/yellow/green tokens as
@@ -48,9 +51,11 @@ export default function KpiCard({
   smallLabel,
   value,
   onClick,
+  hoverHint,
 }: Props) {
   const cfg = CONFIG[variant];
   const isInteractive = typeof onClick === "function";
+  const [tipPos, setTipPos] = useState<{ x: number; y: number } | null>(null);
 
   const card = (
     <Card
@@ -60,6 +65,10 @@ export default function KpiCard({
           : ""
       }`}
       onClick={onClick}
+      onMouseMove={
+        isInteractive && hoverHint ? (e) => setTipPos({ x: e.clientX, y: e.clientY }) : undefined
+      }
+      onMouseLeave={isInteractive && hoverHint ? () => setTipPos(null) : undefined}
       role={isInteractive ? "button" : undefined}
       tabIndex={isInteractive ? 0 : undefined}
       aria-label={
@@ -103,5 +112,17 @@ export default function KpiCard({
   // Pufferzone rund um die Karte: schon das Herankommen mit der Maus (nicht erst der direkte
   // Hover auf der Karte selbst) löst per group-hover den dezenten "near"-Zustand aus, damit
   // früher erkennbar ist, dass die Karte klickbar ist.
-  return <div className="group -m-3 p-3">{card}</div>;
+  return (
+    <div className="group -m-3 p-3">
+      {card}
+      {hoverHint && tipPos && (
+        <div
+          className="pointer-events-none fixed z-50 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg dark:bg-slate-700"
+          style={{ left: tipPos.x + 16, top: tipPos.y + 16 }}
+        >
+          {hoverHint}
+        </div>
+      )}
+    </div>
+  );
 }

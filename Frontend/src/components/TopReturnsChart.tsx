@@ -145,7 +145,7 @@ export default function TopReturnsChart() {
 
       <CardContent className="space-y-3">
         <Box className="text-sm text-slate-500 dark:text-slate-400">
-          Artikel mit der aktuell höchsten prozentualen Retourenquote
+          Artikel mit der höchsten prozentualen Retourenquote
         </Box>
 
         {isLoading ? (
