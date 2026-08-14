@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, Button, Text } from "@jtl-software/platform-ui-react";
 import { Sparkles } from "lucide-react";
 import ArticleReviewSections from "./ArticleReviewSections";
+import Skeleton from "./Skeleton";
 import { apiFetch } from "../utils/api";
 import {
   findAiRecommendation,
@@ -11,15 +12,57 @@ import { useToast } from "./Toast";
 import { useArticleReview } from "../hooks/useArticleReview";
 import type { AnalyzeArticleResponse, ArticleDetailDTO } from "../types/api";
 
-// Placeholder until backend exposes real return comments.
-const PLACEHOLDER_CUSTOMER_COMMENTS = [
-  "Zurückgeschickt weil Hüftumfang nicht passt.",
-  "Farbe wirkt auf dem Foto anders als in echt.",
-  "Passt nicht zur angegebenen Größentabelle.",
-];
-
 const EMPTY_RESULT_TOAST =
   "Die KI-Analyse lieferte keinen sichtbaren Vorschlag. Bitte erneut versuchen.";
+
+const DETAIL_SKELETON_TABS = [
+  "Qualität",
+  "Beschreibung",
+  "Empfehlungen",
+  "Kundenkommentare",
+] as const;
+
+function ArticleDetailSkeleton() {
+  return (
+    <div aria-busy="true" aria-live="polite">
+      <span className="sr-only">Artikeldetails werden geladen</span>
+      <div className="flex gap-1 border-b border-slate-200 dark:border-slate-800">
+        {DETAIL_SKELETON_TABS.map((label, index) => (
+          <div
+            key={label}
+            className={`-mb-px flex items-center gap-2 border-b-2 px-3 py-2.5 ${
+              index === 0
+                ? "border-blue-600 dark:border-blue-400"
+                : "border-transparent"
+            }`}
+          >
+            <Skeleton className="h-4 w-4 rounded" />
+            <span className="text-sm font-semibold text-slate-300 dark:text-slate-600">
+              {label}
+            </span>
+            <Skeleton className="h-2 w-2 rounded-full" />
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-3 pt-5">
+        <Card className="border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/50">
+          <CardContent className="space-y-3 p-4">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+          </CardContent>
+        </Card>
+        <Card className="border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <CardContent className="space-y-3 p-4">
+            <Skeleton className="h-4 w-52" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   isOpen: boolean;
@@ -162,26 +205,6 @@ export default function QualityReviewModal({
 
   if (!isOpen) return null;
 
-  const customerCommentsSection =
-    articleDetail && !isLoading && !error ? (
-      <div className="mt-6">
-        <Text weight="bold">Kundenkommentare</Text>
-
-        <div className="mt-3 space-y-2">
-          {PLACEHOLDER_CUSTOMER_COMMENTS.map((comment, index) => (
-            <div
-              key={index}
-              className="rounded-2xl rounded-tl-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-4 py-3"
-            >
-              <p className="text-sm italic text-slate-600 dark:text-slate-300">
-                &ldquo;{comment}&rdquo;
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    ) : null;
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-xs p-4"
@@ -239,10 +262,8 @@ export default function QualityReviewModal({
           </CardHeader>
 
           <CardContent className="px-6 pb-6">
-            {isLoading ? (
-              <div className="p-6 text-center text-sm text-slate-600 dark:text-slate-400">
-                Lade Artikeldetails…
-              </div>
+            {isLoading && !isAnalyzing ? (
+              <ArticleDetailSkeleton />
             ) : error ? (
               <div className="p-6 text-center text-sm text-red-600 dark:text-red-400">{error}</div>
             ) : !articleDetail ? (
@@ -258,8 +279,6 @@ export default function QualityReviewModal({
                 reanalyzeBlockedReason={articleDetail.reanalyzeBlockedReason}
               />
             )}
-
-            {customerCommentsSection}
           </CardContent>
         </Card>
       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@jtl-software/platform-ui-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import QualityReviewModal from "../components/QualityReviewModal";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../utils/api";
@@ -15,6 +16,120 @@ const DEFAULT_RED_THRESHOLD = 25;
 const TAG_FILTERS = ["Alle Artikel", "Offen", "Abgeschlossen", "Keine Empfehlung"] as const;
 type TagFilter = (typeof TAG_FILTERS)[number];
 
+const CATEGORY_FILTER_ALL = "";
+const CATEGORY_FILTER_NONE = "__none__";
+
+const RETURN_RATE_THRESHOLDS = [5, 10, 20, 50] as const;
+
+const EMPTY_ARTICLES: ReturnItem[] = [];
+
+const TOOLBAR_SELECT_CLASS =
+  "rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-blue-200 focus:outline-none dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:focus:ring-blue-900";
+
+type SortKey = "articleNumber" | "name" | "category" | "returnRate" | "aiStatus";
+type SortDir = "asc" | "desc";
+
+const TABLE_COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "articleNumber", label: "Artikel-Nr." },
+  { key: "name", label: "Produktname" },
+  { key: "category", label: "Kategorie" },
+  { key: "returnRate", label: "Retourenquote" },
+  { key: "aiStatus", label: "KI-Status" },
+];
+
+/** JSON may send null for string fields even when the TS type is `string`. */
+function asSortText(value: string | null | undefined): string {
+  return value ?? "";
+}
+
+function asSortNumber(value: number | null | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function parseNumericSortValue(value: string): number | null {
+  const trimmed = value.trim().replace(",", ".");
+  if (trimmed === "") return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function compareNumericOrText(a: string | null | undefined, b: string | null | undefined): number {
+  const textA = asSortText(a);
+  const textB = asSortText(b);
+  const numericA = parseNumericSortValue(textA);
+  const numericB = parseNumericSortValue(textB);
+  if (numericA !== null && numericB !== null) {
+    return numericA - numericB;
+  }
+  return textA.localeCompare(textB, "de", { numeric: true, sensitivity: "base" });
+}
+
+function compareText(a: string | null | undefined, b: string | null | undefined): number {
+  return asSortText(a).localeCompare(asSortText(b), "de", { numeric: true, sensitivity: "base" });
+}
+
+function statusSortValue(item: ReturnItem): string {
+  if (item.aiStatus === "Keine Empfehlung") return item.aiStatus;
+  return item.isFullyResolved ? "Abgeschlossen" : "Offen";
+}
+
+function compareRows(a: ReturnItem, b: ReturnItem, key: SortKey): number {
+  switch (key) {
+    case "returnRate":
+      return asSortNumber(a.returnRate) - asSortNumber(b.returnRate);
+    case "articleNumber":
+      return compareNumericOrText(a.articleNumber, b.articleNumber);
+    case "name":
+      return compareText(a.name, b.name);
+    case "category":
+      return compareText(a.category, b.category);
+    case "aiStatus":
+      return asSortText(statusSortValue(a)).localeCompare(asSortText(statusSortValue(b)), "de", {
+        sensitivity: "base",
+      });
+  }
+}
+
+function SortableHeader({
+  column,
+  label,
+  sortKey,
+  sortDir,
+  onSort,
+}: {
+  column: SortKey;
+  label: string;
+  sortKey: SortKey;
+  sortDir: SortDir;
+  onSort: (key: SortKey) => void;
+}) {
+  const isActive = sortKey === column;
+  const ariaSort = isActive ? (sortDir === "asc" ? "ascending" : "descending") : "none";
+
+  return (
+    <th
+      scope="col"
+      aria-sort={ariaSort}
+      className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-slate-300"
+    >
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        aria-label={`Nach ${label} sortieren`}
+        className="inline-flex cursor-pointer select-none items-center gap-1.5 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 dark:hover:text-slate-100 dark:focus-visible:ring-blue-900"
+      >
+        {label}
+        {isActive &&
+          (sortDir === "asc" ? (
+            <ChevronUp className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          ))}
+      </button>
+    </th>
+  );
+}
+
 function matchesTagFilter(item: ReturnItem, filter: TagFilter): boolean {
   switch (filter) {
     case "Offen":
@@ -26,6 +141,22 @@ function matchesTagFilter(item: ReturnItem, filter: TagFilter): boolean {
     default:
       return true;
   }
+}
+
+function categoryKey(value: string | null | undefined): string {
+  return asSortText(value).trim();
+}
+
+function matchesCategoryFilter(item: ReturnItem, filter: string): boolean {
+  if (filter === CATEGORY_FILTER_ALL) return true;
+  const category = categoryKey(item.category);
+  if (filter === CATEGORY_FILTER_NONE) return category === "";
+  return category === filter;
+}
+
+function matchesReturnRateFilter(item: ReturnItem, minRate: number | null): boolean {
+  if (minRate === null) return true;
+  return asSortNumber(item.returnRate) >= minRate;
 }
 
 type ArticlesState =
@@ -128,8 +259,11 @@ export default function RetourenAnalyseView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeBand = parseBand(searchParams.get("band"));
   const [query, setQuery] = useState("");
-  const [desc, setDesc] = useState(true);
+  const [sortKey, setSortKey] = useState<SortKey>("returnRate");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [tagFilter, setTagFilter] = useState<TagFilter>("Alle Artikel");
+  const [categoryFilter, setCategoryFilter] = useState(CATEGORY_FILTER_ALL);
+  const [minReturnRate, setMinReturnRate] = useState<number | null>(null);
 
   const [articlesState, setArticlesState] = useState<ArticlesState>({ status: "loading" });
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -289,29 +423,76 @@ export default function RetourenAnalyseView() {
       ? articlesState.data
       : articlesState.status === "error"
         ? articlesState.staleData
-        : [];
+        : EMPTY_ARTICLES;
 
   const hasError = articlesState.status === "error";
   const isInitialLoading = articlesState.status === "loading";
+
+  const categoryOptions = useMemo(() => {
+    const unique = new Set<string>();
+    let hasEmpty = false;
+    for (const item of articles) {
+      const category = categoryKey(item.category);
+      if (category === "") {
+        hasEmpty = true;
+      } else {
+        unique.add(category);
+      }
+    }
+    return {
+      names: [...unique].sort((a, b) => a.localeCompare(b, "de", { sensitivity: "base" })),
+      hasEmpty,
+    };
+  }, [articles]);
+
+  useEffect(() => {
+    if (articles.length === 0 || categoryFilter === CATEGORY_FILTER_ALL) return;
+    const stillValid =
+      (categoryFilter === CATEGORY_FILTER_NONE && categoryOptions.hasEmpty) ||
+      categoryOptions.names.includes(categoryFilter);
+    if (!stillValid) setCategoryFilter(CATEGORY_FILTER_ALL);
+  }, [articles.length, categoryFilter, categoryOptions]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
 
     const filtered = articles.filter(
       (d) =>
-        (d.name.toLowerCase().includes(q) ||
-          d.articleNumber.toLowerCase().includes(q) ||
-          d.category.toLowerCase().includes(q)) &&
-        matchesTagFilter(d, tagFilter),
+        (asSortText(d.name).toLowerCase().includes(q) ||
+          asSortText(d.articleNumber).toLowerCase().includes(q) ||
+          asSortText(d.category).toLowerCase().includes(q)) &&
+        matchesTagFilter(d, tagFilter) &&
+        matchesCategoryFilter(d, categoryFilter) &&
+        matchesReturnRateFilter(d, minReturnRate),
     );
 
-    return [...filtered].sort((a, b) =>
-      desc ? b.returnRate - a.returnRate : a.returnRate - b.returnRate,
-    );
-  }, [articles, query, desc, tagFilter]);
+    return [...filtered].sort((a, b) => {
+      const comparison = compareRows(a, b, sortKey);
+      return sortDir === "asc" ? comparison : -comparison;
+    });
+  }, [articles, query, sortKey, sortDir, tagFilter, categoryFilter, minReturnRate]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(key);
+    setSortDir("asc");
+  };
 
   const hasActiveQuery = query.trim().length > 0;
   const hasActiveTagFilter = tagFilter !== "Alle Artikel";
+  const hasActiveCategoryFilter = categoryFilter !== CATEGORY_FILTER_ALL;
+  const hasActiveRateFilter = minReturnRate !== null;
+  const hasActiveListFilters = hasActiveTagFilter || hasActiveCategoryFilter || hasActiveRateFilter;
+
+  const resetListFilters = () => {
+    setQuery("");
+    setTagFilter("Alle Artikel");
+    setCategoryFilter(CATEGORY_FILTER_ALL);
+    setMinReturnRate(null);
+  };
 
   const emptyMessage = activeBand
     ? `Keine Artikel in der Risikoklasse „${BAND_LABELS[activeBand]}“.`
@@ -328,10 +509,40 @@ export default function RetourenAnalyseView() {
                 onChange={(e) => setQuery(e.target.value)}
                 className="rounded-md border border-gray-200 bg-white px-3 py-2 w-72 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-200 focus:outline-none dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-blue-900"
               />
-              <Button
-                label={`Sort: ${desc ? "Absteigend" : "Aufsteigend"}`}
-                onClick={() => setDesc((s) => !s)}
-              />
+              <select
+                aria-label="Kategorie"
+                data-testid="category-filter"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className={`${TOOLBAR_SELECT_CLASS} max-w-[16rem]`}
+              >
+                <option value={CATEGORY_FILTER_ALL}>Alle Kategorien</option>
+                {categoryOptions.hasEmpty && (
+                  <option value={CATEGORY_FILTER_NONE}>Ohne Kategorie</option>
+                )}
+                {categoryOptions.names.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="Retourenquote"
+                data-testid="return-rate-filter"
+                value={minReturnRate === null ? "" : String(minReturnRate)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setMinReturnRate(value === "" ? null : Number(value));
+                }}
+                className={TOOLBAR_SELECT_CLASS}
+              >
+                <option value="">Alle</option>
+                {RETURN_RATE_THRESHOLDS.map((threshold) => (
+                  <option key={threshold} value={threshold}>
+                    {`≥ ${threshold} %`}
+                  </option>
+                ))}
+              </select>
               {activeBand && (
                 <div
                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${BAND_CHIP_CLASSES[activeBand]}`}
@@ -375,9 +586,24 @@ export default function RetourenAnalyseView() {
 
           <Card className="dark:bg-slate-900 dark:border-slate-700">
             <CardHeader>
-              <CardTitle className="dark:text-slate-100">
-                {activeBand ? `Artikelübersicht – ${BAND_LABELS[activeBand]}` : "Artikelübersicht"}
-              </CardTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="dark:text-slate-100">
+                  {activeBand ? `Artikelübersicht – ${BAND_LABELS[activeBand]}` : "Artikelübersicht"}
+                </CardTitle>
+                {isRefreshing && (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-xs font-normal text-slate-500 dark:text-slate-400"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"
+                      aria-hidden="true"
+                    />
+                    Aktualisiere…
+                  </span>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {hasError && articles.length > 0 && (
@@ -394,11 +620,12 @@ export default function RetourenAnalyseView() {
                     label={isRefreshing ? "Lädt…" : "Erneut versuchen"}
                     onClick={() => void loadArticles(activeBand)}
                     disabled={isRefreshing}
+                    isLoading={isRefreshing}
                   />
                 </div>
               )}
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto" aria-busy={isRefreshing || isInitialLoading}>
                 {isInitialLoading ? (
                   <table className="min-w-full divide-y divide-gray-100 dark:divide-slate-700">
                     <tbody className="bg-white divide-y divide-gray-100 dark:bg-slate-900 dark:divide-slate-700">
@@ -418,6 +645,7 @@ export default function RetourenAnalyseView() {
                       label={isRefreshing ? "Lädt…" : "Erneut versuchen"}
                       onClick={() => void loadArticles(activeBand)}
                       disabled={isRefreshing}
+                      isLoading={isRefreshing}
                     />
                   </div>
                 ) : articles.length === 0 ? (
@@ -438,32 +666,24 @@ export default function RetourenAnalyseView() {
                         : "Keine Artikel für diesen Filter."}
                     </p>
                     <Button
-                      label={hasActiveQuery || hasActiveTagFilter ? "Filter zurücksetzen" : "Suche zurücksetzen"}
-                      onClick={() => {
-                        setQuery("");
-                        setTagFilter("Alle Artikel");
-                      }}
+                      label={hasActiveQuery || hasActiveListFilters ? "Filter zurücksetzen" : "Suche zurücksetzen"}
+                      onClick={resetListFilters}
                     />
                   </div>
                 ) : (
                   <table className="min-w-full divide-y divide-gray-100 dark:divide-slate-700">
                     <thead className="bg-gray-50 dark:bg-slate-800">
                       <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-slate-300">
-                          Artikel-Nr.
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-slate-300">
-                          Produktname
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-slate-300">
-                          Kategorie
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-slate-300">
-                          Retourenquote
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-slate-300">
-                          KI-Status
-                        </th>
+                        {TABLE_COLUMNS.map((column) => (
+                          <SortableHeader
+                            key={column.key}
+                            column={column.key}
+                            label={column.label}
+                            sortKey={sortKey}
+                            sortDir={sortDir}
+                            onSort={handleSort}
+                          />
+                        ))}
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100 dark:bg-slate-900 dark:divide-slate-700">

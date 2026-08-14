@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, Button, Text, Box } from "@jtl-software/platform-ui-react";
-import { CheckCircle2, FileText, ListChecks, ShieldAlert, Sparkles } from "lucide-react";
+import { CheckCircle2, FileText, ListChecks, MessageSquareQuote, ShieldAlert, Sparkles } from "lucide-react";
 import QualityWarningCard from "./QualityWarningCard";
 import {
   PROPOSAL_STATUS_ACCEPTED,
@@ -98,18 +98,20 @@ function EmptyAnalysisHero({ onStart }: { onStart?: () => void }) {
   );
 }
 
-type TabKey = "quality" | "description" | "actions";
+type TabKey = "quality" | "description" | "actions" | "comments";
 
 const TAB_ICON: Record<TabKey, typeof ShieldAlert> = {
   quality: ShieldAlert,
   description: FileText,
   actions: ListChecks,
+  comments: MessageSquareQuote,
 };
 
 const TAB_LABEL: Record<TabKey, string> = {
   quality: "Qualität",
   description: "Beschreibung",
   actions: "Empfehlungen",
+  comments: "Kundenkommentare",
 };
 
 interface Props {
@@ -195,12 +197,15 @@ export default function ArticleReviewSections({
 
   const hasIssues = issues.length > 0;
   const currentText = descriptionProposal?.currentText?.trim() ?? "";
+  const customerComments = aiRec.customerComments ?? [];
 
-  const tabs: TabKey[] = ["quality", "description", "actions"];
+  const tabs: TabKey[] = ["quality", "description", "actions", "comments"];
   const statusByTab: Record<TabKey, ReviewSectionTone> = {
     quality: sectionStatus.quality.tone,
     description: sectionStatus.description.tone,
     actions: sectionStatus.actions.tone,
+    // Kein offener/erledigt-Zustand wie bei den anderen Tabs - nur "gibt es welche".
+    comments: customerComments.length > 0 ? "good" : "neutral",
   };
 
   const tabBar = (
@@ -486,6 +491,31 @@ export default function ArticleReviewSections({
                   <p className="mt-2 text-xs text-red-600 dark:text-red-400">{actionSaveError}</p>
                 ) : null}
               </>
+            )}
+          </div>
+        )}
+
+        {activeTab === "comments" && (
+          <div>
+            {customerComments.length === 0 ? (
+              <Card className="border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                <CardContent className="p-4">
+                  <Text color="muted">Keine Kundenkommentare zu diesem Artikel vorhanden</Text>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {customerComments.map((comment, index) => (
+                  <div
+                    key={index}
+                    className="rounded-2xl rounded-tl-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-4 py-3"
+                  >
+                    <p className="text-sm italic text-slate-600 dark:text-slate-300">
+                      &ldquo;{comment}&rdquo;
+                    </p>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}

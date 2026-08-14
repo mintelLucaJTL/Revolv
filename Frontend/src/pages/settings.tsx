@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Box, Card, Button, Text } from "@jtl-software/platform-ui-react";
 import { apiFetch } from "../utils/api";
+import Skeleton from "../components/Skeleton";
 
 // DTO for the settings API.
 interface SettingsApiDto {
@@ -142,6 +143,52 @@ function applySettingsToForm(
   setters.setSignificantShift(Number(data.significantReasonShiftPercentagePoints));
 }
 
+function SettingsFormSkeleton({ cardBackground }: { cardBackground: string }) {
+  return (
+    <div aria-busy="true">
+      <span className="sr-only">Einstellungen werden geladen</span>
+      <Box className="mt-6 grid gap-4 md:grid-cols-2">
+        <Card className={`p-6 ${cardBackground}`}>
+          <Skeleton className="h-5 w-32" />
+          <Box className="mt-4 space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </Box>
+        </Card>
+        <Card className={`p-6 ${cardBackground}`}>
+          <Skeleton className="h-5 w-40" />
+          <Box className="mt-4 space-y-4">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-5 w-56" />
+          </Box>
+        </Card>
+      </Box>
+      <Box className="mt-6 grid gap-4 md:grid-cols-2">
+        <Card className={`p-5 ${cardBackground}`}>
+          <Skeleton className="h-5 w-56" />
+          <Skeleton className="mt-4 h-4 w-full" />
+          <Box className="mt-5 space-y-5">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </Box>
+        </Card>
+        <Card className={`p-5 ${cardBackground}`}>
+          <Skeleton className="h-5 w-56" />
+          <Skeleton className="mt-4 h-4 w-full" />
+          <Box className="mt-5 space-y-5">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </Box>
+        </Card>
+      </Box>
+      <Box className="mt-6">
+        <Skeleton className="h-10 w-32" />
+      </Box>
+    </div>
+  );
+}
+
 export default function Settings() {
   const [tone, setTone] = useState("");
   const [autoAnalysis, setAutoAnalysis] = useState(false);
@@ -152,6 +199,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const savingRef = useRef(false);
 
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -168,34 +216,36 @@ export default function Settings() {
     window.localStorage.setItem("theme", theme);
   }, [theme]);
 
-  useEffect(() => {
-    const loadSettings = async () => {
-      setLoading(true);
-      setMessage(null);
-      try {
-        const response = await apiFetch(API_SETTINGS);
-        if (!response.ok) {
-          throw new Error("Einstellungen konnten nicht geladen werden.");
-        }
-
-        const data = (await response.json()) as SettingsApiDto;
-        applySettingsToForm(data, {
-          setTone,
-          setAutoAnalysis,
-          setYellowThreshold,
-          setRedThreshold,
-          setMinNewReturns,
-          setSignificantShift,
-        });
-      } catch (error) {
-        console.error(error);
-        setMessage("Die Einstellungen konnten nicht geladen werden.");
-      } finally {
-        setLoading(false);
+  const loadSettings = async () => {
+    setLoading(true);
+    setLoadError(null);
+    setMessage(null);
+    try {
+      const response = await apiFetch(API_SETTINGS);
+      if (!response.ok) {
+        throw new Error("Einstellungen konnten nicht geladen werden.");
       }
-    };
 
+      const data = (await response.json()) as SettingsApiDto;
+      applySettingsToForm(data, {
+        setTone,
+        setAutoAnalysis,
+        setYellowThreshold,
+        setRedThreshold,
+        setMinNewReturns,
+        setSignificantShift,
+      });
+    } catch (error) {
+      console.error(error);
+      setLoadError("Die Einstellungen konnten nicht geladen werden.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     void loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSave = async () => {
@@ -296,9 +346,14 @@ export default function Settings() {
       <Text weight="bold">Einstellungen</Text>
 
           {loading ? (
-            <Box className="mt-6">
-              <Text type="xs">Lade aktuelle Einstellungen…</Text>
-            </Box>
+            <SettingsFormSkeleton cardBackground={cardBackground} />
+          ) : loadError ? (
+            <Card className={`mt-6 p-8 ${cardBackground}`}>
+              <Box className="flex flex-col items-center justify-center gap-3 text-sm text-red-600 dark:text-red-400">
+                <span>{loadError}</span>
+                <Button label="Erneut versuchen" onClick={() => void loadSettings()} />
+              </Box>
+            </Card>
           ) : (
             <>
               <Box className="mt-6 grid gap-4 md:grid-cols-2">
@@ -452,6 +507,7 @@ export default function Settings() {
                   label={saving ? "Speichern..." : "Speichern"}
                   onClick={handleSave}
                   disabled={saving || loading}
+                  isLoading={saving}
                 />
               </Box>
             </>

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using RevolvAPI.Data;
 using RevolvAPI.Models;
@@ -101,6 +102,7 @@ namespace RevolvAPI.Services
                 articleInfo.Name ?? "Unbekannter Artikel",
                 currentDescription,
                 returnReasons,
+                companyId,
                 customerComments);
 
             if (!AiRecommendationContentRules.IsUsable(aiResult))
@@ -116,6 +118,9 @@ namespace RevolvAPI.Services
                 AiSummaryText = aiResult!.Summary,
                 ReturnRate = returnRate,
                 IsFullyResolved = false,
+                GeneratedCustomerCommentsJson = aiResult.CustomerComments.Count > 0
+                    ? JsonSerializer.Serialize(aiResult.CustomerComments)
+                    : null,
             };
 
             foreach (var proposal in aiResult.DescriptionProposals

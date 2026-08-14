@@ -17,6 +17,10 @@ namespace RevolvAPI.DTOs
 
         [JsonPropertyName("actionRecommendations")]
         public List<AiActionRecommendationResponseDto> ActionRecommendations { get; set; } = new();
+
+        /// <summary>Maps to AiRecommendation.GeneratedCustomerCommentsJson.</summary>
+        [JsonPropertyName("customerComments")]
+        public List<string> CustomerComments { get; set; } = new();
     }
 
     /// <summary>Maps to DescriptionProposal (CurrentText, ProposedText).</summary>

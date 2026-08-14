@@ -6,12 +6,11 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Separator,
-  Text,
 } from "@jtl-software/platform-ui-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogIn } from "lucide-react";
+import PasswordField from "../components/PasswordField";
 import { useAuth } from "../context/AuthContext";
 
 // Card ist immer hell (siehe unten), daher hier bewusst kein dark:-Pfad wie bei den übrigen
@@ -23,16 +22,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleLogin = async () => {
+    if (isSubmitting) return;
+
     setError("");
 
     if (!email || !password) {
       setError("Bitte E-Mail und Passwort eingeben.");
       return;
     }
+
+    setIsSubmitting(true);
 
     try {
       // Kein navigate() hier - PublicOnlyRoute leitet automatisch zu /welcome weiter, sobald
@@ -47,6 +51,8 @@ export default function LoginPage() {
       } else {
         setError(err instanceof Error ? err.message : "Login fehlgeschlagen.");
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -86,49 +92,67 @@ export default function LoginPage() {
      
 
         <CardContent className="flex flex-col gap-4 mt-4">
-          <p className="text-black text-sm">
-            Bitte melde dich an, um fortzufahren.
-          </p>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleLogin();
+            }}
+          >
+            <p className="text-black text-sm">
+              Bitte melde dich an, um fortzufahren.
+            </p>
 
-          <label className="text-black text-sm font-medium">E-Mail</label>
-          <input
-            className={inputClassName}
-            placeholder="du@beispiel.de"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <label className="text-black text-sm font-medium">Passwort</label>
-          <div className="relative">
+            <label className="text-black text-sm font-medium">E-Mail</label>
             <input
-              className={`${inputClassName} pr-32`}
+              className={inputClassName}
+              placeholder="du@beispiel.de"
+              type="email"
+              name="email"
+              autoComplete="email"
+              value={email}
+              disabled={isSubmitting}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <label className="text-black text-sm font-medium">Passwort</label>
+            <PasswordField
+              inputClassName={inputClassName}
               placeholder="••••••••"
-              type="password"
+              name="password"
+              autoComplete="current-password"
               value={password}
+              disabled={isSubmitting}
               onChange={(e) => setPassword(e.target.value)}
             />
             <button
               type="button"
               onClick={() => navigate("/forgot-password")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"
+              disabled={isSubmitting}
+              className="-mt-2 self-end text-xs font-semibold text-blue-600 transition hover:text-blue-800 disabled:opacity-50"
             >
               Passwort vergessen?
             </button>
-          </div>
 
-          {error ? <div className="text-sm text-red-600">{error}</div> : null}
+            {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
-          <Button label="Anmelden" variant="highlight" onClick={handleLogin} />
+            <Button
+              type="submit"
+              label={isSubmitting ? "Anmelden…" : "Anmelden"}
+              variant="highlight"
+              isLoading={isSubmitting}
+              disabled={isSubmitting}
+            />
+          </form>
           <div className="text-center text-sm text-black">
             Noch kein Konto? Registriere dich unten.
           </div>
           <Button
             label="Konto erstellen"
             variant="outline"
+            disabled={isSubmitting}
             onClick={() => navigate("/register")}
           />
-         
         </CardContent>
       </Card>
     </Box>
