@@ -21,6 +21,11 @@ namespace RevolvAPI.DTOs
         /// <summary>Maps to AiRecommendation.GeneratedCustomerCommentsJson.</summary>
         [JsonPropertyName("customerComments")]
         public List<string> CustomerComments { get; set; } = new();
+
+        /// <summary>Maps to QualityIssue rows (Qualität-Tab) - nur befüllt, wenn Retourengründe/
+        /// Kundenkommentare auf Defekte/Fertigungsmängel hindeuten.</summary>
+        [JsonPropertyName("qualityIssues")]
+        public List<string> QualityIssues { get; set; } = new();
     }
 
     /// <summary>Maps to DescriptionProposal (CurrentText, ProposedText).</summary>

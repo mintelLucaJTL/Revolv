@@ -60,12 +60,12 @@ interface AmpelTile {
 const KPI_CARD_META: Omit<KpiNavCard, "value" | "extra">[] = [
   {
     title: "Gesamte Retourenquote",
-    content: "Gesamtquote aller Retouren in diesem Monat.",
+    content: "So viel Prozent der verkauften Stück kamen zurück.",
     icon: Percent,
   },
   {
     title: "Betroffene Artikel",
-    content: "Artikel mit aktuellen Rücksendungen.",
+    content: "Artikel mit mindestens einer Rücksendung.",
     icon: PackageSearch,
   },
   {
@@ -79,6 +79,19 @@ const KPI_CARD_META: Omit<KpiNavCard, "value" | "extra">[] = [
     icon: TrendingUp,
   },
 ];
+
+// Nur diese beiden der vier oberen Karten haben eine konkrete Zielseite -> nur sie bekommen
+// Klick + Glow-Hover + Maus-Tooltip, statt alle vier gleich klickbar zu machen.
+const CARD_LINKS: Record<string, { path: string; tooltip: string }> = {
+  "KI-Empfehlungen offen": {
+    path: "/retouren-analyse?filter=Offen",
+    tooltip: "Zu den offenen Retourenanalysen navigieren →",
+  },
+  "Verbesserte Produkte": {
+    path: "/erfolgsmessung",
+    tooltip: "Zu den Erfolgsmessungen navigieren →",
+  },
+};
 
 function formatPercent(value: number): string {
   return `${value.toLocaleString("de-DE", {
@@ -175,6 +188,8 @@ export default function Dashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Tooltip, der der Maus folgt, solange eine verlinkte KPI-Karte (siehe CARD_LINKS) gehovert wird.
+  const [actionTip, setActionTip] = useState<{ x: number; y: number; text: string } | null>(null);
 
   useEffect(() => {
     const loadDashboardData = async (isBackgroundRefresh: boolean) => {
@@ -279,23 +294,27 @@ export default function Dashboard() {
                   const isNegative =
                     extraText.trim().startsWith("-") || extraText.trim().startsWith("−");
                   const Icon = card.icon;
-                  // "KI-Empfehlungen offen" ist die einzige der vier oberen Karten mit einer
-                  // konkreten Stelle, wo man direkt etwas tun kann - deshalb bekommt nur sie
-                  // Klick + Glow-Hover, statt alle vier gleich klickbar zu machen.
-                  const isActionable = card.title === "KI-Empfehlungen offen";
+                  const link = CARD_LINKS[card.title];
+                  const isActionable = link !== undefined;
 
                   const kpiCard = (
                     <Card
                       key={card.title}
-                      onClick={isActionable ? () => navigate("/aktionsplan") : undefined}
+                      onClick={link ? () => navigate(link.path) : undefined}
+                      onMouseMove={
+                        link
+                          ? (e) => setActionTip({ x: e.clientX, y: e.clientY, text: link.tooltip })
+                          : undefined
+                      }
+                      onMouseLeave={link ? () => setActionTip(null) : undefined}
                       role={isActionable ? "button" : undefined}
                       tabIndex={isActionable ? 0 : undefined}
                       onKeyDown={
-                        isActionable
+                        link
                           ? (e) => {
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
-                                navigate("/aktionsplan");
+                                navigate(link.path);
                               }
                             }
                           : undefined
@@ -355,6 +374,15 @@ export default function Dashboard() {
                 })}
           </div>
 
+          {actionTip && (
+            <div
+              className="pointer-events-none fixed z-50 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg dark:bg-slate-700"
+              style={{ left: actionTip.x + 16, top: actionTip.y + 16 }}
+            >
+              {actionTip.text}
+            </div>
+          )}
+
           <div className="grid gap-4 mt-6">
             <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
               Deine Retouren-Ampel
@@ -373,6 +401,7 @@ export default function Dashboard() {
                       smallLabel={t.smallLabel}
                       value={t.value}
                       onClick={() => navigate(buildRetourenAnalysePath(t.variant))}
+                      hoverHint="Zur gefilterten Retourenanalyse navigieren →"
                     />
                   ))}
             </div>

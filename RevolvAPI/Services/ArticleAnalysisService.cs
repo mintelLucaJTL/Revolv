@@ -109,6 +109,15 @@ namespace RevolvAPI.Services
                 return ArticleAnalysisResult.EmptyOrInvalidAiResult();
             }
 
+            // Sicherheitsnetz: LLMs befolgen die qualityIssues-Anweisung im Prompt nicht immer
+            // zuverlässig (z.B. bei sonst gut befüllter Antwort). Deuten Retourengründe/Kommentare
+            // trotzdem klar auf einen Defekt hin, aber die KI hat qualityIssues leer gelassen, wird
+            // deterministisch nachgeholt statt die Qualitätswarnung stillschweigend zu verlieren.
+            if (aiResult!.QualityIssues.Count == 0)
+            {
+                aiResult.QualityIssues = AiService.BuildQualityIssues(returnReasons, customerComments);
+            }
+
             // Antwort der KI in echte DB-Modelle umwandeln.
             var recommendation = new AiRecommendation
             {
@@ -132,7 +141,12 @@ namespace RevolvAPI.Services
                     // fehlendem Kontext hat die KI schon den Platzhalter aus dem Prompt-Beispiel
                     // ("Aktuelle Produktbeschreibung") zurückgegeben statt echten Text.
                     CurrentText = currentDescription,
-                    ProposedText = proposal.ProposedText,
+                    // Sicherheitsnetz wie bei QualityIssues: die KI befolgt die MasterPrompt-Regel
+                    // "Retourengründe im Beschreibungstext adressieren" nicht bei jedem Aufruf gleich
+                    // zuverlässig - fehlt ein einschlägiger Hinweis (Farbe/Größe/Material/Defekt),
+                    // wird er deterministisch nachgetragen statt sich auf die KI zu verlassen.
+                    ProposedText = AiService.AppendMissingReasonHints(
+                        proposal.ProposedText!, returnReasons, customerComments),
                     Status = AiRecommendationStatuses.DescriptionProposalPending,
                 });
             }
@@ -146,6 +160,19 @@ namespace RevolvAPI.Services
                     ImpactBadge = action.ImpactBadge,
                     Priority = action.Priority,
                     IsCompleted = false,
+                });
+            }
+
+            // Qualitätswarnungen (Qualität-Tab): nur wenn die KI anhand von Retourengründen/
+            // Kundenkommentaren tatsächlich auf einen Defekt/Fertigungsmangel geschlossen hat
+            // (siehe MasterPrompt-Regel) - kein Eintrag bei reinen Passform-/Farb-/Geschmacksgründen.
+            foreach (var issueText in aiResult.QualityIssues
+                         .Where(t => !string.IsNullOrWhiteSpace(t)))
+            {
+                recommendation.QualityIssues.Add(new QualityIssue
+                {
+                    IssueText = issueText,
+                    Status = AiRecommendationStatuses.QualityIssuePending,
                 });
             }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, Text, Button } from "@jtl-software/platform-ui-react";
-import { CheckCircle2, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../utils/api";
 
@@ -64,6 +64,15 @@ export default function Aktionsplan() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-4">
+      <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 shadow-[0_0_24px_-8px_rgba(59,130,246,0.6)] dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-200 dark:shadow-[0_0_28px_-6px_rgba(96,165,250,0.5)]">
+        <Sparkles size={18} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
+        <p>
+          Hier siehst du die Produkte mit dem höchsten Handlungsbedarf, priorisiert nach
+          geschätztem Einsparpotenzial – oben steht, was sich am meisten lohnt. Klicke auf einen
+          Artikel, um direkt zur KI-Analyse und den Handlungsempfehlungen zu navigieren.
+        </p>
+      </div>
+
       {error ? (
         <Card className="dark:bg-slate-900 dark:border-slate-700">
           <CardContent className="flex flex-col items-center justify-center gap-3 p-8 text-sm text-red-600">
