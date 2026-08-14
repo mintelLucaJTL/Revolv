@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@jtl-software/platform-ui-react";
-import { Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import QualityReviewModal from "../components/QualityReviewModal";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../utils/api";
@@ -128,6 +128,14 @@ function SortableHeader({
       </button>
     </th>
   );
+}
+
+// Primäre Sortierung für "Alle Artikel": erst Offen (muss noch bearbeitet werden), dann Artikel
+// ohne Empfehlung, ganz unten Abgeschlossene - die gewählte Spaltensortierung bleibt sekundäres
+// Kriterium innerhalb jeder Gruppe.
+function statusSortPriority(item: ReturnItem): number {
+  if (item.aiStatus === "Keine Empfehlung") return 1;
+  return item.isFullyResolved ? 2 : 0;
 }
 
 function matchesTagFilter(item: ReturnItem, filter: TagFilter): boolean {
@@ -485,6 +493,12 @@ export default function RetourenAnalyseView() {
     );
 
     return [...filtered].sort((a, b) => {
+      // Status-Gruppierung nur bei "Alle Artikel" - bei den anderen Filtern haben ohnehin alle
+      // sichtbaren Artikel denselben Status, da wäre die zusätzliche Sortierung wirkungslos.
+      if (tagFilter === "Alle Artikel") {
+        const statusDiff = statusSortPriority(a) - statusSortPriority(b);
+        if (statusDiff !== 0) return statusDiff;
+      }
       const comparison = compareRows(a, b, sortKey);
       return sortDir === "asc" ? comparison : -comparison;
     });
